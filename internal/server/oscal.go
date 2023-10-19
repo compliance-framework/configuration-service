@@ -62,7 +62,7 @@ func (s *Server) genPOST(model schema.BaseModel) func(e echo.Context) (err error
 		if err := c.Bind(p); err != nil {
 			return c.String(http.StatusBadRequest, fmt.Sprintf("bad request: %v", err))
 		}
-		if p.UUID() == "" {
+		if c.Param("uuid") == "" {
 			return c.String(http.StatusBadRequest, "UUID is missing in the payload")
 		}
 		err = p.Validate()
