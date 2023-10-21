@@ -5,6 +5,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/Valgard/godotenv"
 	"github.com/compliance-framework/configuration-service/internal/jobs"
 	"github.com/compliance-framework/configuration-service/internal/server"
 	"github.com/compliance-framework/configuration-service/internal/stores/mongo"
@@ -13,13 +14,22 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	DefaultMongoURI = "mongodb://localhost:27017"
+	DefaultNATSURI  = "nats://localhost:4222"
+	DefaultPort     = ":8080"
+)
+
+type Config struct {
+	MongoURI string
+	NATSURI  string
+}
+
 func main() {
 	var wg sync.WaitGroup
+	config := loadConfig()
 
-	mongoUri := getEnvironmentVariable("MONGO_URI", "mongodb://mongo:27017")
-	natsUri := getEnvironmentVariable("NATS_URI", "nats://nats:4222")
-
-	driver := &mongo.MongoDriver{Url: mongoUri, Database: "cf"}
+	driver := &mongo.MongoDriver{Url: config.MongoURI, Database: "cf"}
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatalf("Can't initialize zap logger: %v", err)
@@ -37,7 +47,7 @@ func main() {
 	}()
 
 	sub := jobs.EventSubscriber{Log: sugar}
-	checkErr(sub.Connect(natsUri))
+	checkErr(sub.Connect(config.NATSURI))
 	ch := sub.Subscribe("assessment.result")
 
 	process := jobs.EventProcessor{Log: sugar, Driver: driver}
@@ -49,7 +59,7 @@ func main() {
 	}()
 
 	pub := jobs.EventPublisher{Log: sugar}
-	checkErr(pub.Connect(natsUri))
+	checkErr(pub.Connect(config.NATSURI))
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -61,17 +71,32 @@ func main() {
 	checkErr(sv.RegisterRuntime(e))
 	checkErr(sv.RegisterProcess(e))
 
-	checkErr(e.Start(":8080"))
+	checkErr(e.Start(DefaultPort))
 
 	wg.Wait()
 }
 
-func getEnvironmentVariable(key, fallback string) string {
-	value, exists := os.LookupEnv(key)
-	if !exists {
-		value = fallback
+func loadConfig() (config Config) {
+	dotenv := godotenv.New()
+	if err := dotenv.Load(".env"); err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
 	}
-	return value
+
+	mongoURI := os.Getenv("MONGO_URI")
+	if mongoURI == "" {
+		mongoURI = DefaultMongoURI
+	}
+
+	natsURI := os.Getenv("NATS_URI")
+	if natsURI == "" {
+		natsURI = DefaultNATSURI
+	}
+
+	config = Config{
+		MongoURI: mongoURI,
+		NATSURI:  natsURI,
+	}
+	return config
 }
 
 func checkErr(err error) {

@@ -3,7 +3,7 @@ module github.com/compliance-framework/configuration-service
 go 1.19
 
 require (
-	dario.cat/mergo v1.0.0
+	github.com/Valgard/godotenv v0.0.0-20200511222744-8873b92a09c5
 	github.com/google/uuid v1.3.1
 	github.com/labstack/echo/v4 v4.11.1
 	github.com/nats-io/nats.go v1.28.0
@@ -14,6 +14,7 @@ require (
 )
 
 require (
+	github.com/Valgard/go-pcre v0.0.0-20200510215507-235e400e25e9 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
