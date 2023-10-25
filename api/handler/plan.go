@@ -1,20 +1,22 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/compliance-framework/configuration-service/api"
 	"github.com/compliance-framework/configuration-service/domain"
 	"github.com/compliance-framework/configuration-service/service"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 // TODO: Publishing the events from the handler is not a good idea. We should
 //  publish the events from the domain services, following the business logic.
 
 type PlanHandler struct {
-	service *service.PlanService
-	sugar   *zap.SugaredLogger
+	service        *service.PlanService
+	resultsService *service.ResultService
+	sugar          *zap.SugaredLogger
 }
 
 func (h *PlanHandler) Register(api *echo.Group) {
@@ -24,6 +26,7 @@ func (h *PlanHandler) Register(api *echo.Group) {
 	api.POST("/plan/:id/assets", h.AddAsset)
 	api.POST("/plan/:id/tasks", h.CreateTask)
 	api.POST("/plan/:id/task/:taskId/subjects", h.CreateSubjectSelection)
+	api.GET("/plan/:id/results", h.FindResults)
 }
 
 func NewPlanHandler(l *zap.SugaredLogger, s *service.PlanService) *PlanHandler {
@@ -31,6 +34,26 @@ func NewPlanHandler(l *zap.SugaredLogger, s *service.PlanService) *PlanHandler {
 		sugar:   l,
 		service: s,
 	}
+}
+
+// FindResults godoc
+// @Summary 		Find results by plan ID
+// @Description 	Finds all results for a specific plan
+// @Accept  		json
+// @Produce  		json
+// @Param   		id path string true "Plan ID"
+// @Success 		201 {object} []domain.Result
+// @Failure 		401 {object} api.Error
+// @Failure 		422 {object} api.Error
+// @Failure 		500 {object} api.Error
+// @Router 			/api/plan/:id/results [get]
+func (h *PlanHandler) FindResults(ctx echo.Context) error {
+	results, err := h.resultsService.FindByPlanId(ctx.Param("id"))
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusCreated, results)
 }
 
 // CreatePlan godoc

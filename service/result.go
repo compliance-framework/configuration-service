@@ -34,20 +34,3 @@ func (s *ResultService) FindByPlanId(id string) (*[]domain.Result, error) {
 	}
 	return &result, nil
 }
-
-//func (s *ResultService) Create(result *domain.Result) (string, error) {
-//	result, err := s.resultCollection.InsertOne(context.TODO(), result)
-//	if err != nil {
-//		return "", err
-//	}
-//	return result.InsertedID.(primitive.ObjectID).Hex(), nil
-//}
-
-//func (s *ResultService) Update(result *domain.Result) error {
-//	_, err := s.resultCollection.ReplaceOne(context.Background(), primitive.M{"uuid": result.Uuid}, result)
-//	if err != nil {
-//		return err
-//	}
-//
-//	return nil
-//}
