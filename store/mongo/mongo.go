@@ -117,13 +117,13 @@ func FindOne[T any](ctx context.Context, collection string, filter interface{}) 
 	return document, nil
 }
 
-func FindMany(ctx context.Context, collection string, filter interface{}) ([]interface{}, error) {
+func FindMany[T any](ctx context.Context, collection string, filter interface{}) ([]T, error) {
 	cursor, err := db.Collection(collection).Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
 
-	var documents []interface{}
+	var documents []T
 	err = cursor.All(ctx, &documents)
 	if err != nil {
 		return nil, err

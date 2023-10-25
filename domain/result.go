@@ -23,28 +23,24 @@ type Results struct {
 }
 
 type Result struct {
-	Uuid        Uuid       `json:"uuid"`
-	Title       string     `json:"title,omitempty"`
-	Description string     `json:"description,omitempty"`
-	Props       []Property `json:"props,omitempty"`
+	Uuid          Uuid       `json:"uuid"`
+	PlanUuid      Uuid       `json:"planUuid"`
+	TaskUuid      Uuid       `json:"taskUuid"`
+	Title         string     `json:"title,omitempty"`
+	Description   string     `json:"description,omitempty"`
+	Start         time.Time  `json:"start"`
+	End           time.Time  `json:"end"`
+	Findings      []Finding  `json:"findings"`
+	Risks         []Risk     `json:"risks"`
+	AssessmentLog []LogEntry `json:"assessmentLogEntries"`
 
-	Links   []Link `json:"links,omitempty"`
-	Remarks string `json:"remarks,omitempty"`
-
-	AssessmentLog []LogEntry    `json:"assessmentLogEntries"`
-	Attestations  []Attestation `json:"attestations"`
-
-	Start time.Time `json:"start"`
-	End   time.Time `json:"end"`
-
-	// NOTE: Does it make sense to store Findings in their own collection rather than embedding them into the Result?
-	Findings []Uuid `json:"findings"`
-
+	Props            []Property              `json:"props,omitempty"`
+	Links            []Link                  `json:"links,omitempty"`
+	Remarks          string                  `json:"remarks,omitempty"`
+	Attestations     []Attestation           `json:"attestations"`
 	LocalDefinitions LocalDefinition         `json:"localDefinitions"`
 	Observations     []Observation           `json:"observations"`
 	ReviewedControls []ControlsAndObjectives `json:"reviewedControls"`
-
-	Risks []Uuid `json:"risks"`
 }
 
 type Attestation struct {
