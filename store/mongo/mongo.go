@@ -3,11 +3,12 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"sync"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"sync"
 )
 
 var (
@@ -123,7 +124,7 @@ func FindMany[T any](ctx context.Context, collection string, filter interface{})
 		return nil, err
 	}
 
-	var documents []T
+	var documents []T = make([]T, 0)
 	err = cursor.All(ctx, &documents)
 	if err != nil {
 		return nil, err

@@ -42,7 +42,7 @@ func NewPlanHandler(l *zap.SugaredLogger, s *service.PlanService) *PlanHandler {
 // @Accept  		json
 // @Produce  		json
 // @Param   		id path string true "Plan ID"
-// @Success 		201 {object} []domain.Result
+// @Success 		200 {object} []domain.Result
 // @Failure 		401 {object} api.Error
 // @Failure 		422 {object} api.Error
 // @Failure 		500 {object} api.Error
@@ -53,7 +53,7 @@ func (h *PlanHandler) FindResults(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	return ctx.JSON(http.StatusCreated, results)
+	return ctx.JSON(http.StatusOK, results)
 }
 
 // CreatePlan godoc

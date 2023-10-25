@@ -28,9 +28,9 @@ func (s *ResultService) GetById(id string) (*domain.Result, error) {
 }
 
 func (s *ResultService) FindByPlanId(id string) (*[]domain.Result, error) {
-	result, err := mongoStore.FindMany[domain.Result](context.Background(), "result", bson.M{"planUuid": id})
+	results, err := mongoStore.FindMany[domain.Result](context.Background(), "result", bson.M{"planUuid": id})
 	if err != nil {
 		return nil, err
 	}
-	return &result, nil
+	return &results, nil
 }
