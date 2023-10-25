@@ -2,14 +2,15 @@ package main
 
 import (
 	"context"
+	"log"
+	"os"
+
 	"github.com/compliance-framework/configuration-service/api"
 	"github.com/compliance-framework/configuration-service/api/handler"
 	"github.com/compliance-framework/configuration-service/event/bus"
 	"github.com/compliance-framework/configuration-service/service"
 	"github.com/compliance-framework/configuration-service/store/mongo"
 	"go.uber.org/zap"
-	"log"
-	"os"
 )
 
 func main() {
@@ -38,7 +39,8 @@ func main() {
 	controlHandler.Register(server.API())
 
 	planService := service.NewPlanService(bus.Publish)
-	planHandler := handler.NewPlanHandler(sugar, planService)
+	resultService := service.NewResultService()
+	planHandler := handler.NewPlanHandler(sugar, planService, resultService)
 	planHandler.Register(server.API())
 
 	metadataService := service.NewMetadataService()

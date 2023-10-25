@@ -14,9 +14,9 @@ import (
 //  publish the events from the domain services, following the business logic.
 
 type PlanHandler struct {
-	service        *service.PlanService
-	resultsService *service.ResultService
-	sugar          *zap.SugaredLogger
+	service       *service.PlanService
+	resultService *service.ResultService
+	sugar         *zap.SugaredLogger
 }
 
 func (h *PlanHandler) Register(api *echo.Group) {
@@ -27,12 +27,14 @@ func (h *PlanHandler) Register(api *echo.Group) {
 	api.POST("/plan/:id/tasks", h.CreateTask)
 	api.POST("/plan/:id/task/:taskId/subjects", h.CreateSubjectSelection)
 	api.GET("/plan/:id/results", h.FindResults)
+	api.POST("/plan/:id/result", h.CreateResult)
 }
 
-func NewPlanHandler(l *zap.SugaredLogger, s *service.PlanService) *PlanHandler {
+func NewPlanHandler(l *zap.SugaredLogger, s *service.PlanService, rs *service.ResultService) *PlanHandler {
 	return &PlanHandler{
-		sugar:   l,
-		service: s,
+		sugar:         l,
+		service:       s,
+		resultService: rs,
 	}
 }
 
@@ -204,10 +206,31 @@ func (h *PlanHandler) CreateSubjectSelection(ctx echo.Context) error {
 // @Failure 		500 {object} api.Error
 // @Router 			/api/plan/:id/results [get]
 func (h *PlanHandler) FindResults(ctx echo.Context) error {
-	results, err := h.resultsService.FindByPlanId(ctx.Param("id"))
+	results, err := h.resultService.FindByPlanId(ctx.Param("id"))
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	return ctx.JSON(http.StatusOK, results)
+}
+
+func (h *PlanHandler) CreateResult(ctx echo.Context) error {
+	plan, err := h.service.GetById(ctx.Param("id"))
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	} else if plan == nil {
+		return ctx.JSON(http.StatusNotFound, api.NotFound())
+	}
+
+	taskResult := &domain.Result{}
+	if err := ctx.Bind(taskResult); err != nil {
+		return ctx.JSON(http.StatusUnprocessableEntity, api.NewError(err))
+	}
+
+	_, err = h.resultService.Create(taskResult)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, nil)
 }

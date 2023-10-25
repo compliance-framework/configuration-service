@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/compliance-framework/configuration-service/domain"
 	mongoStore "github.com/compliance-framework/configuration-service/store/mongo"
@@ -34,4 +35,12 @@ func (s *ResultService) FindByPlanId(id string) (*[]domain.Result, error) {
 		return nil, err
 	}
 	return &results, nil
+}
+
+func (s *ResultService) Create(plan *domain.Result) (string, error) {
+	result, err := s.resultCollection.InsertOne(context.Background(), plan)
+	if err != nil {
+		return "", err
+	}
+	return result.InsertedID.(primitive.ObjectID).Hex(), nil
 }
