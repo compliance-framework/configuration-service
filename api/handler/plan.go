@@ -36,26 +36,6 @@ func NewPlanHandler(l *zap.SugaredLogger, s *service.PlanService) *PlanHandler {
 	}
 }
 
-// FindResults godoc
-// @Summary 		Find results by plan ID
-// @Description 	Finds all results for a specific plan
-// @Accept  		json
-// @Produce  		json
-// @Param   		id path string true "Plan ID"
-// @Success 		200 {object} []domain.Result
-// @Failure 		401 {object} api.Error
-// @Failure 		422 {object} api.Error
-// @Failure 		500 {object} api.Error
-// @Router 			/api/plan/:id/results [get]
-func (h *PlanHandler) FindResults(ctx echo.Context) error {
-	results, err := h.resultsService.FindByPlanId(ctx.Param("id"))
-	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-	}
-
-	return ctx.JSON(http.StatusOK, results)
-}
-
 // CreatePlan godoc
 // @Summary 		Create a plan
 // @Description 	Creates a new plan in the system
@@ -210,4 +190,24 @@ func (h *PlanHandler) CreateSubjectSelection(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusOK, nil)
+}
+
+// FindResults godoc
+// @Summary 		Find results by plan ID
+// @Description 	Finds all results for a specific plan
+// @Accept  		json
+// @Produce  		json
+// @Param   		id path string true "Plan ID"
+// @Success 		200 {object} []domain.Result
+// @Failure 		401 {object} api.Error
+// @Failure 		422 {object} api.Error
+// @Failure 		500 {object} api.Error
+// @Router 			/api/plan/:id/results [get]
+func (h *PlanHandler) FindResults(ctx echo.Context) error {
+	results, err := h.resultsService.FindByPlanId(ctx.Param("id"))
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, results)
 }
