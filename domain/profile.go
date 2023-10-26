@@ -5,8 +5,7 @@ package domain
 type Profile struct {
 	Uuid Uuid `json:"uuid"`
 
-	Metadata
-
+	Metadata   Metadata   `json:"metadata"`
 	Imports    []Import   `json:"imports"`
 	BackMatter BackMatter `json:"backmatter"`
 }

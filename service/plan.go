@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+
 	"github.com/compliance-framework/configuration-service/domain"
 	"github.com/compliance-framework/configuration-service/event"
 	mongoStore "github.com/compliance-framework/configuration-service/store/mongo"
