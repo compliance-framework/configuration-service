@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+
 	"github.com/compliance-framework/configuration-service/domain"
 	"github.com/labstack/echo/v4"
 )
