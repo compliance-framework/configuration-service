@@ -35,7 +35,7 @@ func (s *ProfileService) GetById(id string) (*domain.Profile, error) {
 }
 
 func (s *ProfileService) GetByTitle(title string) (*domain.Profile, error) {
-	filter := bson.M{"metadata.title": title}
+	filter := bson.M{"title": title}
 	profile, err := mongoStore.FindOne[domain.Profile](context.Background(), "profile", filter)
 	if err != nil {
 		return nil, err

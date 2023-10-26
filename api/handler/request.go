@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+
 	"github.com/compliance-framework/configuration-service/domain"
 	"github.com/labstack/echo/v4"
 )
@@ -32,6 +33,18 @@ type createPlanRequest struct {
 }
 
 func (r *createPlanRequest) bind(ctx echo.Context, p *domain.Plan) error {
+	if err := ctx.Bind(r); err != nil {
+		return err
+	}
+	p.Title = r.Title
+	return nil
+}
+
+type createProfileRequest struct {
+	Title string `json:"title" validate:"required"`
+}
+
+func (r *createProfileRequest) bind(ctx echo.Context, p *domain.Profile) error {
 	if err := ctx.Bind(r); err != nil {
 		return err
 	}

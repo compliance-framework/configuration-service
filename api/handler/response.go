@@ -17,3 +17,7 @@ type planIdResponse struct {
 	// Example: "456def"
 	Id string `json:"id"`
 }
+
+type profileIdResponse struct {
+	Id string `json:"id"`
+}

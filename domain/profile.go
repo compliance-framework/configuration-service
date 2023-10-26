@@ -3,8 +3,8 @@ package domain
 // Profile is a collection of controls and metadata that can be used to create a new overlay or baseline.
 // Note: The "Merge" and "Modify" are being skipped for now, as it doesn't make any sense to store the instructions for merging and modifying, rather than the result of applying them. They can be added as audit logs, holding all the details of the merge and modify operations.
 type Profile struct {
-	Uuid Uuid `json:"uuid"`
-
+	Uuid       Uuid       `json:"uuid"`
+	Title      string     `json:"title"`
 	Metadata   Metadata   `json:"metadata"`
 	Imports    []Import   `json:"imports"`
 	BackMatter BackMatter `json:"backmatter"`
@@ -26,4 +26,25 @@ type ProfileSelection struct {
 	Matching          []struct {
 		Pattern string `json:"pattern"`
 	} `json:"matching"`
+}
+
+func NewProfile() *Profile {
+	revision := NewRevision("Initial version", "Initial version", "")
+
+	metadata := Metadata{
+		Revisions: []Revision{revision},
+		Actions: []Action{
+			{
+				Uuid:  NewUuid(),
+				Title: "Create",
+			},
+		},
+	}
+
+	return &Profile{
+		Uuid:       NewUuid(),
+		Metadata:   metadata,
+		Imports:    []Import{},
+		BackMatter: BackMatter{},
+	}
 }

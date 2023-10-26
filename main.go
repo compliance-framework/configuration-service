@@ -47,6 +47,10 @@ func main() {
 	metadataHandler := handler.NewMetadataHandler(metadataService)
 	metadataHandler.Register(server.API())
 
+	profileService := service.NewProfileService(bus.Publish)
+	profileHandler := handler.NewProfileHandler(sugar, profileService)
+	profileHandler.Register(server.API())
+
 	checkErr(server.Start(":8080"))
 }
 
