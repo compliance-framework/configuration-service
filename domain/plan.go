@@ -167,7 +167,7 @@ func (p *Plan) JobSpecification() (JobSpecification, error) {
 		taskInfo := TaskInformation{
 			Id:       task.Id.Hex(),
 			Title:    task.Title,
-			Selector: task.Subjects,
+			Schedule: task.Schedule,
 		}
 
 		for _, activity := range task.Activities {
