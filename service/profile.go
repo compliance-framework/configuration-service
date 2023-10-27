@@ -7,6 +7,7 @@ import (
 	"github.com/compliance-framework/configuration-service/event"
 	mongoStore "github.com/compliance-framework/configuration-service/store/mongo"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -44,9 +45,10 @@ func (s *ProfileService) GetByTitle(title string) (*domain.Profile, error) {
 }
 
 func (s *ProfileService) Create(profile *domain.Profile) (string, error) {
-	result, err := s.profileCollection.InsertOne(context.Background(), profile)
+	result, err := s.profileCollection.InsertOne(context.TODO(), profile)
 	if err != nil {
 		return "", err
 	}
-	return result.InsertedID.(string), nil
+
+	return result.InsertedID.(primitive.ObjectID).Hex(), nil
 }
