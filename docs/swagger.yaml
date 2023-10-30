@@ -585,7 +585,7 @@ paths:
       summary: Create a profile
       tags:
       - Profile
-  /api/profile/{id}:
+  /api/profile/id/{id}:
     get:
       consumes:
       - application/json
@@ -618,7 +618,7 @@ paths:
       summary: Get a profile by id
       tags:
       - Profile
-  /api/profile/{title}:
+  /api/profile/title/{title}:
     get:
       consumes:
       - application/json

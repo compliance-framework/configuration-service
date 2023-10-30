@@ -331,7 +331,7 @@
                 }
             }
         },
-        "/api/profile/{id}": {
+        "/api/profile/id/{id}": {
             "get": {
                 "description": "Get a profile by its id",
                 "consumes": [
@@ -381,7 +381,7 @@
                 }
             }
         },
-        "/api/profile/{title}": {
+        "/api/profile/title/{title}": {
             "get": {
                 "description": "Get a profile by its title",
                 "consumes": [

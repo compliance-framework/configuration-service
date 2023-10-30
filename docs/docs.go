@@ -342,7 +342,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/profile/{id}": {
+        "/api/profile/id/{id}": {
             "get": {
                 "description": "Get a profile by its id",
                 "consumes": [
@@ -392,7 +392,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/profile/{title}": {
+        "/api/profile/title/{title}": {
             "get": {
                 "description": "Get a profile by its title",
                 "consumes": [

@@ -17,8 +17,8 @@ type ProfileHandler struct {
 
 func (h *ProfileHandler) Register(api *echo.Group) {
 	api.POST("/profile", h.CreateProfile)
-	api.GET("/profile/:id", h.GetById)
-	api.GET("/profile/:title", h.GetByTitle)
+	api.GET("/profile/id/:id", h.GetById)
+	api.GET("/profile/title/:title", h.GetByTitle)
 }
 
 func NewProfileHandler(l *zap.SugaredLogger, s *service.ProfileService) *ProfileHandler {
@@ -70,7 +70,7 @@ func (h *ProfileHandler) CreateProfile(ctx echo.Context) error {
 // @Failure 		401 {object} api.Error
 // @Failure 		404 {object} api.Error
 // @Failure 		500 {object} api.Error
-// @Router 			/api/profile/{id} [get]
+// @Router /api/profile/id/{id} [get]
 func (h *ProfileHandler) GetById(ctx echo.Context) error {
 	profile, err := h.service.GetById(ctx.Param("id"))
 	if err != nil {
@@ -94,7 +94,7 @@ func (h *ProfileHandler) GetById(ctx echo.Context) error {
 // @Failure 		401 {object} api.Error
 // @Failure 		404 {object} api.Error
 // @Failure 		500 {object} api.Error
-// @Router 			/api/profile/{title} [get]
+// @Router 			/api/profile/title/{title} [get]
 func (h *ProfileHandler) GetByTitle(ctx echo.Context) error {
 	profile, err := h.service.GetByTitle(ctx.Param("title"))
 	if err != nil {
