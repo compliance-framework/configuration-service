@@ -23,17 +23,24 @@ You can easily run `configuration-service` using Docker Compose. This will also 
    ```sh
    git clone https://github.com/compliance-framework/configuration-service.git
    cd configuration-service
+   ```
 
 2. Start and stop the services:
 
    ```sh
+
    make dev        # starts service
    make dev.stop   # stops the service
+   ```
+
+This command will build the container image for configuration-service and start the containers.
+
 ### Accessing Swagger Documentation
 
-Once the service is running, you can access the Swagger documentation to test and interact with the API at: http://localhost:8080/swagger/index.html
+Once the service is running, you can access the Swagger documentation to test and interact with the API at: [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html)
 
 ## Configuration
+
 You can configure configuration-service using environment variables. These are located in the [`.env`](./.env) file.
 
 ## Contributing
