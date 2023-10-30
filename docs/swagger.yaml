@@ -5,6 +5,237 @@ definitions:
         additionalProperties: true
         type: object
     type: object
+  domain.Action:
+    properties:
+      date:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      links:
+        items:
+          $ref: '#/definitions/domain.Link'
+        type: array
+      props:
+        items:
+          $ref: '#/definitions/domain.Property'
+        type: array
+      remarks:
+        type: string
+      responsiblePartyUuids:
+        items:
+          type: string
+        type: array
+      system:
+        type: string
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  domain.BackMatter:
+    properties:
+      resources:
+        items:
+          $ref: '#/definitions/domain.Resource'
+        type: array
+    type: object
+  domain.Base64:
+    properties:
+      filename:
+        description: Name of the file before it was encoded as Base64.
+        type: string
+      media-type:
+        description: A label that indicates the nature of a resource.
+        type: string
+      value:
+        description: The Base64 encoded value.
+        type: string
+    type: object
+  domain.Citation:
+    properties:
+      links:
+        description: Links associated with the citation.
+        items:
+          $ref: '#/definitions/domain.Link'
+        type: array
+      props:
+        description: Properties of the citation.
+        items:
+          $ref: '#/definitions/domain.Property'
+        type: array
+      text:
+        description: A line of citation text.
+        type: string
+    type: object
+  domain.DocumentIdentifier:
+    properties:
+      identifier:
+        description: The document identifier.
+        type: string
+      scheme:
+        description: Qualifies the kind of document identifier using a URI.
+    type: object
+  domain.Import:
+    properties:
+      exclude_controls:
+        items:
+          $ref: '#/definitions/domain.Selection'
+        type: array
+      href:
+        description: Href is the URI of the source catalog or profile. Should be in
+          the format `catalog/{catalog_uuid}` or `profile/{profile_uuid}`.
+        type: string
+      include_all:
+        type: boolean
+      include_controls:
+        items:
+          $ref: '#/definitions/domain.Selection'
+        type: array
+    type: object
+  domain.Link:
+    properties:
+      href:
+        type: string
+      mediaType:
+        type: string
+      rel:
+        type: string
+      resourceFragment:
+        type: string
+      text:
+        type: string
+    type: object
+  domain.Metadata:
+    properties:
+      actions:
+        items:
+          $ref: '#/definitions/domain.Action'
+        type: array
+      partyUuids:
+        items:
+          type: string
+        type: array
+      responsiblePartyUuids:
+        items:
+          type: string
+        type: array
+      revisions:
+        items:
+          $ref: '#/definitions/domain.Revision'
+        type: array
+      roleUuids:
+        items:
+          type: string
+        type: array
+    type: object
+  domain.Profile:
+    properties:
+      backmatter:
+        $ref: '#/definitions/domain.BackMatter'
+      imports:
+        items:
+          $ref: '#/definitions/domain.Import'
+        type: array
+      metadata:
+        $ref: '#/definitions/domain.Metadata'
+      title:
+        type: string
+      uuid:
+        type: string
+    type: object
+  domain.Property:
+    properties:
+      class:
+        type: string
+      group:
+        type: string
+      ns:
+        type: string
+      remarks:
+        type: string
+      uuid:
+        type: string
+      value:
+        type: string
+    type: object
+  domain.Resource:
+    properties:
+      base64:
+        allOf:
+        - $ref: '#/definitions/domain.Base64'
+        description: A resource encoded using the Base64 alphabet.
+      citation:
+        allOf:
+        - $ref: '#/definitions/domain.Citation'
+        description: An optional citation associated with the resource.
+      description:
+        description: An optional short summary of the resource.
+        type: string
+      document-ids:
+        description: Document identifiers associated with the resource.
+        items:
+          $ref: '#/definitions/domain.DocumentIdentifier'
+        type: array
+      props:
+        description: Properties of the resource.
+        items:
+          $ref: '#/definitions/domain.Property'
+        type: array
+      remarks:
+        description: Remarks about the resource.
+        type: string
+      rlinks:
+        description: Related links of the resource.
+        items:
+          $ref: '#/definitions/domain.Link'
+        type: array
+      title:
+        description: An optional name given to the resource.
+        type: string
+      uuid:
+        description: A unique identifier for a resource.
+        type: string
+    type: object
+  domain.Revision:
+    properties:
+      description:
+        type: string
+      lastModified:
+        type: string
+      links:
+        items:
+          $ref: '#/definitions/domain.Link'
+        type: array
+      oscalVersion:
+        type: string
+      props:
+        items:
+          $ref: '#/definitions/domain.Property'
+        type: array
+      published:
+        type: string
+      remarks:
+        type: string
+      title:
+        type: string
+      version:
+        type: string
+    type: object
+  domain.Selection:
+    properties:
+      exclude:
+        items:
+          type: string
+        type: array
+      include:
+        items:
+          type: string
+        type: array
+      includeAll:
+        type: boolean
+    type: object
   handler.attachMetadataRequest:
     properties:
       collection:
@@ -101,6 +332,13 @@ definitions:
         type: object
     type: object
   handler.createPlanRequest:
+    properties:
+      title:
+        type: string
+    required:
+    - title
+    type: object
+  handler.createProfileRequest:
     properties:
       title:
         type: string
@@ -313,6 +551,106 @@ paths:
       summary: Create activity
       tags:
       - Plan
+  /api/profile:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new profile in the system
+      parameters:
+      - description: Profile to add
+        in: body
+        name: profile
+        required: true
+        schema:
+          $ref: '#/definitions/handler.createProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.idResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Create a profile
+      tags:
+      - Profile
+  /api/profile/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a profile by its id
+      parameters:
+      - description: Profile id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Profile'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Get a profile by id
+      tags:
+      - Profile
+  /api/profile/{title}:
+    get:
+      consumes:
+      - application/json
+      description: Get a profile by its title
+      parameters:
+      - description: Profile title
+        in: path
+        name: title
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Profile'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Get a profile by title
+      tags:
+      - Profile
   /plan/{id}/activate:
     put:
       consumes:

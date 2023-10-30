@@ -1,5 +1,7 @@
 package domain
 
+import "go.mongodb.org/mongo-driver/bson/primitive"
+
 // Profile is a collection of controls and metadata that can be used to create a new overlay or baseline.
 // Note: The "Merge" and "Modify" are being skipped for now, as it doesn't make any sense to store the instructions for merging and modifying, rather than the result of applying them. They can be added as audit logs, holding all the details of the merge and modify operations.
 type Profile struct {
@@ -35,7 +37,7 @@ func NewProfile() *Profile {
 		Revisions: []Revision{revision},
 		Actions: []Action{
 			{
-				Uuid:  NewUuid(),
+				Id:    primitive.NewObjectID(),
 				Title: "Create",
 			},
 		},

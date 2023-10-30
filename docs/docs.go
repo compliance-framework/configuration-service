@@ -290,6 +290,158 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/profile": {
+            "post": {
+                "description": "Creates a new profile in the system",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Profile"
+                ],
+                "summary": "Create a profile",
+                "parameters": [
+                    {
+                        "description": "Profile to add",
+                        "name": "profile",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.createProfileRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/handler.idResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/profile/{id}": {
+            "get": {
+                "description": "Get a profile by its id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Profile"
+                ],
+                "summary": "Get a profile by id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Profile id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Profile"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/profile/{title}": {
+            "get": {
+                "description": "Get a profile by its title",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Profile"
+                ],
+                "summary": "Get a profile by title",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Profile title",
+                        "name": "title",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Profile"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/plan/{id}/activate": {
             "put": {
                 "description": "Activate a plan by its ID. If the plan is already active, no action will be taken.",
@@ -333,6 +485,354 @@ const docTemplate = `{
                 "errors": {
                     "type": "object",
                     "additionalProperties": true
+                }
+            }
+        },
+        "domain.Action": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Property"
+                    }
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "responsiblePartyUuids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "system": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.BackMatter": {
+            "type": "object",
+            "properties": {
+                "resources": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Resource"
+                    }
+                }
+            }
+        },
+        "domain.Base64": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "description": "Name of the file before it was encoded as Base64.",
+                    "type": "string"
+                },
+                "media-type": {
+                    "description": "A label that indicates the nature of a resource.",
+                    "type": "string"
+                },
+                "value": {
+                    "description": "The Base64 encoded value.",
+                    "type": "string"
+                }
+            }
+        },
+        "domain.Citation": {
+            "type": "object",
+            "properties": {
+                "links": {
+                    "description": "Links associated with the citation.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Link"
+                    }
+                },
+                "props": {
+                    "description": "Properties of the citation.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Property"
+                    }
+                },
+                "text": {
+                    "description": "A line of citation text.",
+                    "type": "string"
+                }
+            }
+        },
+        "domain.DocumentIdentifier": {
+            "type": "object",
+            "properties": {
+                "identifier": {
+                    "description": "The document identifier.",
+                    "type": "string"
+                },
+                "scheme": {
+                    "description": "Qualifies the kind of document identifier using a URI."
+                }
+            }
+        },
+        "domain.Import": {
+            "type": "object",
+            "properties": {
+                "exclude_controls": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Selection"
+                    }
+                },
+                "href": {
+                    "description": "Href is the URI of the source catalog or profile. Should be in the format ` + "`" + `catalog/{catalog_uuid}` + "`" + ` or ` + "`" + `profile/{profile_uuid}` + "`" + `.",
+                    "type": "string"
+                },
+                "include_all": {
+                    "type": "boolean"
+                },
+                "include_controls": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Selection"
+                    }
+                }
+            }
+        },
+        "domain.Link": {
+            "type": "object",
+            "properties": {
+                "href": {
+                    "type": "string"
+                },
+                "mediaType": {
+                    "type": "string"
+                },
+                "rel": {
+                    "type": "string"
+                },
+                "resourceFragment": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.Metadata": {
+            "type": "object",
+            "properties": {
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Action"
+                    }
+                },
+                "partyUuids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "responsiblePartyUuids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "revisions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Revision"
+                    }
+                },
+                "roleUuids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "domain.Profile": {
+            "type": "object",
+            "properties": {
+                "backmatter": {
+                    "$ref": "#/definitions/domain.BackMatter"
+                },
+                "imports": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Import"
+                    }
+                },
+                "metadata": {
+                    "$ref": "#/definitions/domain.Metadata"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.Property": {
+            "type": "object",
+            "properties": {
+                "class": {
+                    "type": "string"
+                },
+                "group": {
+                    "type": "string"
+                },
+                "ns": {
+                    "type": "string"
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.Resource": {
+            "type": "object",
+            "properties": {
+                "base64": {
+                    "description": "A resource encoded using the Base64 alphabet.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.Base64"
+                        }
+                    ]
+                },
+                "citation": {
+                    "description": "An optional citation associated with the resource.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.Citation"
+                        }
+                    ]
+                },
+                "description": {
+                    "description": "An optional short summary of the resource.",
+                    "type": "string"
+                },
+                "document-ids": {
+                    "description": "Document identifiers associated with the resource.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.DocumentIdentifier"
+                    }
+                },
+                "props": {
+                    "description": "Properties of the resource.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Property"
+                    }
+                },
+                "remarks": {
+                    "description": "Remarks about the resource.",
+                    "type": "string"
+                },
+                "rlinks": {
+                    "description": "Related links of the resource.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Link"
+                    }
+                },
+                "title": {
+                    "description": "An optional name given to the resource.",
+                    "type": "string"
+                },
+                "uuid": {
+                    "description": "A unique identifier for a resource.",
+                    "type": "string"
+                }
+            }
+        },
+        "domain.Revision": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "lastModified": {
+                    "type": "string"
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Link"
+                    }
+                },
+                "oscalVersion": {
+                    "type": "string"
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Property"
+                    }
+                },
+                "published": {
+                    "type": "string"
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.Selection": {
+            "type": "object",
+            "properties": {
+                "exclude": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "include": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "includeAll": {
+                    "type": "boolean"
                 }
             }
         },
@@ -476,6 +976,17 @@ const docTemplate = `{
             }
         },
         "handler.createPlanRequest": {
+            "type": "object",
+            "required": [
+                "title"
+            ],
+            "properties": {
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.createProfileRequest": {
             "type": "object",
             "required": [
                 "title"

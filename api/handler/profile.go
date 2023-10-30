@@ -31,13 +31,14 @@ func NewProfileHandler(l *zap.SugaredLogger, s *service.ProfileService) *Profile
 // CreateProfile godoc
 // @Summary 		Create a profile
 // @Description 	Creates a new profile in the system
+// @Tags 			Profile
 // @Accept  		json
 // @Produce  		json
 // @Param   		profile body createProfileRequest true "Profile to add"
-// @Success 		201 {object} profileIdResponse
-// @Failure 		401 {object} apiError
-// @Failure 		422 {object} apiError
-// @Failure 		500 {object} apiError
+// @Success 		201 {object} idResponse
+// @Failure 		401 {object} api.Error
+// @Failure 		422 {object} api.Error
+// @Failure 		500 {object} api.Error
 // @Router 			/api/profile [post]
 func (h *ProfileHandler) CreateProfile(ctx echo.Context) error {
 	// Initialize a new profile object
@@ -53,7 +54,7 @@ func (h *ProfileHandler) CreateProfile(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	return ctx.JSON(http.StatusCreated, profileIdResponse{
+	return ctx.JSON(http.StatusCreated, idResponse{
 		Id: id,
 	})
 }
@@ -61,13 +62,14 @@ func (h *ProfileHandler) CreateProfile(ctx echo.Context) error {
 // GetProfileById godoc
 // @Summary 		Get a profile by id
 // @Description 	Get a profile by its id
+// @Tags 			Profile
 // @Accept  		json
 // @Produce  		json
 // @Param   		id path string true "Profile id"
-// @Success 		200 {object} profile
-// @Failure 		401 {object} apiError
-// @Failure 		404 {object} apiError
-// @Failure 		500 {object} apiError
+// @Success 		200 {object} domain.Profile
+// @Failure 		401 {object} api.Error
+// @Failure 		404 {object} api.Error
+// @Failure 		500 {object} api.Error
 // @Router 			/api/profile/{id} [get]
 func (h *ProfileHandler) GetById(ctx echo.Context) error {
 	profile, err := h.service.GetById(ctx.Param("id"))
@@ -84,13 +86,14 @@ func (h *ProfileHandler) GetById(ctx echo.Context) error {
 // GetByTitle godoc
 // @Summary 		Get a profile by title
 // @Description 	Get a profile by its title
+// @Tags 			Profile
 // @Accept  		json
 // @Produce  		json
 // @Param   		title path string true "Profile title"
-// @Success 		200 {object} profile
-// @Failure 		401 {object} apiError
-// @Failure 		404 {object} apiError
-// @Failure 		500 {object} apiError
+// @Success 		200 {object} domain.Profile
+// @Failure 		401 {object} api.Error
+// @Failure 		404 {object} api.Error
+// @Failure 		500 {object} api.Error
 // @Router 			/api/profile/{title} [get]
 func (h *ProfileHandler) GetByTitle(ctx echo.Context) error {
 	profile, err := h.service.GetByTitle(ctx.Param("title"))
