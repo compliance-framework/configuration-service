@@ -153,8 +153,9 @@ func (p *Plan) JobSpecification() JobSpecification {
 
 	for _, task := range p.Tasks {
 		taskInfo := TaskInformation{
-			Id:    task.Id.Hex(),
-			Title: task.Title,
+			Id:       task.Id.Hex(),
+			Title:    task.Title,
+			Schedule: task.Schedule,
 		}
 
 		for _, activity := range task.Activities {
