@@ -6,4 +6,5 @@ import (
 
 type CatalogStore interface {
 	CreateCatalog(catalog *domain.Catalog) (interface{}, error)
+	GetCatalog(id string) (*domain.Catalog, error)
 }
