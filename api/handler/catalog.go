@@ -20,7 +20,7 @@ func NewCatalogHandler(s store.CatalogStore) *CatalogHandler {
 
 func (h *CatalogHandler) Register(api *echo.Group) {
 	api.POST("/catalog", h.CreateCatalog)
-	api.GET("/catalog/:id", h.ListCatalog)
+	api.GET("/catalog/:id", h.GetCatalog)
 }
 
 // CreateCatalog godoc
@@ -52,7 +52,7 @@ func (h *CatalogHandler) CreateCatalog(ctx echo.Context) error {
 	})
 }
 
-func (h *CatalogHandler) ListCatalog(ctx echo.Context) error {
+func (h *CatalogHandler) GetCatalog(ctx echo.Context) error {
 	id := ctx.Param("id")
 	c, err := h.store.GetCatalog(id)
 	if err != nil {
