@@ -19,23 +19,22 @@ func NewCatalogHandler(s store.CatalogStore) *CatalogHandler {
 }
 
 func (h *CatalogHandler) Register(api *echo.Group) {
-	api.POST("", h.CreateCatalog)
-	api.GET("/:id", h.ListCatalog)
+	api.POST("/catalog", h.CreateCatalog)
+	api.GET("/catalog/:id", h.GetCatalog)
 }
 
 // CreateCatalog godoc
-//
-//	@Summary		Create a catalog
-//	@Description	Create a catalog with the given title
-//	@Tags			Catalog
-//	@Accept			json
-//	@Produce		json
-//	@Param			catalog	body		createCatalogRequest	true	"Catalog to add"
-//	@Success		201		{object}	catalogIdResponse
-//	@Failure		401		{object}	api.Error
-//	@Failure		422		{object}	api.Error
-//	@Failure		500		{object}	api.Error
-//	@Router			/api/catalog [post]
+// @Summary 		Create a catalog
+// @Description 	Create a catalog with the given title
+// @Tags 			Catalog
+// @Accept  		json
+// @Produce  		json
+// @Param   		catalog body createCatalogRequest true "Catalog to add"
+// @Success 		201 {object} catalogIdResponse
+// @Failure 		401 {object} api.Error
+// @Failure 		422 {object} api.Error
+// @Failure 		500 {object} api.Error
+// @Router 			/api/catalog [post]
 func (h *CatalogHandler) CreateCatalog(ctx echo.Context) error {
 	fmt.Println("CreateCatalog called") // Add this line
 	var c domain.Catalog
@@ -53,7 +52,7 @@ func (h *CatalogHandler) CreateCatalog(ctx echo.Context) error {
 	})
 }
 
-func (h *CatalogHandler) ListCatalog(ctx echo.Context) error {
+func (h *CatalogHandler) GetCatalog(ctx echo.Context) error {
 	id := ctx.Param("id")
 	c, err := h.store.GetCatalog(id)
 	if err != nil {
