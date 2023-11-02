@@ -1,13 +1,11 @@
 package handler
 
 import (
-	"fmt"
-	"net/http"
-
 	"github.com/compliance-framework/configuration-service/api"
 	"github.com/compliance-framework/configuration-service/domain"
 	"github.com/compliance-framework/configuration-service/store"
 	"github.com/labstack/echo/v4"
+	"net/http"
 )
 
 type CatalogHandler struct {
@@ -36,7 +34,6 @@ func (h *CatalogHandler) Register(api *echo.Group) {
 // @Failure 		500 {object} api.Error
 // @Router 			/api/catalog [post]
 func (h *CatalogHandler) CreateCatalog(ctx echo.Context) error {
-	fmt.Println("CreateCatalog called") // Add this line
 	var c domain.Catalog
 	req := newCreateCatalogRequest()
 	if err := req.bind(ctx, &c); err != nil {
