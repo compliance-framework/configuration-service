@@ -29,7 +29,7 @@ type JobSpecification struct {
 type TaskInformation struct {
 	Id         string                `json:"id"`
 	Title      string                `json:"title"`
-	Schedule   []string                `json:"schedule"`
+	Schedule   string                `json:"schedule"`
 	Activities []ActivityInformation `json:"activities"`
 }
 
