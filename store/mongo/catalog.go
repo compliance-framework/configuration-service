@@ -12,6 +12,12 @@ type CatalogStoreMongo struct {
 	collection *mongo.Collection
 }
 
+func NewCatalogStore() *CatalogStoreMongo {
+	return &CatalogStoreMongo{
+		collection: Collection("catalog"),
+	}
+}
+
 func (c *CatalogStoreMongo) CreateCatalog(catalog *domain.Catalog) (interface{}, error) {
 	result, err := c.collection.InsertOne(context.TODO(), catalog)
 	if err != nil {
@@ -39,8 +45,19 @@ func (store *CatalogStoreMongo) GetCatalog(id string) (*domain.Catalog, error) {
     return &catalog, nil
 }
 
-func NewCatalogStore() *CatalogStoreMongo {
-	return &CatalogStoreMongo{
-		collection: Collection("catalog"),
-	}
+func (store *CatalogStoreMongo) UpdateCatalog(id string, catalog *domain.Catalog) error {
+		objID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+				return err
+		}
+
+		filter := bson.M{"_id": objID}
+		update := bson.M{"$set": catalog}
+		_, err = store.collection.UpdateOne(context.Background(), filter, update)
+		if err != nil {
+				return err
+		}
+
+		return nil
 }
+
