@@ -61,3 +61,17 @@ func (store *CatalogStoreMongo) UpdateCatalog(id string, catalog *domain.Catalog
 		return nil
 }
 
+func (store *CatalogStoreMongo) DeleteCatalog(id string) error {
+		objID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+				return err
+		}
+
+		filter := bson.M{"_id": objID}
+		_, err = store.collection.DeleteOne(context.Background(), filter)
+		if err != nil {
+				return err
+		}
+
+		return nil
+}

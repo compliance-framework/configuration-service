@@ -21,6 +21,7 @@ func (h *CatalogHandler) Register(api *echo.Group) {
 	api.GET("/catalog/:id", h.GetCatalog)
 	// would this be a PATCH or PUT call?
 	api.PATCH("/catalog/:id", h.UpdateCatalog)
+	api.DELETE("/catalog/:id", h.DeleteCatalog)
 }
 
 // CreateCatalog godoc
@@ -77,6 +78,30 @@ func (h *CatalogHandler) UpdateCatalog(ctx echo.Context) error {
 	if err != nil {
 			return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
-	
+
 	return ctx.JSON(http.StatusOK, updatedCatalog)
+}
+
+func (h*CatalogHandler) DeleteCatalog(ctx echo.Context) error {
+  id := ctx.Param("id")
+	var c domain.Catalog
+
+	// Check if the catalog exists before attempting to delete
+  existingCatalog, err := h.store.GetCatalog(id)
+  if err != nil || existingCatalog == nil {
+    return ctx.JSON(http.StatusNotFound, map[string]string{"message": "Catalog not found"})
+  }
+
+	req := newCreateCatalogRequest()
+
+	if err := req.bind(ctx, &c); err != nil {
+		return ctx.JSON(http.StatusUnprocessableEntity, api.NewError(err))
+	}
+
+	err = h.store.DeleteCatalog(id)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, map[string]string{"message": "Catalog has been deleted"})
 }
