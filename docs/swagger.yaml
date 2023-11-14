@@ -1095,7 +1095,9 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/domain.SystemSecurityPlan'
+            items:
+              $ref: '#/definitions/domain.SystemSecurityPlan'
+            type: array
         "500":
           description: Internal Server Error
           schema:

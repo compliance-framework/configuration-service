@@ -32,7 +32,10 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/domain.SystemSecurityPlan"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.SystemSecurityPlan"
+                            }
                         }
                     },
                     "500": {

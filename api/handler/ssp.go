@@ -86,7 +86,7 @@ func (h *SSPHandler) GetSSP(ctx echo.Context) error {
 //	@Tags			SSP
 //	@Accept			json
 //	@Produce		json
-//	@Success		200	{object}	[]domain.SystemSecurityPlan
+//	@Success		200	{array}		domain.SystemSecurityPlan
 //	@Failure		500	{object}	api.Error
 //	@Router			/api/ssp [get]
 func (h *SSPHandler) ListSSP(ctx echo.Context) error {
