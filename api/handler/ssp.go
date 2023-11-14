@@ -57,6 +57,7 @@ func (h *SSPHandler) CreateSSP(ctx echo.Context) error {
 }
 
 // GetSSP godoc
+//
 //	@Summary		Get an SSP by ID
 //	@Description	Get an SSP by its ID
 //	@Tags			SSP
@@ -79,12 +80,13 @@ func (h *SSPHandler) GetSSP(ctx echo.Context) error {
 }
 
 // ListSSP godoc
+//
 //	@Summary		List all SSPs
 //	@Description	List all SSP
 //	@Tags			SSP
 //	@Accept			json
 //	@Produce		json
-//	@Success		200	{object}	domain.SystemSecurityPlan
+//	@Success		200	{object}	[]domain.SystemSecurityPlan
 //	@Failure		500	{object}	api.Error
 //	@Router			/api/ssp [get]
 func (h *SSPHandler) ListSSP(ctx echo.Context) error {
@@ -97,6 +99,7 @@ func (h *SSPHandler) ListSSP(ctx echo.Context) error {
 }
 
 // UpdateSSP godoc
+//
 //	@Summary		Update an SSP
 //	@Description	Update an SSP with the given ID
 //	@Tags			SSP
@@ -126,6 +129,7 @@ func (h *SSPHandler) UpdateSSP(ctx echo.Context) error {
 }
 
 // DeleteSSP godoc
+//
 //	@Summary		Delete an SSP
 //	@Description	Delete an SSP with the given ID
 //	@Tags			SSP
