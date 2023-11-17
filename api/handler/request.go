@@ -9,7 +9,9 @@ import (
 
 // createCatalogRequest defines the request payload for method CreateCatalog
 type createCatalogRequest struct {
-	Title string `json:"title" validate:"required"`
+	Catalog struct {
+		Title string `json:"title" validate:"required"`
+	}
 }
 
 func newCreateCatalogRequest() *createCatalogRequest {
@@ -20,16 +22,35 @@ func (r *createCatalogRequest) bind(ctx echo.Context, c *domain.Catalog) error {
 	if err := ctx.Bind(r); err != nil {
 		return err
 	}
-	c.Title = r.Title
+	c.Title = r.Catalog.Title
 	return nil
 }
 
-// CreateSSPRequest defines the request payload for method CreateSSP
-type CreateSSPRequest struct {
+// createControlRequest defines the request payload for method CreateControl
+type createControlRequest struct {
+	Control struct {
+		Title string `json:"title" validate:"required"`
+	}
+}
+
+func newCreateControlRequest() *createControlRequest {
+	return &createControlRequest{}
+}
+
+func (r *createControlRequest) bind(ctx echo.Context, c *domain.Control) error {
+	if err := ctx.Bind(r); err != nil {
+		return err
+	}
+	c.Title = r.Control.Title
+	return nil
+}
+
+// createSSPRequest defines the request payload for method CreateSSP
+type createSSPRequest struct {
 	Title string `json:"title" validate:"required"`
 }
 
-func (r *CreateSSPRequest) bind(ctx echo.Context, ssp *domain.SystemSecurityPlan) error {
+func (r *createSSPRequest) bind(ctx echo.Context, ssp *domain.SystemSecurityPlan) error {
 	if err := ctx.Bind(r); err != nil {
 		return err
 	}
@@ -53,13 +74,12 @@ func (r *createPlanRequest) bind(ctx echo.Context, p *domain.Plan) error {
 }
 
 // addTaskRequest defines the request payload for method CreateTask
-// TODO: these are not currently used anywhere - When it is used, remove nolints:
-type addAssetRequest struct { //nolint
+type addAssetRequest struct {
 	AssetId string `json:"assetId" validate:"required"`
 	Type    string `json:"type" validate:"required"`
 }
 
-func (r *addAssetRequest) bind(ctx echo.Context, p *domain.Plan) error { //nolint
+func (r *addAssetRequest) bind(ctx echo.Context, p *domain.Plan) error {
 	if err := ctx.Bind(r); err != nil {
 		return err
 	}
@@ -73,7 +93,6 @@ type createTaskRequest struct {
 	Title       string `json:"title" validate:"required"`
 	Description string `json:"description,omitempty"`
 	Type        string `json:"type" validate:"required"`
-	Schedule    string `json:"schedule" validate:"required"`
 }
 
 func (r *createTaskRequest) Bind(ctx echo.Context, t *domain.Task) error {
@@ -83,13 +102,11 @@ func (r *createTaskRequest) Bind(ctx echo.Context, t *domain.Task) error {
 	t.Title = r.Title
 	t.Description = r.Description
 	t.Type = domain.TaskType(r.Type)
-	t.Schedule = r.Schedule
 	return nil
 }
 
 // setSubjectSelectionRequest defines the request payload for method SetSubjectsForActivity
-// TODO: these are not currently used anywhere - When it is used, remove nolints:
-type setSubjectSelectionRequest struct { //nolint
+type setSubjectSelectionRequest struct {
 	Title       string            `json:"title,omitempty" validate:"required"`
 	Description string            `json:"description,omitempty"`
 	Query       string            `json:"query"`
@@ -102,7 +119,7 @@ type setSubjectSelectionRequest struct { //nolint
 	Ids []string `json:"ids,omitempty"`
 }
 
-func (r *setSubjectSelectionRequest) bind(ctx echo.Context, s *domain.SubjectSelection) error { //nolint
+func (r *setSubjectSelectionRequest) bind(ctx echo.Context, s *domain.SubjectSelection) error {
 	if err := ctx.Bind(r); err != nil {
 		return err
 	}
@@ -131,12 +148,11 @@ func (r *setSubjectSelectionRequest) bind(ctx echo.Context, s *domain.SubjectSel
 }
 
 // setScheduleRequest defines the request payload for method SetSchedule
-// TODO: these are not currently used anywhere - When it is used, remove nolints:
-type setScheduleRequest struct { //nolint
+type setScheduleRequest struct {
 	Schedule []string `json:"schedule"`
 }
 
-func (r *setScheduleRequest) bind(ctx echo.Context) error { //nolint
+func (r *setScheduleRequest) bind(ctx echo.Context) error {
 	return ctx.Bind(r)
 }
 
@@ -166,11 +182,10 @@ type createActivityRequest struct {
 	Title       string `json:"title,omitempty" validate:"required"`
 	Description string `json:"description,omitempty"`
 	Provider    struct {
-		Name          string            `json:"name" validate:"required"`
-		Package       string            `json:"package" validate:"required"`
-		Version       string            `json:"version" validate:"required"`
-		Params        map[string]string `json:"params,omitempty"`
-		Configuration map[string]string `json:"configuration,omitempty"`
+		Name    string            `json:"name" validate:"required"`
+		Package string            `json:"package" validate:"required"`
+		Version string            `json:"version" validate:"required"`
+		Params  map[string]string `json:"params,omitempty"`
 	} `json:"provider" validate:"required"`
 	Subjects struct {
 		Title       string            `json:"title" validate:"required"`
@@ -205,8 +220,7 @@ func (r *createActivityRequest) bind(ctx echo.Context, a *domain.Activity) error
 		Name:          r.Provider.Name,
 		Package:       r.Provider.Package,
 		Version:       r.Provider.Version,
-		Configuration: r.Provider.Configuration,
-		Params:        r.Provider.Params,
+		Configuration: r.Provider.Params,
 	}
 	a.Subjects = domain.SubjectSelection{
 		Title:       r.Subjects.Title,
@@ -223,20 +237,5 @@ func (r *createActivityRequest) bind(ctx echo.Context, a *domain.Activity) error
 			Values:   expression.Values,
 		})
 	}
-	return nil
-}
-
-// updateSSPRequest defines the request payload for method UpdateSSP
-type UpdateSSPRequest struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-}
-
-func (r *UpdateSSPRequest) bind(ctx echo.Context, ssp *domain.SystemSecurityPlan) error {
-	if err := ctx.Bind(r); err != nil {
-		return err
-	}
-
-	ssp.Title = r.Title
 	return nil
 }

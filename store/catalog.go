@@ -9,4 +9,5 @@ type CatalogStore interface {
 	GetCatalog(id string) (*domain.Catalog, error)
 	UpdateCatalog(id string, catalog *domain.Catalog) error
 	DeleteCatalog(id string) error
+	CreateControl(catalogId string, control *domain.Control) (interface{}, error)
 }

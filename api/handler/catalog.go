@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"github.com/compliance-framework/configuration-service/api"
 	"github.com/compliance-framework/configuration-service/domain"
 	"github.com/compliance-framework/configuration-service/store"
@@ -19,9 +20,9 @@ func NewCatalogHandler(s store.CatalogStore) *CatalogHandler {
 func (h *CatalogHandler) Register(api *echo.Group) {
 	api.POST("/catalog", h.CreateCatalog)
 	api.GET("/catalog/:id", h.GetCatalog)
-	// would this be a PATCH or PUT call?
 	api.PATCH("/catalog/:id", h.UpdateCatalog)
 	api.DELETE("/catalog/:id", h.DeleteCatalog)
+	api.POST("/catalog/:id/controls", h.CreateControl)
 }
 
 // CreateCatalog godoc
@@ -76,21 +77,21 @@ func (h *CatalogHandler) UpdateCatalog(ctx echo.Context) error {
 
 	updatedCatalog, err := h.store.GetCatalog(id)
 	if err != nil {
-			return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	return ctx.JSON(http.StatusOK, updatedCatalog)
 }
 
-func (h*CatalogHandler) DeleteCatalog(ctx echo.Context) error {
-  id := ctx.Param("id")
+func (h *CatalogHandler) DeleteCatalog(ctx echo.Context) error {
+	id := ctx.Param("id")
 	var c domain.Catalog
 
 	// Check if the catalog exists before attempting to delete
-  existingCatalog, err := h.store.GetCatalog(id)
-  if err != nil || existingCatalog == nil {
-    return ctx.JSON(http.StatusNotFound, map[string]string{"message": "Catalog not found"})
-  }
+	existingCatalog, err := h.store.GetCatalog(id)
+	if err != nil || existingCatalog == nil {
+		return ctx.JSON(http.StatusNotFound, map[string]string{"message": "Catalog not found"})
+	}
 
 	req := newCreateCatalogRequest()
 
@@ -104,4 +105,24 @@ func (h*CatalogHandler) DeleteCatalog(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusOK, map[string]string{"message": "Catalog has been deleted"})
+}
+
+func (h *CatalogHandler) CreateControl(ctx echo.Context) error {
+	var c domain.Control
+	req := newCreateControlRequest()
+	if err := req.bind(ctx, &c); err != nil {
+		return ctx.JSON(http.StatusUnprocessableEntity, api.NewError(err))
+	}
+
+	catalogId := ctx.Param("id")
+	id, err := h.store.CreateControl(catalogId, &c)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	} else {
+		fmt.Println("CreateControl has been called")
+	}
+
+	return ctx.JSON(http.StatusCreated, catalogIdResponse{
+		Id: id.(string),
+	})
 }
