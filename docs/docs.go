@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/catalog": {
+        "/api/catalog": {
             "post": {
                 "description": "Create a catalog with the given title",
                 "consumes": [
@@ -2223,17 +2223,12 @@ const docTemplate = `{
         },
         "handler.createCatalogRequest": {
             "type": "object",
+            "required": [
+                "title"
+            ],
             "properties": {
-                "catalog": {
-                    "type": "object",
-                    "required": [
-                        "title"
-                    ],
-                    "properties": {
-                        "title": {
-                            "type": "string"
-                        }
-                    }
+                "title": {
+                    "type": "string"
                 }
             }
         },

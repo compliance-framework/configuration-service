@@ -941,13 +941,10 @@ definitions:
     type: object
   handler.createCatalogRequest:
     properties:
-      catalog:
-        properties:
-          title:
-            type: string
-        required:
-        - title
-        type: object
+      title:
+        type: string
+    required:
+    - title
     type: object
   handler.createPlanRequest:
     properties:
@@ -1083,7 +1080,7 @@ info:
   title: Compliance Framework Configuration Service API
   version: "1.0"
 paths:
-  /catalog:
+  /api/catalog:
     post:
       consumes:
       - application/json

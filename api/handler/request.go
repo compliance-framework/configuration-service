@@ -9,9 +9,7 @@ import (
 
 // createCatalogRequest defines the request payload for method CreateCatalog
 type createCatalogRequest struct {
-	Catalog struct {
-		Title string `json:"title" validate:"required"`
-	}
+	Title string `json:"title" validate:"required"`
 }
 
 func newCreateCatalogRequest() *createCatalogRequest {
@@ -22,11 +20,11 @@ func (r *createCatalogRequest) bind(ctx echo.Context, c *domain.Catalog) error {
 	if err := ctx.Bind(r); err != nil {
 		return err
 	}
-	c.Title = r.Catalog.Title
+	c.Title = r.Title
 	return nil
 }
 
-// createSSPRequest defines the request payload for method CreateSSP
+// CreateSSPRequest defines the request payload for method CreateSSP
 type CreateSSPRequest struct {
 	Title string `json:"title" validate:"required"`
 }
