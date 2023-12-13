@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/compliance-framework/configuration-service/runtime"
+
 	"github.com/joho/godotenv"
 
 	"github.com/compliance-framework/configuration-service/api"
@@ -55,6 +57,7 @@ func main() {
 	}
 
 	server := api.NewServer(ctx, sugar)
+
 	catalogStore := mongo.NewCatalogStore()
 	catalogHandler := handler.NewCatalogHandler(catalogStore)
 	catalogHandler.Register(server.API().Group("/catalog"))
@@ -62,6 +65,9 @@ func main() {
 	planService := service.NewPlanService(bus.Publish)
 	planHandler := handler.NewPlanHandler(sugar, planService)
 	planHandler.Register(server.API().Group("/plan"))
+
+	resultProcessor := runtime.NewProcessor(bus.Subscribe[runtime.ExecutionResult], planService)
+	resultProcessor.Listen()
 
 	systemPlanService := service.NewSSPService()
 	systemPlanHandler := handler.NewSSPHandler(systemPlanService)

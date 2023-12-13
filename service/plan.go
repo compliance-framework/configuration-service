@@ -13,14 +13,16 @@ import (
 )
 
 type PlanService struct {
-	planCollection *mongo.Collection
-	publisher      event.Publisher
+	planCollection    *mongo.Collection
+	subjectCollection *mongo.Collection
+	publisher         event.Publisher
 }
 
 func NewPlanService(p event.Publisher) *PlanService {
 	return &PlanService{
-		planCollection: mongoStore.Collection("plan"),
-		publisher:      p,
+		planCollection:    mongoStore.Collection("plan"),
+		subjectCollection: mongoStore.Collection("subject"),
+		publisher:         p,
 	}
 }
 
@@ -129,12 +131,19 @@ func (s *PlanService) ActivatePlan(planId string) error {
 	return nil
 }
 
-func (s *PlanService) AddResult(planId string, result Result) error {
+func (s *PlanService) SaveResult(planId string, result Result) error {
 	pid, err := primitive.ObjectIDFromHex(planId)
 	if err != nil {
 		return err
 	}
-	filter := bson.D{{Key: "_id", Value: pid}}
+	filter := bson.D{bson.E{Key: "_id", Value: pid}}
+
+	// find a doc with the filter
+	var p Plan
+	err = s.planCollection.FindOne(context.Background(), filter).Decode(&p)
+	if err != nil {
+		return err
+	}
 
 	update := bson.M{
 		"$push": bson.M{
@@ -149,41 +158,29 @@ func (s *PlanService) AddResult(planId string, result Result) error {
 	return nil
 }
 
-func (s *PlanService) Findings(planId string, resultId string) ([]Finding, error) {
-	pipeline := bson.A{
-		bson.D{{Key: "$unwind", Value: bson.D{{Key: "path", Value: "$tasks"}}}},
-		bson.D{
-			{Key: "$project",
-				Value: bson.D{
-					{Key: "_id", Value: 0},
-				},
-			},
-		},
-	}
-
-	cursor, err := s.planCollection.Aggregate(context.Background(), pipeline)
+func (s *PlanService) SaveSubject(subject Subject) error {
+	_, err := s.subjectCollection.InsertOne(context.Background(), subject)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	var findings []Finding
-	if err = cursor.All(context.Background(), &findings); err != nil {
-		return nil, err
-	}
-
-	return findings, nil
+	return nil
 }
 
-func (s *PlanService) Observations(planId string, resultId string) ([]Observation, error) {
-	pipeline := bson.A{
-		bson.D{{Key: "$unwind", Value: bson.D{{Key: "path", Value: "$tasks"}}}},
-		bson.D{
-			{Key: "$project",
-				Value: bson.D{
-					{Key: "_id", Value: 0},
-				},
-			},
-		},
+func (s *PlanService) Findings(planId string, resultId string) ([]bson.M, error) {
+	// This returns all the observations regardless of the planId and resultId
+	pipeline := mongo.Pipeline{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+			{Key: "finding", Value: bson.D{
+				{Key: "$reduce", Value: bson.D{
+					{Key: "input", Value: "$results.findings"},
+					{Key: "initialValue", Value: bson.A{}},
+					{Key: "in", Value: bson.D{{Key: "$concatArrays", Value: bson.A{"$$value", "$$this"}}}},
+				}},
+			}},
+		}}},
+		bson.D{{Key: "$unwind", Value: "$finding"}},
+		bson.D{{Key: "$replaceRoot", Value: bson.D{{Key: "newRoot", Value: "$finding"}}}},
 	}
 
 	cursor, err := s.planCollection.Aggregate(context.Background(), pipeline)
@@ -191,12 +188,42 @@ func (s *PlanService) Observations(planId string, resultId string) ([]Observatio
 		return nil, err
 	}
 
-	var observations []Observation
-	if err = cursor.All(context.Background(), &observations); err != nil {
+	var results []bson.M
+	if err = cursor.All(context.Background(), &results); err != nil {
 		return nil, err
 	}
 
-	return observations, nil
+	return results, nil
+}
+
+func (s *PlanService) Observations(planId string, resultId string) ([]bson.M, error) {
+	// This returns all the observations regardless of the planId and resultId
+	pipeline := mongo.Pipeline{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+			{Key: "observation", Value: bson.D{
+				{Key: "$reduce", Value: bson.D{
+					{Key: "input", Value: "$results.observations"},
+					{Key: "initialValue", Value: bson.A{}},
+					{Key: "in", Value: bson.D{{Key: "$concatArrays", Value: bson.A{"$$value", "$$this"}}}},
+				}},
+			}},
+		}}},
+		bson.D{{Key: "$unwind", Value: "$observation"}},
+		bson.D{{Key: "$replaceRoot", Value: bson.D{{Key: "newRoot", Value: "$observation"}}}},
+	}
+
+	cursor, err := s.planCollection.Aggregate(context.Background(), pipeline)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []bson.M
+	if err = cursor.All(context.Background(), &results); err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
 
 func (s *PlanService) Risks(planId string, resultId string) ([]Risk, error) {
@@ -232,6 +259,15 @@ const (
 	High   RiskSeverity = "high"
 )
 
+type RiskState string
+
+const (
+	Pass          RiskState = "pass"
+	Warn          RiskState = "warn"
+	Fail          RiskState = "fail"
+	Indeterminate RiskState = "indeterminate"
+)
+
 type RiskLevels struct {
 	Low    int `json:"low"`
 	Medium int `json:"medium"`
@@ -257,11 +293,37 @@ type PlanSummary struct {
 	RiskLevels       RiskLevels `json:"riskLevels"`
 }
 
+type ComplianceStatusByTargets struct {
+	Control    string      `json:"control"`
+	Target     string      `json:"target"`
+	Compliance []RiskState `json:"compliance"`
+}
+
+type ComplianceStatusOverTime struct {
+	Date         string `json:"date"`
+	Findings     int    `json:"findings"`
+	Observations int    `json:"observations"`
+	Risks        int    `json:"risks"`
+}
+
+type RemediationVsTime struct {
+	Control     string `json:"control"`
+	Remediation string `json:"remediation"`
+}
+
 func (s *PlanService) ResultSummary(planId string, resultId string) (PlanSummary, error) {
+	// Since we don't have all the data in place, this is definitely temporary (not a real query either).
+	// TODO: We should Look for specific Plan and Results here. First Value only for Demonstration with Mocked values.
+	var p Plan
+	err := s.planCollection.FindOne(context.Background(), bson.D{}).Decode(&p)
+	if err != nil {
+		return PlanSummary{}, err
+	}
+
 	return PlanSummary{
 		Published:       "2022-12-01T00:00:00Z",
 		EndDate:         "2022-12-31T23:59:59Z",
-		Description:     "Monthly security assessment of the production environment.",
+		Description:     p.Title,
 		Status:          "Completed",
 		NumControls:     50,
 		NumSubjects:     10,
@@ -280,22 +342,13 @@ func (s *PlanService) ResultSummary(planId string, resultId string) (PlanSummary
 	}, nil
 }
 
-type RiskState string
-
-const (
-	Pass          RiskState = "pass"
-	Warn          RiskState = "warn"
-	Fail          RiskState = "fail"
-	Indeterminate RiskState = "indeterminate"
-)
-
-type ComplianceStatusByTargets struct {
-	Control    string      `json:"control"`
-	Target     string      `json:"target"`
-	Compliance []RiskState `json:"compliance"`
-}
-
 func (s *PlanService) ComplianceStatusByTargets(planId string, resultId string) ([]ComplianceStatusByTargets, error) {
+	// var p Plan
+	// err := s.planCollection.FindOne(context.Background(), bson.D{{Key: "_id", Value: planId}}).Decode(&p)
+	// if err != nil {
+	//  	return []ComplianceStatusByTargets{}, err
+	// }
+
 	return []ComplianceStatusByTargets{
 		{
 			Control:    "Server Security Control",
@@ -340,45 +393,47 @@ func (s *PlanService) ComplianceStatusByTargets(planId string, resultId string) 
 	}, nil
 }
 
-type ComplianceStatusOverTime struct {
-	Date         string `json:"date"`
-	Findings     int    `json:"findings"`
-	Observations int    `json:"observations"`
-	Risks        int    `json:"risks"`
-}
+func (s *PlanService) ComplianceOverTime(planId string, resultId string) ([]bson.M, error) {
+	// This returns all the observations regardless of the planId and resultId
+	pipeline := mongo.Pipeline{
+		bson.D{{Key: "$unwind", Value: "$results"}},
+		bson.D{{Key: "$project", Value: bson.M{
+			"_id": 0,
+			"date": bson.M{
+				"$dateToString": bson.M{
+					"format": "%Y-%m-%dT%H:%M:%SZ",
+					"date":   "$results.start",
+				},
+			},
+			"findings": bson.M{
+				"$size": bson.M{
+					"$ifNull": bson.A{"$results.findings", bson.A{}},
+				},
+			},
+			"observations": bson.M{
+				"$size": bson.M{
+					"$ifNull": bson.A{"$results.observations", bson.A{}},
+				},
+			},
+			"risks": bson.M{
+				"$size": bson.M{
+					"$ifNull": bson.A{"$results.risks", bson.A{}},
+				},
+			},
+		}}},
+	}
 
-func (s *PlanService) ComplianceOverTime(planId string, resultId string) ([]ComplianceStatusOverTime, error) {
-	return []ComplianceStatusOverTime{
-		{
-			Date:         "2022-12-01T00:00:00Z",
-			Findings:     80,
-			Observations: 30,
-			Risks:        5,
-		},
-		{
-			Date:         "2022-12-02T00:00:00Z",
-			Findings:     15,
-			Observations: 10,
-			Risks:        2,
-		},
-		{
-			Date:         "2022-12-03T00:00:00Z",
-			Findings:     3,
-			Observations: 5,
-			Risks:        1,
-		},
-		{
-			Date:         "2022-12-04T00:00:00Z",
-			Findings:     10,
-			Observations: 5,
-			Risks:        0,
-		},
-	}, nil
-}
+	cursor, err := s.planCollection.Aggregate(context.Background(), pipeline)
+	if err != nil {
+		return nil, err
+	}
 
-type RemediationVsTime struct {
-	Control     string `json:"control"`
-	Remediation string `json:"remediation"`
+	var results []bson.M
+	if err = cursor.All(context.Background(), &results); err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
 
 func (s *PlanService) RemediationVsTime(planId string, resultId string) ([]RemediationVsTime, error) {
@@ -416,4 +471,28 @@ func (s *PlanService) RemediationVsTime(planId string, resultId string) ([]Remed
 			Remediation: "2 days",
 		},
 	}, nil
+}
+
+func (s *PlanService) Results(planId string) ([]bson.M, error) {
+	pipeline := mongo.Pipeline{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+			{Key: "results", Value: 1},
+		}}},
+		bson.D{{Key: "$unwind", Value: "$results"}},
+		bson.D{{Key: "$replaceRoot", Value: bson.D{{Key: "newRoot", Value: "$results"}}}},
+	}
+
+	cursor, err := s.planCollection.Aggregate(context.Background(), pipeline)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []bson.M
+	if err = cursor.All(context.Background(), &results); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+
 }
