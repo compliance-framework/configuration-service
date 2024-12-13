@@ -59,7 +59,7 @@ test: ## Run tests
 ##@ Development
 .PHONY: test-integration
 test-integration: ## Run tests
-	@if ! go test ./... -coverprofile cover.out -v --args integration; then \
+	@if ! go test ./... -coverprofile cover.out -v --tags integration; then \
 		$(WARN) "Tests failed"; \
 		exit 1; \
 	fi ; \
