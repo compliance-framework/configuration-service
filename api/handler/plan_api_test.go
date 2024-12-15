@@ -6,6 +6,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/compliance-framework/configuration-service/domain"
 	"github.com/compliance-framework/configuration-service/event/bus"
 	"github.com/compliance-framework/configuration-service/service"
@@ -14,9 +18,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 func TestPlanApi(t *testing.T) {
@@ -29,28 +30,26 @@ type PlanIntegrationSuite struct {
 
 func (suite *PlanIntegrationSuite) TestCreatePlan() {
 	suite.Run("A plan can be created through the API", func() {
-		// Setup
 		e := echo.New()
-		reqBody, _ := json.Marshal(map[string]interface{}{
-			"title": "Some Plan",
-		})
-
-		req := httptest.NewRequest(
-			http.MethodPost,
-			"/plan",
-			bytes.NewReader(reqBody),
-		)
-		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-		rec := httptest.NewRecorder()
-		c := e.NewContext(req, rec)
-
 		logger, _ := zap.NewProduction()
 		planHandler := NewPlanHandler(logger.Sugar(), service.NewPlanService(bus.Publish))
 
-		if assert.NoError(suite.T(), planHandler.CreatePlan(c)) {
-			assert.Equal(suite.T(), http.StatusCreated, rec.Code)
-			assert.NoError(suite.T(), json.Unmarshal(rec.Body.Bytes(), &idResponse{}))
-		}
+		e.POST("/plan", planHandler.CreatePlan)
+
+		reqBody, _ := json.Marshal(map[string]interface{}{
+			"title": "Some Plan",
+		})
+		req := httptest.NewRequest(http.MethodPost, "/plan", bytes.NewReader(reqBody))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+		rec := httptest.NewRecorder()
+		e.ServeHTTP(rec, req)
+
+		assert.Equal(suite.T(), http.StatusCreated, rec.Code, "Expected status 201 Created")
+
+		response := &idResponse{}
+		assert.NoError(suite.T(), json.Unmarshal(rec.Body.Bytes(), response), "Failed to parse response from CreatePlan")
+		assert.NotEmpty(suite.T(), response.Id, "Response ID should not be empty")
 	})
 }
 
@@ -60,43 +59,43 @@ func (suite *PlanIntegrationSuite) TestCreateAndGetPlan() {
 		planHandler := NewPlanHandler(logger.Sugar(), service.NewPlanService(bus.Publish))
 		e := echo.New()
 
-		// Setup
+		// Define the routes
+		e.POST("/plan", planHandler.CreatePlan)
+		e.GET("/plan/:id", planHandler.GetPlan)
+
+		// Create a plan
+		rec := httptest.NewRecorder()
 		reqBody, _ := json.Marshal(map[string]interface{}{
 			"title": "Some Plan",
 		})
-		req := httptest.NewRequest(
-			http.MethodPost,
-			"/plan",
-			bytes.NewReader(reqBody),
-		)
+		req := httptest.NewRequest(http.MethodPost, "/plan", bytes.NewReader(reqBody))
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-		rec := httptest.NewRecorder()
-		c := e.NewContext(req, rec)
+
+		e.ServeHTTP(rec, req)
+
+		// Assert that the plan was created successfully
+		assert.Equal(suite.T(), http.StatusCreated, rec.Code)
 
 		response := &idResponse{}
-		if assert.NoError(suite.T(), planHandler.CreatePlan(c)) {
-			assert.Equal(suite.T(), http.StatusCreated, rec.Code)
-			assert.NoError(suite.T(), json.Unmarshal(rec.Body.Bytes(), response))
-		}
+		assert.NoError(suite.T(), json.Unmarshal(rec.Body.Bytes(), response), "Failed to parse response from CreatePlan")
+		assert.NotEmpty(suite.T(), response.Id, "Response ID should not be empty")
 
-		// Now check if we can fetch that same plan
+		// Fetch the created plan
+		rec = httptest.NewRecorder()
 		req = httptest.NewRequest(
 			http.MethodGet,
-			fmt.Sprintf("/%s", response.Id),
+			fmt.Sprintf("/plan/%s", response.Id),
 			nil,
 		)
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-		rec = httptest.NewRecorder()
-		c = e.NewContext(req, rec)
-		c.SetPath("/plan/:id")
-		c.SetParamNames("id")
-		c.SetParamValues(response.Id)
+
+		e.ServeHTTP(rec, req)
+
+		// Assert that the plan was fetched successfully
+		assert.Equal(suite.T(), http.StatusOK, rec.Code)
 
 		getResponse := &domain.Plan{}
-		if assert.NoError(suite.T(), planHandler.GetPlan(c)) {
-			assert.Equal(suite.T(), http.StatusOK, rec.Code)
-			assert.NoError(suite.T(), json.Unmarshal(rec.Body.Bytes(), getResponse))
-			assert.Equal(suite.T(), response.Id, getResponse.Id.Hex())
-		}
+		assert.NoError(suite.T(), json.Unmarshal(rec.Body.Bytes(), getResponse), "Failed to parse response from GetPlan")
+		assert.Equal(suite.T(), response.Id, getResponse.Id.Hex(), "Fetched plan ID does not match created plan ID")
 	})
 }
