@@ -88,11 +88,11 @@ func (h *PlanHandler) CreatePlan(ctx echo.Context) error {
 //	@Tags			Plan
 //	@Accept			json
 //	@Produce		json
-//	@Param			id	path		getPlanRequest	true	"Plan to fetch"
-//	@Success		201		{object}	Plan
-//	@Failure		401		{object}	api.Error
-//	@Failure		422		{object}	api.Error
-//	@Failure		500		{object}	api.Error
+//	@Param			id	path		string	true	"Plan ID"
+//	@Success		201	{object}	domain.Plan
+//	@Failure		401	{object}	api.Error
+//	@Failure		422	{object}	api.Error
+//	@Failure		500	{object}	api.Error
 //	@Router			/plan/:id [get]
 func (h *PlanHandler) GetPlan(ctx echo.Context) error {
 	log.Println("GetPlan")
