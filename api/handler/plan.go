@@ -89,7 +89,7 @@ func (h *PlanHandler) CreatePlan(ctx echo.Context) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			id	path		string	true	"Plan ID"
-//	@Success		201	{object}	domain.Plan
+//	@Success		200	{object}	domain.Plan
 //	@Failure		401	{object}	api.Error
 //	@Failure		422	{object}	api.Error
 //	@Failure		500	{object}	api.Error
