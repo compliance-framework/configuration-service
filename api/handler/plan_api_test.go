@@ -32,20 +32,20 @@ type PlanIntegrationSuite struct {
 
 func (suite *PlanIntegrationSuite) TestCreatePlan() {
 	suite.Run("A plan can be created through the API", func() {
-		e := echo.New()
 		logger, _ := zap.NewProduction()
 		planHandler := NewPlanHandler(logger.Sugar(), service.NewPlanService(bus.Publish))
 
-		e.POST("/plan", planHandler.CreatePlan)
+		server := api.NewServer(context.Background(), logger.Sugar())
+		planHandler.Register(server.API().Group("/plan"))
 
 		reqBody, _ := json.Marshal(map[string]interface{}{
 			"title": "Some Plan",
 		})
-		req := httptest.NewRequest(http.MethodPost, "/plan", bytes.NewReader(reqBody))
+		req := httptest.NewRequest(http.MethodPost, "/api/plan", bytes.NewReader(reqBody))
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 
 		rec := httptest.NewRecorder()
-		e.ServeHTTP(rec, req)
+		server.E().ServeHTTP(rec, req)
 
 		assert.Equal(suite.T(), http.StatusCreated, rec.Code, "Expected status 201 Created")
 
