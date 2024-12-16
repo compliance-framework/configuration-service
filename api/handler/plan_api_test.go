@@ -4,8 +4,10 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/compliance-framework/configuration-service/api"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -57,21 +59,19 @@ func (suite *PlanIntegrationSuite) TestCreateAndGetPlan() {
 	suite.Run("A plan can be created, and then fetched through the API", func() {
 		logger, _ := zap.NewProduction()
 		planHandler := NewPlanHandler(logger.Sugar(), service.NewPlanService(bus.Publish))
-		e := echo.New()
 
-		// Define the routes
-		e.POST("/plan", planHandler.CreatePlan)
-		e.GET("/plan/:id", planHandler.GetPlan)
+		server := api.NewServer(context.Background(), logger.Sugar())
+		planHandler.Register(server.API().Group("/plan"))
 
 		// Create a plan
 		rec := httptest.NewRecorder()
 		reqBody, _ := json.Marshal(map[string]interface{}{
 			"title": "Some Plan",
 		})
-		req := httptest.NewRequest(http.MethodPost, "/plan", bytes.NewReader(reqBody))
+		req := httptest.NewRequest(http.MethodPost, "/api/plan", bytes.NewReader(reqBody))
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 
-		e.ServeHTTP(rec, req)
+		server.E().ServeHTTP(rec, req)
 
 		// Assert that the plan was created successfully
 		assert.Equal(suite.T(), http.StatusCreated, rec.Code)
@@ -84,12 +84,12 @@ func (suite *PlanIntegrationSuite) TestCreateAndGetPlan() {
 		rec = httptest.NewRecorder()
 		req = httptest.NewRequest(
 			http.MethodGet,
-			fmt.Sprintf("/plan/%s", response.Id),
+			fmt.Sprintf("/api/plan/%s", response.Id),
 			nil,
 		)
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 
-		e.ServeHTTP(rec, req)
+		server.E().ServeHTTP(rec, req)
 
 		// Assert that the plan was fetched successfully
 		assert.Equal(suite.T(), http.StatusOK, rec.Code)
