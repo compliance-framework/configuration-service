@@ -3,12 +3,11 @@ package service
 import (
 	"context"
 	"errors"
-	"log"
 	"fmt"
+	"log"
 
 	. "github.com/compliance-framework/configuration-service/domain"
 	"github.com/compliance-framework/configuration-service/event"
-	mongoStore "github.com/compliance-framework/configuration-service/store/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -20,22 +19,32 @@ type PlanService struct {
 	publisher         event.Publisher
 }
 
-func NewPlanService(p event.Publisher) *PlanService {
+func NewPlanService(db *mongo.Database, p event.Publisher) *PlanService {
 	return &PlanService{
-		planCollection:    mongoStore.Collection("plan"),
-		subjectCollection: mongoStore.Collection("subject"),
+		planCollection:    db.Collection("plan"),
+		subjectCollection: db.Collection("subject"),
 		publisher:         p,
 	}
 }
 
-func (s *PlanService) GetById(id string) (*Plan, error) {
-	log.Println("GetById")
-	log.Println("id: ", id)
-	plan, err := mongoStore.FindById[Plan](context.Background(), "plan", id)
+func (s *PlanService) GetById(ctx context.Context, id string) (*Plan, error) {
+	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
 	}
-	return &plan, nil
+
+	output := s.planCollection.FindOne(ctx, bson.M{"_id": objectId})
+	if output.Err() != nil {
+		return nil, output.Err()
+	}
+
+	result := &Plan{}
+	err = output.Decode(result)
+	if err != nil {
+		return result, err
+	}
+
+	return result, nil
 }
 
 func (s *PlanService) Create(plan *Plan) (string, error) {
@@ -108,18 +117,18 @@ func (s *PlanService) CreateActivity(planId string, taskId string, activity Acti
 			"tasks.0.activities": activity,
 		},
 	}
-	_ = s.planCollection.FindOneAndUpdate(context.Background(), filter, update)
-	if err != nil {
+	output := s.planCollection.FindOneAndUpdate(context.Background(), filter, update)
+	if output.Err() != nil {
 		return "", err
 	}
 
 	return activity.Id.Hex(), nil
 }
 
-func (s *PlanService) ActivatePlan(planId string) error {
+func (s *PlanService) ActivatePlan(ctx context.Context, planId string) error {
 	log.Println("ActivatePlan")
 	log.Println("planId: ", planId)
-	plan, err := s.GetById(planId)
+	plan, err := s.GetById(ctx, planId)
 	if err != nil {
 		return err
 	}

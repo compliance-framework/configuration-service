@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	mongoStore "github.com/compliance-framework/configuration-service/store/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"os"
 
@@ -13,7 +15,7 @@ import (
 	"github.com/compliance-framework/configuration-service/api/handler"
 	"github.com/compliance-framework/configuration-service/event/bus"
 	"github.com/compliance-framework/configuration-service/service"
-	"github.com/compliance-framework/configuration-service/store/mongo"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 )
 
@@ -40,37 +42,39 @@ type Config struct {
 func main() {
 	ctx := context.Background()
 
-	logger, err := zap.NewProduction()
+	loggerInstance, err := zap.NewProduction()
 	if err != nil {
 		log.Fatalf("Can't initialize zap logger: %v", err)
 	}
-	sugar := logger.Sugar()
+	logger := loggerInstance.Sugar()
+
 	config := loadConfig()
-	err = mongo.Connect(ctx, config.MongoURI, "cf")
+
+	mongoDatabase, err := connectMongo(ctx, options.Client().ApplyURI(config.MongoURI), "cf")
 	if err != nil {
-		sugar.Fatalf("error connecting to mongo: %v", err)
+		logger.Fatal(err)
 	}
 
-	err = bus.Listen(config.NatsURI, sugar)
+	err = bus.Listen(logger, config.NatsURI)
 	if err != nil {
-		sugar.Fatalf("error connecting to nats: %v", err)
+		logger.Fatal(err)
 	}
 
-	server := api.NewServer(ctx, sugar)
+	server := api.NewServer(ctx, logger)
 
-	catalogStore := mongo.NewCatalogStore()
+	catalogStore := mongoStore.NewCatalogStore(mongoDatabase)
 	catalogHandler := handler.NewCatalogHandler(catalogStore)
 	catalogHandler.Register(server.API().Group("/catalog"))
 
-	planService := service.NewPlanService(bus.Publish)
-	planHandler := handler.NewPlanHandler(sugar, planService)
+	planService := service.NewPlanService(mongoDatabase, bus.Publish)
+	planHandler := handler.NewPlanHandler(logger, planService)
 	planHandler.Register(server.API().Group("/plan"))
 
 	resultProcessor := runtime.NewProcessor(bus.Subscribe[runtime.ExecutionResult], planService)
 	resultProcessor.Listen()
 
 	plansService := service.NewPlansService(bus.Publish)
-	plansHandler := handler.NewPlansHandler(sugar, plansService)
+	plansHandler := handler.NewPlansHandler(logger, plansService)
 	plansHandler.Register(server.API().Group("/plans"))
 
 	systemPlanService := service.NewSSPService()
@@ -84,6 +88,21 @@ func main() {
 	server.PrintRoutes()
 
 	checkErr(server.Start(DefaultPort))
+}
+
+func connectMongo(ctx context.Context, clientOptions *options.ClientOptions, databaseName string) (*mongo.Database, error) {
+	client, err := mongo.Connect(ctx, clientOptions)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return client.Database(databaseName), nil
 }
 
 func loadConfig() (config Config) {
