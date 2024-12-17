@@ -54,8 +54,9 @@ func main() {
 	if err != nil {
 		logger.Fatal(err)
 	}
+	defer mongoDatabase.Client().Disconnect(ctx)
 
-	err = bus.Listen(logger, config.NatsURI)
+	err = bus.Listen(config.NatsURI, logger)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -73,15 +74,15 @@ func main() {
 	resultProcessor := runtime.NewProcessor(bus.Subscribe[runtime.ExecutionResult], planService)
 	resultProcessor.Listen()
 
-	plansService := service.NewPlansService(bus.Publish)
+	plansService := service.NewPlansService(mongoDatabase, bus.Publish)
 	plansHandler := handler.NewPlansHandler(logger, plansService)
 	plansHandler.Register(server.API().Group("/plans"))
 
-	systemPlanService := service.NewSSPService()
+	systemPlanService := service.NewSSPService(mongoDatabase)
 	systemPlanHandler := handler.NewSSPHandler(systemPlanService)
 	systemPlanHandler.Register(server.API())
 
-	metadataService := service.NewMetadataService()
+	metadataService := service.NewMetadataService(mongoDatabase)
 	metadataHandler := handler.NewMetadataHandler(metadataService)
 	metadataHandler.Register(server.API().Group("/metadata"))
 

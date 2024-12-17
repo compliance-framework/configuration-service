@@ -213,22 +213,22 @@ func (s *PlanService) Findings(planId string, resultId string) ([]bson.M, error)
 	}
 
 	pipeline = append(pipeline,
-		bson.D{{"$unwind", bson.D{{"path", "$results"}}}},
+		bson.D{{Key: "$unwind", Value: bson.D{{Key: "path", Value: "$results"}}}},
 	)
 	pipeline = append(pipeline,
-		bson.D{{"$sort", bson.D{{"results.end", 1}}}},
+		bson.D{{Key: "$sort", Value: bson.D{{Key: "results.end", Value: 1}}}},
 	)
 	pipeline = append(pipeline,
-		bson.D{{"$unwind", bson.D{{"path", "$results.findings"}}}},
+		bson.D{{Key: "$unwind", Value: bson.D{{Key: "path", Value: "$results.findings"}}}},
 	)
 
 	pipeline = append(pipeline,
-		bson.D{{"$project", bson.D{
-			{"_id", "$results.findings._id"},
-			{"title", "$results.findings.title"},
-			{"description", "$results.findings.description"},
-			{"remarks", "$results.findings.remarks"},
-			{"resultEnd", "$results.end"},
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: "$results.findings._id"},
+			{Key: "title", Value: "$results.findings.title"},
+			{Key: "description", Value: "$results.findings.description"},
+			{Key: "remarks", Value: "$results.findings.remarks"},
+			{Key: "resultEnd", Value: "$results.end"},
 		}}},
 	)
 
@@ -266,17 +266,17 @@ func (s *PlanService) Observations(planId string, resultId string) ([]bson.M, er
 	}
 
 	pipeline = append(pipeline,
-		bson.D{{"$unwind", bson.D{{"path", "$results"}}}},
+		bson.D{{Key: "$unwind", Value: bson.D{{Key: "path", Value: "$results"}}}},
 	)
 	pipeline = append(pipeline,
-		bson.D{{"$sort", bson.D{{"results.observations.collected", 1}}}},
+		bson.D{{Key: "$sort", Value: bson.D{{Key: "results.observations.collected", Value: 1}}}},
 	)
 	pipeline = append(pipeline,
-		bson.D{{"$unwind", bson.D{{"path", "$results.observations"}}}},
+		bson.D{{Key: "$unwind", Value: bson.D{{Key: "path", Value: "$results.observations"}}}},
 	)
 
 	pipeline = append(pipeline, bson.D{
-		{"$project", bson.D{
+		{Key: "$project", Value: bson.D{
 			{Key: "_id", Value: "$results.observations._id"},
 			{Key: "title", Value: "$results.observations.title"},
 			{Key: "description", Value: "$results.observations.description"},
