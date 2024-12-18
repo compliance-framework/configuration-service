@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/compliance-framework/configuration-service/domain"
 	"go.mongodb.org/mongo-driver/bson"
-	mongo2 "go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type DocWithMetadata struct {
@@ -13,10 +13,10 @@ type DocWithMetadata struct {
 }
 
 type MetadataService struct {
-	database *mongo2.Database
+	database *mongo.Database
 }
 
-func NewMetadataService(database *mongo2.Database) *MetadataService {
+func NewMetadataService(database *mongo.Database) *MetadataService {
 	return &MetadataService{
 		database: database,
 	}
