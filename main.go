@@ -42,40 +42,40 @@ type Config struct {
 func main() {
 	ctx := context.Background()
 
-	loggerInstance, err := zap.NewProduction()
+	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatalf("Can't initialize zap logger: %v", err)
 	}
-	logger := loggerInstance.Sugar()
+	sugar := logger.Sugar()
 
 	config := loadConfig()
 
 	mongoDatabase, err := connectMongo(ctx, options.Client().ApplyURI(config.MongoURI), "cf")
 	if err != nil {
-		logger.Fatal(err)
+		sugar.Fatal(err)
 	}
 	defer mongoDatabase.Client().Disconnect(ctx)
 
-	err = bus.Listen(config.NatsURI, logger)
+	err = bus.Listen(config.NatsURI, sugar)
 	if err != nil {
-		logger.Fatal(err)
+		sugar.Fatal(err)
 	}
 
-	server := api.NewServer(ctx, logger)
+	server := api.NewServer(ctx, sugar)
 
 	catalogStore := mongoStore.NewCatalogStore(mongoDatabase)
 	catalogHandler := handler.NewCatalogHandler(catalogStore)
 	catalogHandler.Register(server.API().Group("/catalog"))
 
 	planService := service.NewPlanService(mongoDatabase, bus.Publish)
-	planHandler := handler.NewPlanHandler(logger, planService)
+	planHandler := handler.NewPlanHandler(sugar, planService)
 	planHandler.Register(server.API().Group("/plan"))
 
 	resultProcessor := runtime.NewProcessor(bus.Subscribe[runtime.ExecutionResult], planService)
 	resultProcessor.Listen()
 
 	plansService := service.NewPlansService(mongoDatabase, bus.Publish)
-	plansHandler := handler.NewPlansHandler(logger, plansService)
+	plansHandler := handler.NewPlansHandler(sugar, plansService)
 	plansHandler.Register(server.API().Group("/plans"))
 
 	systemPlanService := service.NewSSPService(mongoDatabase)
