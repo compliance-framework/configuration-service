@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/compliance-framework/configuration-service/domain"
@@ -23,6 +24,7 @@ func NewProcessor(s event.Subscriber[ExecutionResult], svc *service.PlanService)
 }
 
 func (r *Processor) Listen() {
+	// TODO This whole method needs better error handling, and a logger to properly log errors when they happen.
 	ch, err := r.sub(event.TopicTypeResult)
 	if err != nil {
 		panic(err)
@@ -88,6 +90,7 @@ func (r *Processor) Listen() {
 					Statement:   r.Statement,
 					Props:       r.Props,
 					Links:       r.Links,
+					// TODO. Seems we're only relating the first observation here.
 					RelatedObservations: []primitive.ObjectID{
 						observations[0].Id,
 					},
@@ -121,6 +124,12 @@ func (r *Processor) Listen() {
 				}
 			}
 
+			planId, err := primitive.ObjectIDFromHex(msg.AssessmentId)
+			if err != nil {
+				log.Print(err)
+				planId = primitive.NilObjectID
+			}
+
 			// TODO: Start and End times should arrive from the runtime inside the message
 			result := domain.Result{
 				Observations:  observations,
@@ -129,6 +138,10 @@ func (r *Processor) Listen() {
 				AssessmentLog: logs,
 				Start:         time.Now(),
 				End:           time.Now(),
+				StreamID:      msg.StreamId,
+				RelatedPlans: []*primitive.ObjectID{
+					&planId,
+				},
 			}
 
 			err = r.svc.SaveResult(msg.AssessmentId, result)
