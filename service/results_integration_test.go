@@ -8,7 +8,9 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"slices"
 	"testing"
+	"time"
 
 	"github.com/compliance-framework/configuration-service/domain"
 	"github.com/compliance-framework/configuration-service/tests"
@@ -124,48 +126,6 @@ func (suite *ResultIntegrationSuite) TestCreateResult() {
 	})
 }
 
-func (suite *ResultIntegrationSuite) TestPlanResults() {
-	suite.Run("The results for a plan can be fetched", func() {
-		ctx := context.Background()
-		resultService := NewResultsService(suite.MongoDatabase)
-
-		planId := primitive.NewObjectID()
-
-		relatedResult := &domain.Result{
-			Title: "Result for Plan",
-			RelatedPlans: []*primitive.ObjectID{
-				&planId,
-			},
-		}
-		err := resultService.Create(ctx, relatedResult)
-		if err != nil {
-			suite.T().Fatal(err)
-		}
-
-		// Unrelated result
-		err = resultService.Create(ctx, &domain.Result{
-			Title: "Unrelated result",
-		})
-		if err != nil {
-			suite.T().Fatal(err)
-		}
-
-		results, err := resultService.GetAllForPlan(ctx, &planId)
-		if err != nil {
-			suite.T().Fatal(err)
-		}
-
-		// We're expecting to see 1 result
-		if len(results) != 1 {
-			suite.T().Fatalf("Expected to find one result in collection")
-		}
-
-		if results[0].Id.Hex() != relatedResult.Id.Hex() {
-			suite.T().Fatalf("Expected to find related result in collection")
-		}
-	})
-}
-
 func (suite *ResultIntegrationSuite) TestResultsByStream() {
 	suite.Run("The results for a stream can be fetched", func() {
 		ctx := context.Background()
@@ -201,6 +161,64 @@ func (suite *ResultIntegrationSuite) TestResultsByStream() {
 		// We're expecting to see 1 result
 		if len(results) != 2 {
 			suite.T().Fatalf("Expected to find one result in collection")
+		}
+	})
+}
+
+func (suite *ResultIntegrationSuite) TestResultStreams() {
+	suite.Run("The latest results for each stream under a plan can be fetched", func() {
+		ctx := context.Background()
+		resultService := NewResultsService(suite.MongoDatabase)
+
+		var err error
+		var streamId uuid.UUID
+		planId := primitive.NewObjectID()
+		latestResults := make([]primitive.ObjectID, 0)
+		for i := range 2 {
+			streamId = uuid.New()
+			err = resultService.Create(ctx, &domain.Result{
+				Title:    fmt.Sprintf("Older result #%d", i),
+				StreamID: streamId,
+				RelatedPlans: []*primitive.ObjectID{
+					&planId,
+				},
+				// Older result
+				End: time.Now().Add(-1 * time.Hour),
+			})
+			if err != nil {
+				suite.T().Fatal(err)
+			}
+			newResultId := primitive.NewObjectID()
+			latestResults = append(latestResults, newResultId)
+			err = resultService.Create(ctx, &domain.Result{
+				Id:       &newResultId,
+				Title:    fmt.Sprintf("Result #%d", i),
+				StreamID: streamId,
+				RelatedPlans: []*primitive.ObjectID{
+					&planId,
+				},
+				// Older result
+				End: time.Now(),
+			})
+			if err != nil {
+				suite.T().Fatal(err)
+			}
+		}
+
+		results, err := resultService.GetLatestResultsForPlan(ctx, &planId)
+		if err != nil {
+			suite.T().Fatal(err)
+		}
+
+		// We're expecting to see 1 result
+		if len(results) != 2 {
+			suite.T().Fatalf("Expected to find 2 streams in collection")
+		}
+		for _, result := range results {
+			// Here we want to check that the result IDs are the ons from `latestResults` to make sure the latest have come back.
+			if !slices.Contains(latestResults, *result.Id) {
+				suite.T().Fatalf("Expected to find latest result in collection")
+			}
 		}
 	})
 }

@@ -53,25 +53,6 @@ func (s *ResultsService) GetAll(ctx context.Context) ([]*domain.Result, error) {
 	return results, nil
 }
 
-func (s *ResultsService) GetAllForPlan(ctx context.Context, planId *primitive.ObjectID) (results []*domain.Result, err error) {
-	cursor, err := s.resultsCollection.Find(ctx, bson.D{
-		{Key: "relatedPlans", Value: planId},
-	})
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-	if cursor.Err() != nil {
-		return nil, cursor.Err()
-	}
-
-	err = cursor.All(ctx, &results)
-	if err != nil {
-		return nil, err
-	}
-	return results, nil
-}
-
 func (s *ResultsService) GetAllForStream(ctx context.Context, streamId uuid.UUID) (results []*domain.Result, err error) {
 	cursor, err := s.resultsCollection.Find(ctx, bson.D{
 		bson.E{Key: "streamId", Value: streamId},
@@ -89,4 +70,48 @@ func (s *ResultsService) GetAllForStream(ctx context.Context, streamId uuid.UUID
 		return nil, err
 	}
 	return results, nil
+}
+
+func (s *ResultsService) GetLatestResultsForPlan(ctx context.Context, planId *primitive.ObjectID) (output []*domain.Result, err error) {
+	// Aggregation pipeline
+	pipeline := mongo.Pipeline{
+		// Match documents related to the specific plan
+		{{Key: "$match", Value: bson.D{
+			{Key: "relatedPlans", Value: planId},
+		}}},
+		// Sort by StreamID and End descending to get the latest result first
+		{{Key: "$sort", Value: bson.D{
+			{Key: "streamId", Value: 1}, // Group by StreamID
+			{Key: "end", Value: -1},     // Latest result first
+		}}},
+		// Group by StreamID, taking the first document (latest due to sorting)
+		{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: "$streamId"}, // Group by streamId
+			{Key: "latestResult", Value: bson.D{
+				{Key: "$first", Value: "$$ROOT"}, // The latest result
+			}},
+		}}},
+	}
+
+	// Execute aggregation
+	cursor, err := s.resultsCollection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	results := make([]*struct {
+		Id     uuid.UUID     `bson:"_id"`
+		Record domain.Result `bson:"latestResult"`
+	}, 0)
+	err = cursor.All(ctx, &results)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, result := range results {
+		output = append(output, &result.Record)
+	}
+
+	return output, nil
 }
