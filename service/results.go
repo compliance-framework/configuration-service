@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/compliance-framework/configuration-service/domain"
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -55,6 +56,25 @@ func (s *ResultsService) GetAll(ctx context.Context) ([]*domain.Result, error) {
 func (s *ResultsService) GetAllForPlan(ctx context.Context, planId *primitive.ObjectID) (results []*domain.Result, err error) {
 	cursor, err := s.resultsCollection.Find(ctx, bson.D{
 		{Key: "relatedPlans", Value: planId},
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	if cursor.Err() != nil {
+		return nil, cursor.Err()
+	}
+
+	err = cursor.All(ctx, &results)
+	if err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+func (s *ResultsService) GetAllForStream(ctx context.Context, streamId uuid.UUID) (results []*domain.Result, err error) {
+	cursor, err := s.resultsCollection.Find(ctx, bson.D{
+		bson.E{Key: "streamId", Value: streamId},
 	})
 	if err != nil {
 		return nil, err

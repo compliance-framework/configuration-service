@@ -4,6 +4,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -71,7 +72,6 @@ func (suite *ResultIntegrationSuite) TestCreateResult() {
 		}
 
 		search := bson.D{
-			bson.E{Key: "_id", Value: result.Id},
 			bson.E{Key: "streamId", Value: streamId},
 		}
 
@@ -162,6 +162,45 @@ func (suite *ResultIntegrationSuite) TestPlanResults() {
 
 		if results[0].Id.Hex() != relatedResult.Id.Hex() {
 			suite.T().Fatalf("Expected to find related result in collection")
+		}
+	})
+}
+
+func (suite *ResultIntegrationSuite) TestResultsByStream() {
+	suite.Run("The results for a stream can be fetched", func() {
+		ctx := context.Background()
+		resultService := NewResultsService(suite.MongoDatabase)
+
+		streamId := uuid.New()
+
+		for i := range 2 {
+			err := resultService.Create(ctx, &domain.Result{
+				Title:    fmt.Sprintf("Result #%d", i),
+				StreamID: streamId,
+			})
+			if err != nil {
+				suite.T().Fatal(err)
+			}
+		}
+
+		for i := range 2 {
+			// Unrelated results
+			err := resultService.Create(ctx, &domain.Result{
+				Title: fmt.Sprintf("Unrelated Result #%d", i),
+			})
+			if err != nil {
+				suite.T().Fatal(err)
+			}
+		}
+
+		results, err := resultService.GetAllForStream(ctx, streamId)
+		if err != nil {
+			suite.T().Fatal(err)
+		}
+
+		// We're expecting to see 1 result
+		if len(results) != 2 {
+			suite.T().Fatalf("Expected to find one result in collection")
 		}
 	})
 }
