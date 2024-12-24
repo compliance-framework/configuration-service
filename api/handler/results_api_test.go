@@ -58,7 +58,6 @@ func (suite *ResultsIntegrationSuite) TestGetPlanResults() {
 		response := &struct {
 			Data []*domain.Result `json:"data"`
 		}{}
-		fmt.Println(rec.Body.String())
 		assert.NoError(suite.T(), json.Unmarshal(rec.Body.Bytes(), response), "Failed to parse response from GetResults")
 		assert.Equal(suite.T(), response.Data, make([]*domain.Result, 0), "Expected no data in data key")
 	})
@@ -103,7 +102,6 @@ func (suite *ResultsIntegrationSuite) TestGetPlanResults() {
 		response := &struct {
 			Data []*domain.Result `json:"data"`
 		}{}
-		fmt.Println(rec.Body.String())
 		assert.NoError(suite.T(), json.Unmarshal(rec.Body.Bytes(), response), "Failed to parse response from GetResults")
 		assert.Len(suite.T(), response.Data, 1, "Expected data in data key")
 	})

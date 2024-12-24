@@ -1043,6 +1043,8 @@ definitions:
     type: object
   domain.Result:
     properties:
+      _id:
+        type: string
       assessmentLogEntries:
         items:
           $ref: '#/definitions/domain.LogEntry'
@@ -1059,8 +1061,6 @@ definitions:
         items:
           $ref: '#/definitions/domain.Finding'
         type: array
-      id:
-        type: string
       links:
         items:
           $ref: '#/definitions/domain.Link'
@@ -1075,6 +1075,10 @@ definitions:
         items:
           $ref: '#/definitions/domain.Property'
         type: array
+      relatedPlans:
+        items:
+          type: string
+        type: array
       remarks:
         type: string
       reviewedControls:
@@ -1086,6 +1090,8 @@ definitions:
           $ref: '#/definitions/domain.Risk'
         type: array
       start:
+        type: string
+      streamId:
         type: string
       title:
         type: string
@@ -1479,6 +1485,14 @@ definitions:
         type: string
     required:
     - title
+    type: object
+  handler.GenericDataListResponse-domain_Result:
+    properties:
+      data:
+        description: Items from the list response
+        items:
+          $ref: '#/definitions/domain.Result'
+        type: array
     type: object
   handler.UpdateCatalogRequest:
     properties:
@@ -2470,6 +2484,25 @@ paths:
       summary: Gets plan summaries
       tags:
       - Plan
+  /results/:plan:
+    get:
+      consumes:
+      - application/json
+      description: Returns data of all the latest results for a plan
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-domain_Result'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Gets a plan's results
+      tags:
+      - Result
   /ssp:
     get:
       consumes:

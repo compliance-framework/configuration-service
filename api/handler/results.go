@@ -27,6 +27,16 @@ func NewResultsHandler(l *zap.SugaredLogger, s *service.ResultsService) *Results
 	}
 }
 
+// GetResults godoc
+//
+//	@Summary		Gets a plan's results
+//	@Description	Returns data of all the latest results for a plan
+//	@Tags			Result
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	handler.GenericDataListResponse[domain.Result]
+//	@Failure		500	{object}	api.Error
+//	@Router			/results/:plan [get]
 func (h *ResultsHandler) GetResults(c echo.Context) error {
 	planId, err := primitive.ObjectIDFromHex(c.Param("plan"))
 	if err != nil {

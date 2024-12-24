@@ -1057,6 +1057,35 @@ const docTemplate = `{
                 }
             }
         },
+        "/results/:plan": {
+            "get": {
+                "description": "Returns data of all the latest results for a plan",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Result"
+                ],
+                "summary": "Gets a plan's results",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataListResponse-domain_Result"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/ssp": {
             "get": {
                 "description": "List all SSP",
@@ -2786,6 +2815,9 @@ const docTemplate = `{
         "domain.Result": {
             "type": "object",
             "properties": {
+                "_id": {
+                    "type": "string"
+                },
                 "assessmentLogEntries": {
                     "type": "array",
                     "items": {
@@ -2810,9 +2842,6 @@ const docTemplate = `{
                         "$ref": "#/definitions/domain.Finding"
                     }
                 },
-                "id": {
-                    "type": "string"
-                },
                 "links": {
                     "type": "array",
                     "items": {
@@ -2834,6 +2863,12 @@ const docTemplate = `{
                         "$ref": "#/definitions/domain.Property"
                     }
                 },
+                "relatedPlans": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "remarks": {
                     "type": "string"
                 },
@@ -2850,6 +2885,9 @@ const docTemplate = `{
                     }
                 },
                 "start": {
+                    "type": "string"
+                },
+                "streamId": {
                     "type": "string"
                 },
                 "title": {
@@ -3422,6 +3460,18 @@ const docTemplate = `{
             "properties": {
                 "title": {
                     "type": "string"
+                }
+            }
+        },
+        "handler.GenericDataListResponse-domain_Result": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Items from the list response",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Result"
+                    }
                 }
             }
         },
