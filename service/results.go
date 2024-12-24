@@ -72,7 +72,7 @@ func (s *ResultsService) GetAllForStream(ctx context.Context, streamId uuid.UUID
 	return results, nil
 }
 
-func (s *ResultsService) GetLatestResultsForPlan(ctx context.Context, planId *primitive.ObjectID) (output []*domain.Result, err error) {
+func (s *ResultsService) GetLatestResultsForPlan(ctx context.Context, planId *primitive.ObjectID) ([]*domain.Result, error) {
 	// Aggregation pipeline
 	pipeline := mongo.Pipeline{
 		// Match documents related to the specific plan
@@ -109,6 +109,7 @@ func (s *ResultsService) GetLatestResultsForPlan(ctx context.Context, planId *pr
 		return nil, err
 	}
 
+	output := make([]*domain.Result, 0)
 	for _, result := range results {
 		output = append(output, &result.Record)
 	}

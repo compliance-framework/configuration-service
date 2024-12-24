@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -12,14 +13,16 @@ import (
 )
 
 type Processor struct {
-	svc *service.PlanService
-	sub event.Subscriber[ExecutionResult]
+	planService   *service.PlanService
+	resultService *service.ResultsService
+	sub           event.Subscriber[ExecutionResult]
 }
 
-func NewProcessor(s event.Subscriber[ExecutionResult], svc *service.PlanService) *Processor {
+func NewProcessor(s event.Subscriber[ExecutionResult], planService *service.PlanService, resultService *service.ResultsService) *Processor {
 	return &Processor{
-		sub: s,
-		svc: svc,
+		sub:           s,
+		planService:   planService,
+		resultService: resultService,
 	}
 }
 
@@ -48,7 +51,7 @@ func (r *Processor) Listen() {
 				Remarks:     msg.Subject.Remarks,
 			}
 
-			err := r.svc.SaveSubject(subject)
+			err := r.planService.SaveSubject(subject)
 			if err != nil {
 				return
 			}
@@ -144,7 +147,7 @@ func (r *Processor) Listen() {
 				},
 			}
 
-			err = r.svc.SaveResult(msg.AssessmentId, result)
+			err = r.resultService.Create(context.TODO(), &result)
 			if err != nil {
 				return
 			}

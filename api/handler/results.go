@@ -1,9 +1,7 @@
 package handler
 
 import (
-	"encoding/json"
-	"fmt"
-	"github.com/compliance-framework/configuration-service/domain"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 
 	"github.com/compliance-framework/configuration-service/api"
@@ -19,8 +17,7 @@ type ResultsHandler struct {
 }
 
 func (h *ResultsHandler) Register(api *echo.Group) {
-	api.GET("", h.All)
-	api.POST("", h.Create)
+	api.GET("/:plan", h.GetResults)
 }
 
 func NewResultsHandler(l *zap.SugaredLogger, s *service.ResultsService) *ResultsHandler {
@@ -30,40 +27,23 @@ func NewResultsHandler(l *zap.SugaredLogger, s *service.ResultsService) *Results
 	}
 }
 
-func (h *ResultsHandler) Create(c echo.Context) error {
-	result := []byte{}
-	_, err := c.Request().Body.Read(result)
+func (h *ResultsHandler) GetResults(c echo.Context) error {
+	planId, err := primitive.ObjectIDFromHex(c.Param("plan"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	savedResults, err := h.service.GetLatestResultsForPlan(c.Request().Context(), &planId)
 	if err != nil {
 		h.sugar.Error(err)
 	}
 
-	res := &domain.Result{}
-	err = json.NewDecoder(c.Request().Body).Decode(res)
-	if err != nil {
-		h.sugar.Error(err)
-		return c.JSON(http.StatusInternalServerError, api.NewError(err))
+	response := map[string]interface{}{
+		"data": savedResults,
 	}
-
-	savedResult, err := h.service.Create(c.Request().Context(), res)
-	if err != nil {
-		h.sugar.Error(err)
-		return c.JSON(http.StatusInternalServerError, api.NewError(err))
-	}
-	fmt.Println(savedResult)
-
-	return c.JSON(http.StatusOK, savedResult)
-}
-
-func (h *ResultsHandler) All(c echo.Context) error {
-	savedResults, err := h.service.GetAll(c.Request().Context())
-	if err != nil {
-		h.sugar.Error(err)
-	}
-
-	fmt.Println(savedResults)
 
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
-	return c.JSON(http.StatusOK, savedResults)
+	return c.JSON(http.StatusOK, response)
 }
