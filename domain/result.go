@@ -44,6 +44,7 @@ type Result struct {
 	Observations     []Observation           `json:"observations" yaml:"observations"`
 	Risks            []Risk                  `json:"risks" yaml:"risks"`
 	Findings         []Finding               `json:"findings" yaml:"findings"`
+	Tasks            []Task                  `json:"tasks" yaml:"tasks"`
 	Remarks          string                  `json:"remarks,omitempty" yaml:"remarks,omitempty"`
 	RelatedPlans     []*primitive.ObjectID   `json:"relatedPlans,omitempty" yaml:"relatedPlans,omitempty" bson:"relatedPlans,omitempty"`
 }

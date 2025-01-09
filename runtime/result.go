@@ -29,6 +29,7 @@ type ExecutionResult struct {
 	Observations []Observation   `json:"observations" yaml:"observations"`
 	Findings     []Finding       `json:"findings" yaml:"findings"`
 	Risks        []Risk          `json:"risks" yaml:"risks"`
+	Tasks        []Task          `json:"tasks" yaml:"tasks"`
 	Logs         []LogEntry      `json:"logs" yaml:"logs"`
 }
 
@@ -79,6 +80,15 @@ type Risk struct {
 	SubjectId   string            `json:"subjectId" yaml:"subjectId"`
 	Description string            `json:"description" yaml:"description"`
 	Statement   string            `json:"statement" yaml:"statement"`
+	Props       []domain.Property `json:"props,omitempty" yaml:"props,omitempty"`
+	Links       []domain.Link     `json:"links,omitempty" yaml:"links,omitempty"`
+}
+
+type Task struct {
+	Title       string            `json:"title" yaml:"title"`
+	SubjectId   string            `json:"subjectId" yaml:"subjectId"`
+	Description string            `json:"description" yaml:"description"`
+	Activities  []domain.Activity `json:"activities" mapstructure:"activities"`
 	Props       []domain.Property `json:"props,omitempty" yaml:"props,omitempty"`
 	Links       []domain.Link     `json:"links,omitempty" yaml:"links,omitempty"`
 }

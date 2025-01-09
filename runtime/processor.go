@@ -100,6 +100,33 @@ func (r *Processor) Listen() {
 				}
 			}
 
+			tasks := make([]domain.Task, len(msg.Tasks))
+			for i, t := range msg.Tasks {
+				activities := make([]domain.Activity, len(t.Activities))
+				for j, a := range t.Activities {
+					steps := make([]domain.Step, len(a.Steps))
+					for k, s := range a.Steps {
+						steps[k] = domain.Step{
+							Title:       s.Title,
+							Description: s.Description,
+						}
+					}
+
+					activities[j] = domain.Activity{
+						Title:       a.Title,
+						Description: a.Description,
+						Type:        a.Type,
+						Steps:       steps,
+						Tools:       a.Tools,
+					}
+				}
+				tasks[i] = domain.Task{
+					Title:       t.Title,
+					Description: t.Description,
+					Activities:  activities,
+				}
+			}
+
 			findings := make([]domain.Finding, len(msg.Findings))
 			for i, f := range msg.Findings {
 				findings[i] = domain.Finding{
@@ -139,6 +166,7 @@ func (r *Processor) Listen() {
 				Observations:  observations,
 				Risks:         risks,
 				Findings:      findings,
+				Tasks:         tasks,
 				AssessmentLog: logs,
 				Start:         time.Now(),
 				End:           time.Now(),
@@ -147,6 +175,8 @@ func (r *Processor) Listen() {
 					&planId,
 				},
 			}
+
+			fmt.Printf("Plumbed message: %v\n", msg)
 
 			err = r.resultService.Create(context.TODO(), &result)
 			if err != nil {
