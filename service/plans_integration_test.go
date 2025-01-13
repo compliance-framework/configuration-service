@@ -28,6 +28,9 @@ func (suite *PlanIntegrationSuite) TestCreateResult() {
 
 		result := &domain.Result{
 			Title: "Testing Result",
+			Labels: map[string]string{
+				"foo": "bar",
+			},
 		}
 		if result.Id != nil {
 			// We are not expecting and ID yet.
@@ -82,17 +85,15 @@ func (suite *PlanIntegrationSuite) TestCreateResult() {
 		}
 	})
 
-	suite.Run("A result can be stored related to a plan", func() {
+	suite.Run("A result can be stored with labels", func() {
 		ctx := context.Background()
 		resultService := NewResultsService(suite.MongoDatabase)
 
 		planId := primitive.NewObjectID()
-		extraPanId := primitive.NewObjectID()
 		result := &domain.Result{
 			Title: "Result",
-			RelatedPlans: []*primitive.ObjectID{
-				&planId,
-				&extraPanId,
+			Labels: map[string]string{
+				"plan_id": planId.String(),
 			},
 		}
 		err := resultService.Create(ctx, result)
@@ -109,7 +110,7 @@ func (suite *PlanIntegrationSuite) TestCreateResult() {
 		}
 
 		search := bson.D{
-			{Key: "relatedPlans", Value: planId},
+			{Key: "labels.plan_id", Value: planId.String()},
 		}
 
 		count, err := suite.MongoDatabase.Collection("results").CountDocuments(ctx, search)
