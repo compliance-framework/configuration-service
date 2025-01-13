@@ -34,7 +34,11 @@ func buildQuery(scope *Scope) bson.M {
 		switch scope.Query.Operator {
 		case "AND":
 			return bson.M{"$and": subQueries}
+		case "and":
+			return bson.M{"$and": subQueries}
 		case "OR":
+			return bson.M{"$or": subQueries}
+		case "or":
 			return bson.M{"$or": subQueries}
 		}
 	}

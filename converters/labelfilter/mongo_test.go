@@ -65,6 +65,57 @@ func TestMongoFilter_Filter(t *testing.T) {
 		}, mongoFilter.GetQuery())
 	})
 
+	t.Run("lowercase operators", func(t *testing.T) {
+		mongoFilter := MongoFromFilter(Filter{
+			&Scope{
+				Query: &Query{
+					Operator: "and",
+					Scopes: []Scope{
+						{
+							Condition: &Condition{
+								Label:    "foo",
+								Operator: "=",
+								Value:    "bar",
+							},
+						},
+						{
+							Query: &Query{
+								Operator: "or",
+								Scopes: []Scope{
+									{
+										Condition: &Condition{
+											Label:    "foo",
+											Operator: "=",
+											Value:    "bar",
+										},
+									},
+									{
+										Condition: &Condition{
+											Label:    "baz",
+											Operator: "!=",
+											Value:    "bay",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		})
+		assert.Equal(t, bson.M{
+			"$and": []bson.M{
+				{"labels.foo": "bar"},
+				{
+					"$or": []bson.M{
+						{"labels.foo": "bar"},
+						{"labels.baz": bson.M{"$ne": "bay"}},
+					},
+				},
+			},
+		}, mongoFilter.GetQuery())
+	})
+
 	t.Run("Simple OR Query", func(t *testing.T) {
 		mongoFilter := MongoFromFilter(Filter{
 			&Scope{
