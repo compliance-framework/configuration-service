@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 
 	. "github.com/compliance-framework/configuration-service/domain"
@@ -32,11 +33,13 @@ func (s *PlanService) GetById(ctx context.Context, id string) (*Plan, error) {
 		return nil, err
 	}
 
-	output := s.planCollection.FindOne(ctx, bson.M{"_id": objectId})
+	output := s.planCollection.FindOne(ctx, bson.D{bson.E{Key: "_id", Value: objectId}})
 	if output.Err() != nil {
+		fmt.Println("##OUT", output)
 		return nil, output.Err()
 	}
 
+	fmt.Println("##OUT", output)
 	result := &Plan{}
 	err = output.Decode(result)
 	if err != nil {

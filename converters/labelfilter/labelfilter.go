@@ -8,7 +8,7 @@ import (
 // It can have a condition, which is simple, or a query, which in turn can have many subqueries.
 // This object is the wrapper for an entire set of queries and conditions that make up a single filter.
 type Filter struct {
-	*Scope
+	Scope *Scope `json:"scope"`
 }
 
 // Condition represents a strict evaluation on a specific label.

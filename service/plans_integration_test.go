@@ -66,6 +66,9 @@ func (suite *PlanIntegrationSuite) TestCreateResult() {
 		result := &domain.Result{
 			Title:    "Testing Result",
 			StreamID: streamId,
+			Labels: map[string]string{
+				"foo": "bar",
+			},
 		}
 		err := resultService.Create(ctx, result)
 		if err != nil {
@@ -89,14 +92,19 @@ func (suite *PlanIntegrationSuite) TestCreateResult() {
 		ctx := context.Background()
 		resultService := NewResultsService(suite.MongoDatabase)
 
-		planId := primitive.NewObjectID()
+		// Clear out all the existing results
+		_, err := suite.MongoDatabase.Collection("results").DeleteMany(ctx, bson.M{})
+		if err != nil {
+			suite.T().Fatal(err)
+		}
+
 		result := &domain.Result{
 			Title: "Result",
 			Labels: map[string]string{
-				"plan_id": planId.String(),
+				"foo": "bar",
 			},
 		}
-		err := resultService.Create(ctx, result)
+		err = resultService.Create(ctx, result)
 		if err != nil {
 			suite.T().Fatal(err)
 		}
@@ -110,7 +118,7 @@ func (suite *PlanIntegrationSuite) TestCreateResult() {
 		}
 
 		search := bson.D{
-			{Key: "labels.plan_id", Value: planId.String()},
+			{Key: "labels.foo", Value: "bar"},
 		}
 
 		count, err := suite.MongoDatabase.Collection("results").CountDocuments(ctx, search)

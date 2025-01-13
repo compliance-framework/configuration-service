@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"slices"
 	"testing"
 	"time"
 
@@ -156,8 +157,7 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 			suite.T().Fatal(err)
 		}
 
-		mongoFilter := labelfilter.MongoFromFilter(labelfilter.Filter{})
-		results, err := resultService.Search(ctx, &mongoFilter)
+		results, err := resultService.Search(ctx, &labelfilter.Filter{})
 		if err != nil {
 			suite.T().Fatal(err)
 		}
@@ -207,8 +207,7 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 			suite.T().Fatal(err)
 		}
 
-		mongoFilter := labelfilter.MongoFromFilter(labelfilter.Filter{})
-		results, err := resultService.Search(ctx, &mongoFilter)
+		results, err := resultService.Search(ctx, &labelfilter.Filter{})
 		if err != nil {
 			suite.T().Fatal(err)
 		}
@@ -251,7 +250,7 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 			suite.T().Fatal(err)
 		}
 
-		mongoFilter := labelfilter.MongoFromFilter(labelfilter.Filter{
+		results, err := resultService.Search(ctx, &labelfilter.Filter{
 			&labelfilter.Scope{
 				Condition: &labelfilter.Condition{
 					Label:    "foo",
@@ -260,7 +259,6 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 				},
 			},
 		})
-		results, err := resultService.Search(ctx, &mongoFilter)
 		if err != nil {
 			suite.T().Fatal(err)
 		}
@@ -305,8 +303,8 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 			suite.T().Fatal(err)
 		}
 
-		mongoFilter := labelfilter.MongoFromFilter(labelfilter.Filter{
-			&labelfilter.Scope{
+		results, err := resultService.Search(ctx, &labelfilter.Filter{
+			Scope: &labelfilter.Scope{
 				Condition: &labelfilter.Condition{
 					Label:    "foo",
 					Operator: "!=",
@@ -314,7 +312,6 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 				},
 			},
 		})
-		results, err := resultService.Search(ctx, &mongoFilter)
 		if err != nil {
 			suite.T().Fatal(err)
 		}
@@ -359,8 +356,8 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 			suite.T().Fatal(err)
 		}
 
-		mongoFilter := labelfilter.MongoFromFilter(labelfilter.Filter{
-			&labelfilter.Scope{
+		results, err := resultService.Search(ctx, &labelfilter.Filter{
+			Scope: &labelfilter.Scope{
 				Query: &labelfilter.Query{
 					Operator: "OR",
 					Scopes: []labelfilter.Scope{
@@ -382,7 +379,6 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 				},
 			},
 		})
-		results, err := resultService.Search(ctx, &mongoFilter)
 		if err != nil {
 			suite.T().Fatal(err)
 		}
@@ -432,8 +428,8 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 			suite.T().Fatal(err)
 		}
 
-		mongoFilter := labelfilter.MongoFromFilter(labelfilter.Filter{
-			&labelfilter.Scope{
+		results, err := resultService.Search(ctx, &labelfilter.Filter{
+			Scope: &labelfilter.Scope{
 				Query: &labelfilter.Query{
 					Operator: "and",
 					Scopes: []labelfilter.Scope{
@@ -469,7 +465,6 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 				},
 			},
 		})
-		results, err := resultService.Search(ctx, &mongoFilter)
 		if err != nil {
 			suite.T().Fatal(err)
 		}
@@ -517,8 +512,8 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 			suite.T().Fatal(err)
 		}
 
-		mongoFilter := labelfilter.MongoFromFilter(labelfilter.Filter{
-			&labelfilter.Scope{
+		results, err := resultService.Search(ctx, &labelfilter.Filter{
+			Scope: &labelfilter.Scope{
 				Query: &labelfilter.Query{
 					Operator: "and",
 					Scopes: []labelfilter.Scope{
@@ -554,7 +549,6 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 				},
 			},
 		})
-		results, err := resultService.Search(ctx, &mongoFilter)
 		if err != nil {
 			suite.T().Fatal(err)
 		}
@@ -603,57 +597,78 @@ func (suite *ResultIntegrationSuite) TestResultsByStream() {
 	})
 }
 
-//func (suite *ResultIntegrationSuite) TestResultStreams() {
-//	suite.Run("The latest results for each stream under a plan can be fetched", func() {
-//		ctx := context.Background()
-//		resultService := NewResultsService(suite.MongoDatabase)
-//
-//		var err error
-//		var streamId uuid.UUID
-//		planId := primitive.NewObjectID()
-//		latestResults := make([]primitive.ObjectID, 0)
-//		for i := range 2 {
-//			streamId = uuid.New()
-//			err = resultService.Create(ctx, &domain.Result{
-//				Title:    fmt.Sprintf("Older result #%d", i),
-//				StreamID: streamId,
-//				// Older result
-//				End: time.Now().Add(-1 * time.Hour),
-//			})
-//			if err != nil {
-//				suite.T().Fatal(err)
-//			}
-//			newResultId := primitive.NewObjectID()
-//			latestResults = append(latestResults, newResultId)
-//			err = resultService.Create(ctx, &domain.Result{
-//				Id:       &newResultId,
-//				Title:    fmt.Sprintf("Result #%d", i),
-//				StreamID: streamId,
-//				// Older result
-//				End: time.Now(),
-//			})
-//			if err != nil {
-//				suite.T().Fatal(err)
-//			}
-//		}
-//
-//		results, err := resultService.GetLatestResultsForPlan(ctx, &planId)
-//		if err != nil {
-//			suite.T().Fatal(err)
-//		}
-//
-//		// We're expecting to see 1 result
-//		if len(results) != 2 {
-//			suite.T().Fatalf("Expected to find 2 streams in collection")
-//		}
-//		for _, result := range results {
-//			// Here we want to check that the result IDs are the ons from `latestResults` to make sure the latest have come back.
-//			if !slices.Contains(latestResults, *result.Id) {
-//				suite.T().Fatalf("Expected to find latest result in collection")
-//			}
-//		}
-//	})
-//}
+func (suite *ResultIntegrationSuite) TestResultStreams() {
+	suite.Run("The latest results for each stream under a plan can be fetched", func() {
+		ctx := context.Background()
+		resultService := NewResultsService(suite.MongoDatabase)
+
+		// Clear out all the existing results
+		_, err := suite.MongoDatabase.Collection("results").DeleteMany(ctx, bson.M{})
+		if err != nil {
+			suite.T().Fatal(err)
+		}
+
+		var streamId uuid.UUID
+		latestResults := make([]primitive.ObjectID, 0)
+		for i := range 2 {
+			streamId = uuid.New()
+			err = resultService.Create(ctx, &domain.Result{
+				Title:    fmt.Sprintf("Older result #%d", i),
+				StreamID: streamId,
+				// Older result
+				End: time.Now().Add(-1 * time.Hour),
+				Labels: map[string]string{
+					"foo": "bar",
+				},
+			})
+			if err != nil {
+				suite.T().Fatal(err)
+			}
+			newResultId := primitive.NewObjectID()
+			latestResults = append(latestResults, newResultId)
+			err = resultService.Create(ctx, &domain.Result{
+				Id:       &newResultId,
+				Title:    fmt.Sprintf("Result #%d", i),
+				StreamID: streamId,
+				// Older result
+				End: time.Now(),
+				Labels: map[string]string{
+					"foo": "bar",
+				},
+			})
+			if err != nil {
+				suite.T().Fatal(err)
+			}
+		}
+
+		results, err := resultService.GetLatestResultsForPlan(ctx, &domain.Plan{
+			ResultFilter: labelfilter.Filter{
+				Scope: &labelfilter.Scope{
+					Condition: &labelfilter.Condition{
+						Label:    "foo",
+						Operator: "=",
+						Value:    "bar",
+					},
+				},
+			},
+		})
+
+		if err != nil {
+			suite.T().Fatal(err)
+		}
+
+		// We're expecting to see 1 result
+		if len(results) != 2 {
+			suite.T().Fatalf("Expected to find 2 streams in collection")
+		}
+		for _, result := range results {
+			// Here we want to check that the result IDs are the ons from `latestResults` to make sure the latest have come back.
+			if !slices.Contains(latestResults, *result.Id) {
+				suite.T().Fatalf("Expected to find latest result in collection")
+			}
+		}
+	})
+}
 
 func (suite *ResultIntegrationSuite) TestLatestStreamResult() {
 	suite.Run("The latest result for a stream can be fetched", func() {

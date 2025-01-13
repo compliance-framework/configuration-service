@@ -63,10 +63,11 @@ func (s *ResultsService) GetAll(ctx context.Context) ([]*domain.Result, error) {
 	return results, nil
 }
 
-func (s *ResultsService) Search(ctx context.Context, filter *labelfilter.MongoFilter) ([]*domain.Result, error) {
+func (s *ResultsService) Search(ctx context.Context, filter *labelfilter.Filter) ([]*domain.Result, error) {
+	mongoFilter := labelfilter.MongoFromFilter(*filter)
 	pipeline := mongo.Pipeline{
 		// Match documents related to the specific plan
-		bson.D{{Key: "$match", Value: filter.GetQuery()}},
+		bson.D{{Key: "$match", Value: mongoFilter.GetQuery()}},
 		// Sort by StreamID and End descending to get the latest result first
 		{{Key: "$sort", Value: bson.D{
 			{Key: "streamId", Value: 1}, // Group by StreamID
@@ -134,13 +135,13 @@ func (s *ResultsService) GetLatestResultForStream(ctx context.Context, streamId 
 	return &result, err
 }
 
-func (s *ResultsService) GetLatestResultsForPlan(ctx context.Context, planId *primitive.ObjectID) ([]*domain.Result, error) {
+func (s *ResultsService) GetLatestResultsForPlan(ctx context.Context, plan *domain.Plan) ([]*domain.Result, error) {
+
+	mongoFilter := labelfilter.MongoFromFilter(plan.ResultFilter)
 	// Aggregation pipeline
 	pipeline := mongo.Pipeline{
 		// Match documents related to the specific plan
-		{{Key: "$match", Value: bson.D{
-			{Key: "relatedPlans", Value: planId},
-		}}},
+		bson.D{{Key: "$match", Value: mongoFilter.GetQuery()}},
 		// Sort by StreamID and End descending to get the latest result first
 		{{Key: "$sort", Value: bson.D{
 			{Key: "streamId", Value: 1}, // Group by StreamID
