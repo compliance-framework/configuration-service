@@ -5,12 +5,13 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/google/uuid"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"slices"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/compliance-framework/configuration-service/domain"
 	"github.com/compliance-framework/configuration-service/tests"
@@ -98,6 +99,7 @@ func (suite *ResultIntegrationSuite) TestCreateResult() {
 				&planId,
 				&extraPanId,
 			},
+			Status: "active",
 		}
 		err := resultService.Create(ctx, result)
 		if err != nil {
@@ -182,6 +184,7 @@ func (suite *ResultIntegrationSuite) TestResultStreams() {
 				RelatedPlans: []*primitive.ObjectID{
 					&planId,
 				},
+				Status: "active",
 				// Older result
 				End: time.Now().Add(-1 * time.Hour),
 			})
@@ -197,6 +200,7 @@ func (suite *ResultIntegrationSuite) TestResultStreams() {
 				RelatedPlans: []*primitive.ObjectID{
 					&planId,
 				},
+				Status: "active",
 				// Older result
 				End: time.Now(),
 			})
@@ -237,7 +241,8 @@ func (suite *ResultIntegrationSuite) TestLatestStreamResult() {
 			RelatedPlans: []*primitive.ObjectID{
 				&planId,
 			},
-			End: time.Now(),
+			Status: "active",
+			End:    time.Now(),
 		}
 
 		// The actual latest result
@@ -254,6 +259,7 @@ func (suite *ResultIntegrationSuite) TestLatestStreamResult() {
 				RelatedPlans: []*primitive.ObjectID{
 					&planId,
 				},
+				Status: "active",
 				// Older results
 				End: time.Now().Add(-time.Duration(1) * time.Hour),
 			})
@@ -287,7 +293,8 @@ func (suite *ResultIntegrationSuite) TestGetResult() {
 			RelatedPlans: []*primitive.ObjectID{
 				&planId,
 			},
-			End: time.Now(),
+			Status: "active",
+			End:    time.Now(),
 		}
 
 		// The actual latest result
