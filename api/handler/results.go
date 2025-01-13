@@ -45,16 +45,12 @@ func NewResultsHandler(l *zap.SugaredLogger, s *service.ResultsService, planServ
 //	@Failure		500	{object}	api.Error
 //	@Router			/results/plan/:plan [get]
 func (h *ResultsHandler) GetPlanResults(c echo.Context) error {
-	//planId, err := primitive.ObjectIDFromHex(c.Param("plan"))
-	//if err != nil {
-	//	return c.JSON(http.StatusBadRequest, api.NewError(err))
-	//}
-	//
-	//fmt.Println(planId)
-	//fmt.Println(planId.String())
-	//fmt.Println(planId.Hex())
+	planId, err := primitive.ObjectIDFromHex(c.Param("plan"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, api.NewError(err))
+	}
 
-	plan, err := h.planService.GetById(c.Request().Context(), c.Param("plan"))
+	plan, err := h.planService.GetById(c.Request().Context(), planId.Hex())
 	if err != nil {
 		return c.JSON(http.StatusNotFound, api.NewError(err))
 	}

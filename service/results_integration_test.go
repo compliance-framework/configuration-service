@@ -383,8 +383,6 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 			suite.T().Fatal(err)
 		}
 
-		fmt.Println(results[0].Title, results[1].Title)
-
 		assert.Equal(suite.T(), 2, len(results))
 		assert.Contains(suite.T(), []string{"Res #1-#1", "Res #1-#2"}, results[0].Title)
 		assert.Contains(suite.T(), []string{"Res #1-#1", "Res #1-#2"}, results[1].Title)
