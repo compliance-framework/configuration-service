@@ -47,7 +47,7 @@ type Result struct {
 	Findings         []Finding               `json:"findings" yaml:"findings"`
 	Remarks          string                  `json:"remarks,omitempty" yaml:"remarks,omitempty"`
 	RelatedPlans     []*primitive.ObjectID   `json:"relatedPlans,omitempty" yaml:"relatedPlans,omitempty" bson:"relatedPlans,omitempty"`
-	Status           string                  `json:"status" yaml:"status"`
+	Expires          time.Time               `json:"expires" yaml:"expires"`
 }
 
 // Attestation represents a formal assertion, declaration, or acknowledgment by an authoritative

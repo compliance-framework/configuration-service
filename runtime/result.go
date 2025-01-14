@@ -31,7 +31,7 @@ type ExecutionResult struct {
 	Findings     []Finding       `json:"findings" yaml:"findings"`
 	Risks        []Risk          `json:"risks" yaml:"risks"`
 	Logs         []LogEntry      `json:"logs" yaml:"logs"`
-	TTL          time.Time       `json:"TTL" yaml:"TTL"`
+	Expires      time.Time       `json:"expires" yaml:"expires"`
 }
 
 type Observation struct {

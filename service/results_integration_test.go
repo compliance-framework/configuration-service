@@ -99,7 +99,7 @@ func (suite *ResultIntegrationSuite) TestCreateResult() {
 				&planId,
 				&extraPanId,
 			},
-			Status: "active",
+			Expires: time.Now().Add(24 * time.Hour),
 		}
 		err := resultService.Create(ctx, result)
 		if err != nil {
@@ -184,7 +184,7 @@ func (suite *ResultIntegrationSuite) TestResultStreams() {
 				RelatedPlans: []*primitive.ObjectID{
 					&planId,
 				},
-				Status: "active",
+				Expires: time.Now().Add(24 * time.Hour),
 				// Older result
 				End: time.Now().Add(-1 * time.Hour),
 			})
@@ -200,7 +200,7 @@ func (suite *ResultIntegrationSuite) TestResultStreams() {
 				RelatedPlans: []*primitive.ObjectID{
 					&planId,
 				},
-				Status: "active",
+				Expires: time.Now().Add(24 * time.Hour),
 				// Older result
 				End: time.Now(),
 			})
@@ -241,8 +241,8 @@ func (suite *ResultIntegrationSuite) TestLatestStreamResult() {
 			RelatedPlans: []*primitive.ObjectID{
 				&planId,
 			},
-			Status: "active",
-			End:    time.Now(),
+			Expires: time.Now().Add(24 * time.Hour),
+			End:     time.Now(),
 		}
 
 		// The actual latest result
@@ -259,7 +259,7 @@ func (suite *ResultIntegrationSuite) TestLatestStreamResult() {
 				RelatedPlans: []*primitive.ObjectID{
 					&planId,
 				},
-				Status: "active",
+				Expires: time.Now().Add(24 * time.Hour),
 				// Older results
 				End: time.Now().Add(-time.Duration(1) * time.Hour),
 			})
@@ -293,8 +293,8 @@ func (suite *ResultIntegrationSuite) TestGetResult() {
 			RelatedPlans: []*primitive.ObjectID{
 				&planId,
 			},
-			Status: "active",
-			End:    time.Now(),
+			Expires: time.Now().Add(24 * time.Hour),
+			End:     time.Now(),
 		}
 
 		// The actual latest result

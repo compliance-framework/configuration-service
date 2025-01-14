@@ -134,17 +134,6 @@ func (r *Processor) Listen() {
 				planId = primitive.NilObjectID
 			}
 
-			var expiredStatus string
-
-			// Check if the record has expired
-			if time.Now().After(msg.TTL) {
-				fmt.Println("The record has expired.")
-				expiredStatus = "expired"
-			} else {
-				fmt.Println("The record is still valid.")
-				expiredStatus = "valid"
-			}
-
 			// TODO: Start and End times should arrive from the runtime inside the message
 			result := domain.Result{
 				Title:         msg.Title,
@@ -158,7 +147,7 @@ func (r *Processor) Listen() {
 				RelatedPlans: []*primitive.ObjectID{
 					&planId,
 				},
-				Status: expiredStatus,
+				Expires: msg.Expires,
 			}
 
 			err = r.resultService.Create(context.TODO(), &result)
