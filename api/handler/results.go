@@ -123,7 +123,7 @@ func (h *ResultsHandler) GetResult(c echo.Context) error {
 //	@Tags			Result
 //	@Accept			json
 //	@Produce		json
-//	@Success		200	{object}	handler.GenericDataResponse[domain.Result]
+//	@Success		200	{object}	handler.GenericDataListResponse[domain.Result]
 //	@Failure		500	{object}	api.Error
 //	@Router			/results/search [POST]
 func (h *ResultsHandler) SearchResults(ctx echo.Context) error {
