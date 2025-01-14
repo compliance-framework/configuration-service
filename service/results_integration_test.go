@@ -5,14 +5,15 @@ package service
 import (
 	"context"
 	"fmt"
+	"slices"
+	"testing"
+	"time"
+
 	"github.com/compliance-framework/configuration-service/converters/labelfilter"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"slices"
-	"testing"
-	"time"
 
 	"github.com/compliance-framework/configuration-service/domain"
 	"github.com/compliance-framework/configuration-service/tests"
@@ -99,6 +100,7 @@ func (suite *ResultIntegrationSuite) TestCreateResult() {
 				"plan_id": planId.String(),
 				"foo":     "bar",
 			},
+			Expires: time.Now().Add(24 * time.Hour),
 		}
 		err := resultService.Create(ctx, result)
 		if err != nil {
@@ -185,11 +187,13 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 				Title:    "Res #1-#1",
 				StreamID: stream1,
 				End:      time.Now(),
+				Expires:  time.Now().Add(24 * time.Hour),
 			},
 			domain.Result{
 				Title:    "Res #1-#2",
 				StreamID: stream1,
 				End:      time.Now().Add(-time.Minute),
+				Expires:  time.Now().Add(24 * time.Hour),
 			},
 			domain.Result{
 				Title:    "Res #2-#1",
@@ -200,6 +204,7 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 				Title:    "Res #2-#2",
 				StreamID: stream2,
 				End:      time.Now().Add(-time.Minute),
+				Expires:  time.Now().Add(24 * time.Hour),
 			},
 		})
 
@@ -235,6 +240,7 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 				Labels: map[string]string{
 					"foo": "bar",
 				},
+				Expires: time.Now().Add(24 * time.Hour),
 			},
 			domain.Result{
 				Title:    "Res #1-#2",
@@ -243,6 +249,7 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 				Labels: map[string]string{
 					"foo": "baz",
 				},
+				Expires: time.Now().Add(24 * time.Hour),
 			},
 		})
 
@@ -288,6 +295,7 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 				Labels: map[string]string{
 					"foo": "bar",
 				},
+				Expires: time.Now().Add(24 * time.Hour),
 			},
 			domain.Result{
 				Title:    "Res #1-#2",
@@ -296,6 +304,7 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 				Labels: map[string]string{
 					"foo": "baz",
 				},
+				Expires: time.Now().Add(24 * time.Hour),
 			},
 		})
 
@@ -341,6 +350,7 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 				Labels: map[string]string{
 					"foo": "bar",
 				},
+				Expires: time.Now().Add(24 * time.Hour),
 			},
 			domain.Result{
 				Title:    "Res #1-#2",
@@ -349,6 +359,7 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 				Labels: map[string]string{
 					"foo": "baz",
 				},
+				Expires: time.Now().Add(24 * time.Hour),
 			},
 		})
 
@@ -410,6 +421,7 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 					"foo": "bar",
 					"bar": "baz",
 				},
+				Expires: time.Now().Add(24 * time.Hour),
 			},
 			domain.Result{
 				Title:    "Res #1-#2",
@@ -419,6 +431,7 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 					"foo": "bar",
 					"baz": "bat",
 				},
+				Expires: time.Now().Add(24 * time.Hour),
 			},
 		})
 
@@ -494,6 +507,7 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 					"foo": "bar",
 					"bar": "baz",
 				},
+				Expires: time.Now().Add(24 * time.Hour),
 			},
 			domain.Result{
 				Title:    "Res #1-#2",
@@ -503,6 +517,7 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 					"foo": "bar",
 					"baz": "bat",
 				},
+				Expires: time.Now().Add(24 * time.Hour),
 			},
 		})
 
@@ -618,6 +633,7 @@ func (suite *ResultIntegrationSuite) TestResultStreams() {
 				Labels: map[string]string{
 					"foo": "bar",
 				},
+				Expires: time.Now().Add(24 * time.Hour),
 			})
 			if err != nil {
 				suite.T().Fatal(err)
@@ -633,6 +649,7 @@ func (suite *ResultIntegrationSuite) TestResultStreams() {
 				Labels: map[string]string{
 					"foo": "bar",
 				},
+				Expires: time.Now().Add(24 * time.Hour),
 			})
 			if err != nil {
 				suite.T().Fatal(err)
@@ -730,6 +747,7 @@ func (suite *ResultIntegrationSuite) TestGetResult() {
 			Labels: map[string]string{
 				"plan_id": planId.String(),
 			},
+			Expires: time.Now().Add(24 * time.Hour),
 		}
 
 		// The actual latest result
