@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"github.com/compliance-framework/configuration-service/converters/labelfilter"
 	"github.com/compliance-framework/configuration-service/domain"
 	"github.com/google/uuid"
@@ -24,6 +25,7 @@ func (h *ResultsHandler) Register(api *echo.Group) {
 	api.GET("/plan/:plan", h.GetPlanResults)
 	api.GET("/stream/:stream", h.GetStreamResults)
 	api.POST("/search", h.SearchResults)
+	api.POST("/compliance-by-search", h.ComplianceOverTimeBySearch)
 }
 
 func NewResultsHandler(l *zap.SugaredLogger, s *service.ResultsService, planService *service.PlanService) *ResultsHandler {
@@ -130,8 +132,7 @@ func (h *ResultsHandler) SearchResults(ctx echo.Context) error {
 	// Initialize a new plan object
 	filter := &labelfilter.Filter{}
 
-	// Initialize a new createPlanRequest object
-	req := searchResultRequest{}
+	req := filteredSearchRequest{}
 
 	// Bind the incoming request to the plan object
 	// If there's an error, return a 422 status code with the error message
@@ -148,6 +149,44 @@ func (h *ResultsHandler) SearchResults(ctx echo.Context) error {
 
 	// If everything went well, return a 201 status code with the ID of the created plan
 	return ctx.JSON(http.StatusCreated, GenericDataListResponse[*domain.Result]{
+		Data: results,
+	})
+}
+
+// ComplianceOverTimeBySearch godoc
+//
+//	@Summary		Get Compliance Over Time for Search query
+//	@Description	Returns singular result
+//	@Tags			Result
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	handler.GenericDataListResponse[domain.Result]
+//	@Failure		500	{object}	api.Error
+//	@Router			/results/search [POST]
+func (h *ResultsHandler) ComplianceOverTimeBySearch(ctx echo.Context) error {
+	// Initialize a new plan object
+	filter := &labelfilter.Filter{}
+
+	fmt.Println("#############################")
+
+	// Initialize a new createPlanRequest object
+	req := filteredSearchRequest{}
+
+	// Bind the incoming request to the plan object
+	// If there's an error, return a 422 status code with the error message
+	if err := req.bind(ctx, filter); err != nil {
+		return ctx.JSON(http.StatusUnprocessableEntity, api.NewError(err))
+	}
+
+	// Attempt to create the plan in the service
+	// If there's an error, return a 500 status code with the error message
+	results, err := h.service.GetIntervalledComplianceReport(ctx.Request().Context(), filter)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// If everything went well, return a 201 status code with the ID of the created plan
+	return ctx.JSON(http.StatusCreated, GenericDataListResponse[*service.StreamRecords]{
 		Data: results,
 	})
 }
