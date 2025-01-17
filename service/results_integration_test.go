@@ -777,7 +777,7 @@ func (suite *ResultIntegrationSuite) TestGetIntervalledComplianceReport() {
 		}
 
 		// The actual latest result
-		intervalRecords, err := resultService.GetIntervalledComplianceReport(ctx, &labelfilter.Filter{})
+		intervalRecords, err := resultService.GetIntervalledComplianceReportForFilter(ctx, &labelfilter.Filter{})
 		if err != nil {
 			suite.T().Fatal(err)
 		}
@@ -816,7 +816,7 @@ func (suite *ResultIntegrationSuite) TestGetIntervalledComplianceReport() {
 		}
 
 		// The actual latest result
-		intervalRecords, err := resultService.GetIntervalledComplianceReport(ctx, &labelfilter.Filter{})
+		intervalRecords, err := resultService.GetIntervalledComplianceReportForFilter(ctx, &labelfilter.Filter{})
 		if err != nil {
 			suite.T().Fatal(err)
 		}

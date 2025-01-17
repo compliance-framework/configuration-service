@@ -18,11 +18,50 @@ type IntervalledRecord struct {
 	Interval     time.Time `json:"interval"`
 	Findings     uint      `json:"findings"`
 	Observations uint      `json:"observations"`
+	HasRecords   bool      `json:"hasRecords" bson:"hasRecords"`
 }
 
 type StreamRecords struct {
 	ID      uuid.UUID           `json:"_id" bson:"_id"`
 	Records []IntervalledRecord `json:"records" bson:"records"`
+}
+
+func (sr *StreamRecords) FillGaps(ctx context.Context, duration time.Duration) {
+	if len(sr.Records) == 0 {
+		return
+	}
+
+	earliestTime := sr.Records[0].Interval
+	latestTime := sr.Records[0].Interval
+	var times = map[time.Time]interface{}{}
+	for key, record := range sr.Records {
+		sr.Records[key].HasRecords = true
+		if record.Interval.Before(earliestTime) {
+			earliestTime = record.Interval
+		}
+		if record.Interval.After(latestTime) {
+			latestTime = record.Interval
+		}
+		times[record.Interval] = nil
+	}
+
+	fillRecord := sr.Records[0]
+	fillRecord.Observations = 0
+	fillRecord.Findings = 0
+	fillRecord.HasRecords = false
+
+	currentTime := earliestTime
+	for {
+		if _, ok := times[currentTime]; !ok {
+			fillRecord.Interval = currentTime
+			fillRecord.HasRecords = false
+			sr.Records = append(sr.Records, fillRecord)
+		}
+		currentTime = currentTime.Add(duration)
+		if currentTime.After(latestTime) {
+			break
+		}
+	}
 }
 
 type ResultsService struct {
@@ -118,20 +157,8 @@ func (s *ResultsService) Search(ctx context.Context, filter *labelfilter.Filter)
 	return output, nil
 }
 
-//type Stream string
-//
-//type Interval
-//
-//type IntervalReport struct {
-//	Results map[Stream]
-//}
-
-func (s *ResultsService) GetIntervalledComplianceReport(ctx context.Context, filter *labelfilter.Filter) ([]*StreamRecords, error) {
-	mongoFilter := labelfilter.MongoFromFilter(*filter)
-	pipeline := mongo.Pipeline{
-		// Step 1: Match stage
-		bson.D{{Key: "$match", Value: mongoFilter.GetQuery()}},
-		// Step 2: Add Fields stage
+func (s *ResultsService) getIntervalledCompliancePipeline(ctx context.Context, interval time.Duration) []bson.D {
+	return []bson.D{
 		{
 			{"$addFields", bson.D{
 				{"interval", bson.D{
@@ -143,7 +170,7 @@ func (s *ResultsService) GetIntervalledComplianceReport(ctx context.Context, fil
 									bson.D{{"$toLong", "$end"}},
 									bson.D{{"$toLong", time.Now()}},
 								}}},
-								300000,
+								interval.Milliseconds(),
 							}}},
 						}},
 					}},
@@ -198,6 +225,16 @@ func (s *ResultsService) GetIntervalledComplianceReport(ctx context.Context, fil
 			}},
 		},
 	}
+}
+
+func (s *ResultsService) GetIntervalledComplianceReportForFilter(ctx context.Context, filter *labelfilter.Filter) ([]*StreamRecords, error) {
+	mongoFilter := labelfilter.MongoFromFilter(*filter)
+	intervalQuery := s.getIntervalledCompliancePipeline(ctx, 5*time.Minute)
+	pipeline := mongo.Pipeline{
+		bson.D{{Key: "$match", Value: mongoFilter.GetQuery()}},
+	}
+	pipeline = append(pipeline, intervalQuery...)
+
 	// Execute aggregation
 	cursor, err := s.resultsCollection.Aggregate(ctx, pipeline)
 	if err != nil {
@@ -211,40 +248,38 @@ func (s *ResultsService) GetIntervalledComplianceReport(ctx context.Context, fil
 		return nil, err
 	}
 
-	// fill gaps
+	// fill gaps in time jumps, and mark them as having zero observations and findings
 	for _, streamRecord := range streamRecords {
-		if len(streamRecord.Records) == 0 {
-			continue
-		}
+		streamRecord.FillGaps(ctx, 5*time.Minute)
+	}
 
-		earliestTime := streamRecord.Records[0].Interval
-		latestTime := streamRecord.Records[0].Interval
-		var times = map[time.Time]interface{}{}
-		for _, record := range streamRecord.Records {
-			if record.Interval.Before(earliestTime) {
-				earliestTime = record.Interval
-			}
-			if record.Interval.After(latestTime) {
-				latestTime = record.Interval
-			}
-			times[record.Interval] = nil
-		}
+	return streamRecords, nil
+}
 
-		fillRecord := streamRecord.Records[0]
-		fillRecord.Observations = 0
-		fillRecord.Findings = 0
+func (s *ResultsService) GetIntervalledComplianceReportForStream(ctx context.Context, streamId uuid.UUID) ([]*StreamRecords, error) {
+	intervalQuery := s.getIntervalledCompliancePipeline(ctx, 5*time.Minute)
+	pipeline := mongo.Pipeline{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "streamId", Value: streamId},
+		}}},
+	}
+	pipeline = append(pipeline, intervalQuery...)
 
-		currentTime := earliestTime
-		for {
-			if _, ok := times[currentTime]; !ok {
-				fillRecord.Interval = currentTime
-				streamRecord.Records = append(streamRecord.Records, fillRecord)
-			}
-			currentTime = currentTime.Add(5 * time.Minute)
-			if currentTime.After(latestTime) {
-				break
-			}
-		}
+	cursor, err := s.resultsCollection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var streamRecords []*StreamRecords
+	err = cursor.All(ctx, &streamRecords)
+	if err != nil {
+		return nil, err
+	}
+
+	// fill gaps in time jumps, and mark them as having zero observations and findings
+	for _, streamRecord := range streamRecords {
+		streamRecord.FillGaps(ctx, 5*time.Minute)
 	}
 
 	return streamRecords, nil
