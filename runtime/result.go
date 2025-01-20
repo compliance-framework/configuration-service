@@ -31,6 +31,7 @@ type ExecutionResult struct {
 	Risks        []Risk            `json:"risks" yaml:"risks"`
 	Logs         []LogEntry        `json:"logs" yaml:"logs"`
 	Labels       map[string]string `json:"labels" yaml:"labels"`
+	Expires      time.Time         `json:"expires" yaml:"expires"`
 }
 
 type Observation struct {

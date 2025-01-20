@@ -139,6 +139,7 @@ func (r *Processor) Listen() {
 				End:           time.Now(),
 				StreamID:      msg.StreamId,
 				Labels:        msg.Labels,
+				Expires:       msg.Expires,
 			}
 
 			fmt.Printf("Plumbed message: %v\n", msg)
