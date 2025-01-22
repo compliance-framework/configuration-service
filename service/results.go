@@ -339,7 +339,9 @@ func (s *ResultsService) GetIntervalledComplianceReportForStream(ctx context.Con
 func (s *ResultsService) GetAllForStream(ctx context.Context, streamId uuid.UUID) (results []*domain.Result, err error) {
 	cursor, err := s.resultsCollection.Find(ctx, bson.D{
 		bson.E{Key: "streamId", Value: streamId},
-	})
+	}, options.Find().SetSort(bson.D{
+		{Key: "end", Value: -1}, // -1 for descending order to get the latest result
+	}))
 	if err != nil {
 		return nil, err
 	}
