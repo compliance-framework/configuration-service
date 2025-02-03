@@ -3,14 +3,14 @@ package domain
 import (
 	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Result struct {
-	Id       *primitive.ObjectID `json:"_id,omitempty" yaml:"_id,omitempty" bson:"_id,omitempty"`
-	StreamID uuid.UUID           `json:"streamId,omitempty" yaml:"streamId,omitempty" bson:"streamId,omitempty"`
-	Labels   map[string]string   `json:"labels,omitempty" yaml:"labels,omitempty" bson:"labels,omitempty"`
+	// Here we override the ID field to be of UUID for compatibility in our SDK.
+	// Our clients don't care about Mongo ObjectIDs, and it won't map well for their use.
+	UUID     uuid.UUID         `json:"_id" yaml:"_id" bson:"_id"`
+	StreamID uuid.UUID         `json:"streamId" yaml:"streamId" bson:"streamId"`
+	Labels   map[string]string `json:"labels" yaml:"labels" bson:"labels"`
 	oscaltypes113.Result
 }
 
