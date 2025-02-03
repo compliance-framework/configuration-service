@@ -2,14 +2,15 @@ package service
 
 import (
 	"context"
-	"github.com/compliance-framework/configuration-service/domain"
+	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type DocWithMetadata struct {
-	Uuid     domain.Uuid     `json:"uuid" yaml:"uuid"`
-	Metadata domain.Metadata `bson:"metadata"`
+	Uuid     uuid.UUID              `json:"uuid" yaml:"uuid"`
+	Metadata oscaltypes113.Metadata `bson:"metadata"`
 }
 
 type MetadataService struct {
@@ -22,7 +23,7 @@ func NewMetadataService(database *mongo.Database) *MetadataService {
 	}
 }
 
-func (s *MetadataService) AttachMetadata(uuid string, collection string, revision domain.Revision) error {
+func (s *MetadataService) AttachMetadata(uuid string, collection string, revision oscaltypes113.RevisionHistoryEntry) error {
 	_, err := s.database.Collection(collection).UpdateOne(context.TODO(), bson.M{"uuid": uuid}, bson.M{
 		"$addToSet": bson.M{
 			"metadata.revisions": revision,

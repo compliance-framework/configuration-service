@@ -86,10 +86,6 @@ func main() {
 	systemPlanHandler := handler.NewSSPHandler(systemPlanService)
 	systemPlanHandler.Register(server.API())
 
-	metadataService := service.NewMetadataService(mongoDatabase)
-	metadataHandler := handler.NewMetadataHandler(metadataService)
-	metadataHandler.Register(server.API().Group("/metadata"))
-
 	server.PrintRoutes()
 
 	checkErr(server.Start(DefaultPort))

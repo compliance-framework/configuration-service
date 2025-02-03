@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 	"errors"
+	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 
-	"github.com/compliance-framework/configuration-service/domain"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -22,7 +22,7 @@ func NewSSPService(database *mongo.Database) *SSPService {
 	}
 }
 
-func (s *SSPService) Create(ssp *domain.SystemSecurityPlan) (string, error) {
+func (s *SSPService) Create(ssp *oscaltypes113.SystemSecurityPlan) (string, error) {
 	result, err := s.sspCollection.InsertOne(context.TODO(), ssp)
 	if err != nil {
 		return "", err
@@ -31,13 +31,13 @@ func (s *SSPService) Create(ssp *domain.SystemSecurityPlan) (string, error) {
 	return result.InsertedID.(primitive.ObjectID).Hex(), nil
 }
 
-func (s *SSPService) GetByID(id string) (*domain.SystemSecurityPlan, error) {
+func (s *SSPService) GetByID(id string) (*oscaltypes113.SystemSecurityPlan, error) {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
 	}
 
-	var ssp domain.SystemSecurityPlan
+	var ssp oscaltypes113.SystemSecurityPlan
 	err = s.sspCollection.FindOne(context.TODO(), bson.M{"_id": objID}).Decode(&ssp)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -49,16 +49,16 @@ func (s *SSPService) GetByID(id string) (*domain.SystemSecurityPlan, error) {
 	return &ssp, nil
 }
 
-func (s *SSPService) List() ([]*domain.SystemSecurityPlan, error) {
+func (s *SSPService) List() ([]*oscaltypes113.SystemSecurityPlan, error) {
 	ctx := context.Background()
-	ssps := []*domain.SystemSecurityPlan{}
+	ssps := []*oscaltypes113.SystemSecurityPlan{}
 	var tErr error
 	cur, err := s.sspCollection.Find(ctx, bson.D{})
 	if err != nil {
 		return nil, err
 	}
 	for cur.Next(ctx) {
-		ssp := &domain.SystemSecurityPlan{}
+		ssp := &oscaltypes113.SystemSecurityPlan{}
 		err = cur.Decode(&ssp)
 		if err != nil {
 			jErr := errors.Join(tErr, err)
@@ -72,7 +72,7 @@ func (s *SSPService) List() ([]*domain.SystemSecurityPlan, error) {
 	return ssps, err
 }
 
-func (s *SSPService) Update(id string, ssp *domain.SystemSecurityPlan) (*domain.SystemSecurityPlan, error) {
+func (s *SSPService) Update(id string, ssp *oscaltypes113.SystemSecurityPlan) (*oscaltypes113.SystemSecurityPlan, error) {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
