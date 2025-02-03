@@ -75,15 +75,18 @@ func NewResultsService(db *mongo.Database) *ResultsService {
 }
 
 func (s *ResultsService) Create(ctx context.Context, result *domain.Result) error {
+	if result.UUID == nil {
+		id := uuid.New()
+		result.UUID = &id
+	}
 	output, err := s.resultsCollection.InsertOne(ctx, result)
 	if err != nil {
 		return err
 	}
-	insertedId, ok := output.InsertedID.(primitive.ObjectID)
+	_, ok := output.InsertedID.(primitive.ObjectID)
 	if !ok {
 		return errors.New("result ID is not a primitive.ObjectID")
 	}
-	result.Id = &insertedId
 	return nil
 }
 
