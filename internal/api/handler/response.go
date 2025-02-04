@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"github.com/compliance-framework/configuration-service/domain"
+	"github.com/compliance-framework/configuration-service/internal/domain"
 )
 
 // idResponse is a struct that holds the ID of a model.

@@ -2,11 +2,11 @@ package service
 
 import (
 	"context"
+	"github.com/compliance-framework/configuration-service/internal/domain"
 	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
 	"log"
 
-	"github.com/compliance-framework/configuration-service/domain"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )

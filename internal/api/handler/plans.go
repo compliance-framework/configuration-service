@@ -1,12 +1,11 @@
 package handler
 
 import (
-	"github.com/compliance-framework/configuration-service/domain"
+	"github.com/compliance-framework/configuration-service/internal/api"
+	"github.com/compliance-framework/configuration-service/internal/domain"
+	"github.com/compliance-framework/configuration-service/internal/service"
 	"net/http"
 
-	"github.com/compliance-framework/configuration-service/api"
-	//"github.com/compliance-framework/configuration-service/domain"
-	"github.com/compliance-framework/configuration-service/service"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 )

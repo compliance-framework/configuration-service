@@ -1,8 +1,8 @@
 services:
   configuration-service:
     build:
-      context: ../
-      dockerfile: tests/configuration-service/Dockerfile
+      context: ../..
+      dockerfile: configuration-service/Dockerfile
     ports:
       - "8080:8080"
       - "2345:2345"

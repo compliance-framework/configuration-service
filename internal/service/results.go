@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	"github.com/compliance-framework/configuration-service/converters/labelfilter"
-	"github.com/compliance-framework/configuration-service/domain"
+	labelfilter2 "github.com/compliance-framework/configuration-service/internal/converters/labelfilter"
+	domain2 "github.com/compliance-framework/configuration-service/internal/domain"
 	"github.com/google/uuid"
 	bson "go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -76,7 +76,7 @@ func NewResultsService(db *mongo.Database) *ResultsService {
 	}
 }
 
-func (s *ResultsService) Create(ctx context.Context, result *domain.Result) error {
+func (s *ResultsService) Create(ctx context.Context, result *domain2.Result) error {
 	if result.UUID == nil {
 		id := uuid.New()
 		result.UUID = &id
@@ -88,15 +88,15 @@ func (s *ResultsService) Create(ctx context.Context, result *domain.Result) erro
 	return nil
 }
 
-func (s *ResultsService) Get(ctx context.Context, id *uuid.UUID) (*domain.Result, error) {
-	var result domain.Result
+func (s *ResultsService) Get(ctx context.Context, id *uuid.UUID) (*domain2.Result, error) {
+	var result domain2.Result
 	err := s.resultsCollection.FindOne(ctx, bson.D{
 		{Key: "_id", Value: id},
 	}).Decode(&result)
 	return &result, err
 }
 
-func (s *ResultsService) GetAll(ctx context.Context) ([]*domain.Result, error) {
+func (s *ResultsService) GetAll(ctx context.Context) ([]*domain2.Result, error) {
 	cursor, err := s.resultsCollection.Find(ctx, bson.D{})
 
 	if err != nil {
@@ -107,7 +107,7 @@ func (s *ResultsService) GetAll(ctx context.Context) ([]*domain.Result, error) {
 	}
 	defer cursor.Close(ctx)
 
-	var results []*domain.Result
+	var results []*domain2.Result
 	err = cursor.All(ctx, &results)
 	if err != nil {
 		return nil, err
@@ -116,8 +116,8 @@ func (s *ResultsService) GetAll(ctx context.Context) ([]*domain.Result, error) {
 	return results, nil
 }
 
-func (s *ResultsService) Search(ctx context.Context, filter *labelfilter.Filter) ([]*domain.Result, error) {
-	mongoFilter := labelfilter.MongoFromFilter(*filter)
+func (s *ResultsService) Search(ctx context.Context, filter *labelfilter2.Filter) ([]*domain2.Result, error) {
+	mongoFilter := labelfilter2.MongoFromFilter(*filter)
 	pipeline := mongo.Pipeline{
 		// Match documents related to the specific plan
 		bson.D{{Key: "$match", Value: mongoFilter.GetQuery()}},
@@ -142,15 +142,15 @@ func (s *ResultsService) Search(ctx context.Context, filter *labelfilter.Filter)
 	defer cursor.Close(ctx)
 
 	results := make([]*struct {
-		Id     uuid.UUID     `bson:"_id"`
-		Record domain.Result `bson:"latestResult"`
+		Id     uuid.UUID      `bson:"_id"`
+		Record domain2.Result `bson:"latestResult"`
 	}, 0)
 	err = cursor.All(ctx, &results)
 	if err != nil {
 		return nil, err
 	}
 
-	output := make([]*domain.Result, 0)
+	output := make([]*domain2.Result, 0)
 	for _, result := range results {
 		output = append(output, &result.Record)
 	}
@@ -275,8 +275,8 @@ func (s *ResultsService) getIntervalledCompliancePipeline(ctx context.Context, i
 	}
 }
 
-func (s *ResultsService) GetIntervalledComplianceReportForFilter(ctx context.Context, filter *labelfilter.Filter) ([]*StreamRecords, error) {
-	mongoFilter := labelfilter.MongoFromFilter(*filter)
+func (s *ResultsService) GetIntervalledComplianceReportForFilter(ctx context.Context, filter *labelfilter2.Filter) ([]*StreamRecords, error) {
+	mongoFilter := labelfilter2.MongoFromFilter(*filter)
 	intervalQuery := s.getIntervalledCompliancePipeline(ctx, 5*time.Minute)
 	pipeline := mongo.Pipeline{
 		bson.D{{Key: "$match", Value: mongoFilter.GetQuery()}},
@@ -333,7 +333,7 @@ func (s *ResultsService) GetIntervalledComplianceReportForStream(ctx context.Con
 	return streamRecords, nil
 }
 
-func (s *ResultsService) GetAllForStream(ctx context.Context, streamId uuid.UUID) (results []*domain.Result, err error) {
+func (s *ResultsService) GetAllForStream(ctx context.Context, streamId uuid.UUID) (results []*domain2.Result, err error) {
 	cursor, err := s.resultsCollection.Find(ctx, bson.D{
 		bson.E{Key: "streamId", Value: streamId},
 	}, options.Find().SetSort(bson.D{
@@ -354,9 +354,9 @@ func (s *ResultsService) GetAllForStream(ctx context.Context, streamId uuid.UUID
 	return results, nil
 }
 
-func (s *ResultsService) GetLatestResultForStream(ctx context.Context, streamId uuid.UUID) (*domain.Result, error) {
+func (s *ResultsService) GetLatestResultForStream(ctx context.Context, streamId uuid.UUID) (*domain2.Result, error) {
 	// Fetch the latest result
-	var result domain.Result
+	var result domain2.Result
 	err := s.resultsCollection.FindOne(ctx, bson.D{
 		{Key: "streamId", Value: streamId},
 	}, options.FindOne().SetSort(bson.D{
@@ -365,9 +365,9 @@ func (s *ResultsService) GetLatestResultForStream(ctx context.Context, streamId 
 	return &result, err
 }
 
-func (s *ResultsService) GetLatestResultsForPlan(ctx context.Context, plan *domain.Plan) ([]*domain.Result, error) {
+func (s *ResultsService) GetLatestResultsForPlan(ctx context.Context, plan *domain2.Plan) ([]*domain2.Result, error) {
 
-	mongoFilter := labelfilter.MongoFromFilter(plan.ResultFilter)
+	mongoFilter := labelfilter2.MongoFromFilter(plan.ResultFilter)
 	// Aggregation pipeline
 	pipeline := mongo.Pipeline{
 		// Match documents related to the specific plan
@@ -394,15 +394,15 @@ func (s *ResultsService) GetLatestResultsForPlan(ctx context.Context, plan *doma
 	defer cursor.Close(ctx)
 
 	results := make([]*struct {
-		Id     uuid.UUID     `bson:"_id"`
-		Record domain.Result `bson:"latestResult"`
+		Id     uuid.UUID      `bson:"_id"`
+		Record domain2.Result `bson:"latestResult"`
 	}, 0)
 	err = cursor.All(ctx, &results)
 	if err != nil {
 		return nil, err
 	}
 
-	output := make([]*domain.Result, 0)
+	output := make([]*domain2.Result, 0)
 	for _, result := range results {
 		output = append(output, &result.Record)
 	}

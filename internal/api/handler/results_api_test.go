@@ -6,10 +6,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/compliance-framework/configuration-service/api"
-	"github.com/compliance-framework/configuration-service/converters/labelfilter"
-	"github.com/compliance-framework/configuration-service/domain"
-	"github.com/compliance-framework/configuration-service/service"
+	"github.com/compliance-framework/configuration-service/internal/api"
+	"github.com/compliance-framework/configuration-service/internal/converters/labelfilter"
+	domain2 "github.com/compliance-framework/configuration-service/internal/domain"
+	service2 "github.com/compliance-framework/configuration-service/internal/service"
+	"github.com/compliance-framework/configuration-service/internal/tests"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
@@ -19,7 +20,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/compliance-framework/configuration-service/tests"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -40,13 +40,13 @@ func (suite *ResultsIntegrationSuite) TestGetPlanResults() {
 			suite.T().Fatal(err)
 		}
 
-		resultsHandler := NewResultsHandler(logger.Sugar(), service.NewResultsService(suite.MongoDatabase), service.NewPlanService(suite.MongoDatabase))
+		resultsHandler := NewResultsHandler(logger.Sugar(), service2.NewResultsService(suite.MongoDatabase), service2.NewPlanService(suite.MongoDatabase))
 		server := api.NewServer(context.Background(), logger.Sugar())
 		resultsHandler.Register(server.API().Group("/results"))
 		// Create an empty plan
-		planService := service.NewPlanService(suite.MongoDatabase)
+		planService := service2.NewPlanService(suite.MongoDatabase)
 		id := uuid.New()
-		plan, err := planService.Create(&domain.Plan{
+		plan, err := planService.Create(&domain2.Plan{
 			UUID: &id,
 			ResultFilter: labelfilter.Filter{
 				Scope: &labelfilter.Scope{
@@ -71,10 +71,10 @@ func (suite *ResultsIntegrationSuite) TestGetPlanResults() {
 		assert.Equal(suite.T(), http.StatusOK, rec.Code, "Expected status 200 Created")
 
 		response := &struct {
-			Data []*domain.Result `json:"data"`
+			Data []*domain2.Result `json:"data"`
 		}{}
 		assert.NoError(suite.T(), json.Unmarshal(rec.Body.Bytes(), response), "Failed to parse response from GetResults")
-		assert.Equal(suite.T(), response.Data, make([]*domain.Result, 0), "Expected no data in data key")
+		assert.Equal(suite.T(), response.Data, make([]*domain2.Result, 0), "Expected no data in data key")
 	})
 
 	suite.Run("A plan with a result returns it", func() {
@@ -87,9 +87,9 @@ func (suite *ResultsIntegrationSuite) TestGetPlanResults() {
 		}
 
 		// Create an empty plan
-		planService := service.NewPlanService(suite.MongoDatabase)
+		planService := service2.NewPlanService(suite.MongoDatabase)
 		id := uuid.New()
-		plan, err := planService.Create(&domain.Plan{
+		plan, err := planService.Create(&domain2.Plan{
 			UUID: &id,
 			ResultFilter: labelfilter.Filter{
 				Scope: &labelfilter.Scope{
@@ -106,8 +106,8 @@ func (suite *ResultsIntegrationSuite) TestGetPlanResults() {
 		}
 
 		// Add a result
-		resultService := service.NewResultsService(suite.MongoDatabase)
-		err = resultService.Create(context.Background(), &domain.Result{
+		resultService := service2.NewResultsService(suite.MongoDatabase)
+		err = resultService.Create(context.Background(), &domain2.Result{
 			StreamID: uuid.New(),
 			Labels: map[string]string{
 				"foo": "bar",
@@ -130,7 +130,7 @@ func (suite *ResultsIntegrationSuite) TestGetPlanResults() {
 		assert.Equal(suite.T(), http.StatusOK, rec.Code, "Expected status 200 Created")
 
 		response := &struct {
-			Data []*domain.Result `json:"data"`
+			Data []*domain2.Result `json:"data"`
 		}{}
 		assert.NoError(suite.T(), json.Unmarshal(rec.Body.Bytes(), response), "Failed to parse response from GetResults")
 		assert.Len(suite.T(), response.Data, 1, "Expected data in data key")

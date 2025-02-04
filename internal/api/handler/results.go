@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"github.com/compliance-framework/configuration-service/api"
-	"github.com/compliance-framework/configuration-service/converters/labelfilter"
-	"github.com/compliance-framework/configuration-service/domain"
-	"github.com/compliance-framework/configuration-service/service"
+	"github.com/compliance-framework/configuration-service/internal/api"
+	"github.com/compliance-framework/configuration-service/internal/converters/labelfilter"
+	"github.com/compliance-framework/configuration-service/internal/domain"
+	service2 "github.com/compliance-framework/configuration-service/internal/service"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
@@ -12,8 +12,8 @@ import (
 )
 
 type ResultsHandler struct {
-	service     *service.ResultsService
-	planService *service.PlanService
+	service     *service2.ResultsService
+	planService *service2.PlanService
 	sugar       *zap.SugaredLogger
 }
 
@@ -27,7 +27,7 @@ func (h *ResultsHandler) Register(api *echo.Group) {
 	api.POST("/compliance-by-stream", h.ComplianceOverTimeByStream)
 }
 
-func NewResultsHandler(l *zap.SugaredLogger, s *service.ResultsService, planService *service.PlanService) *ResultsHandler {
+func NewResultsHandler(l *zap.SugaredLogger, s *service2.ResultsService, planService *service2.PlanService) *ResultsHandler {
 	return &ResultsHandler{
 		sugar:       l,
 		service:     s,
@@ -184,11 +184,11 @@ func (h *ResultsHandler) ComplianceOverTimeBySearch(ctx echo.Context) error {
 
 	// This ensures we don't get a null in the JSON response
 	if len(results) == 0 {
-		results = []*service.StreamRecords{}
+		results = []*service2.StreamRecords{}
 	}
 
 	// If everything went well, return a 201 status code with the ID of the created plan
-	return ctx.JSON(http.StatusOK, GenericDataListResponse[*service.StreamRecords]{
+	return ctx.JSON(http.StatusOK, GenericDataListResponse[*service2.StreamRecords]{
 		Data: results,
 	})
 }
@@ -222,10 +222,10 @@ func (h *ResultsHandler) ComplianceOverTimeByStream(ctx echo.Context) error {
 
 	// This ensures we don't get a null in the JSON response
 	if len(results) == 0 {
-		results = []*service.StreamRecords{}
+		results = []*service2.StreamRecords{}
 	}
 
-	return ctx.JSON(http.StatusOK, GenericDataListResponse[*service.StreamRecords]{
+	return ctx.JSON(http.StatusOK, GenericDataListResponse[*service2.StreamRecords]{
 		Data: results,
 	})
 }

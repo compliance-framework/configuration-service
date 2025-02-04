@@ -2,9 +2,9 @@ package api
 
 import (
 	"context"
+	"github.com/compliance-framework/configuration-service/internal/api/binders"
+	mw "github.com/compliance-framework/configuration-service/internal/api/middleware"
 
-	"github.com/compliance-framework/configuration-service/api/binders"
-	mw "github.com/compliance-framework/configuration-service/api/middleware"
 	_ "github.com/compliance-framework/configuration-service/docs"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"

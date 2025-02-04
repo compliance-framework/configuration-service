@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"github.com/compliance-framework/configuration-service/converters/labelfilter"
-	"github.com/compliance-framework/configuration-service/domain"
+	"github.com/compliance-framework/configuration-service/internal/converters/labelfilter"
+	"github.com/compliance-framework/configuration-service/internal/domain"
 	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/labstack/echo/v4"
 )
