@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"github.com/compliance-framework/configuration-service/api"
 	"github.com/compliance-framework/configuration-service/converters/labelfilter"
 	"github.com/compliance-framework/configuration-service/domain"
@@ -183,10 +182,13 @@ func (h *ResultsHandler) ComplianceOverTimeBySearch(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	fmt.Println(results)
+	// This ensures we don't get a null in the JSON response
+	if len(results) == 0 {
+		results = []*service.StreamRecords{}
+	}
 
 	// If everything went well, return a 201 status code with the ID of the created plan
-	return ctx.JSON(http.StatusCreated, GenericDataListResponse[*service.StreamRecords]{
+	return ctx.JSON(http.StatusOK, GenericDataListResponse[*service.StreamRecords]{
 		Data: results,
 	})
 }
@@ -217,8 +219,13 @@ func (h *ResultsHandler) ComplianceOverTimeByStream(ctx echo.Context) error {
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
-	//// If everything went well, return a 201 status code with the ID of the created plan
-	return ctx.JSON(http.StatusCreated, GenericDataListResponse[*service.StreamRecords]{
+
+	// This ensures we don't get a null in the JSON response
+	if len(results) == 0 {
+		results = []*service.StreamRecords{}
+	}
+
+	return ctx.JSON(http.StatusOK, GenericDataListResponse[*service.StreamRecords]{
 		Data: results,
 	})
 }

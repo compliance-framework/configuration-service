@@ -215,7 +215,7 @@ func (s *ResultsService) getIntervalledCompliancePipeline(ctx context.Context, i
 											"$not",
 											bson.D{
 												{"$regexMatch", bson.D{
-													{"input", "$$finding.status"},
+													{"input", "$$finding.target.status.state"},
 													{"regex", "^open"},
 													{"options", "i"},
 												}},
@@ -238,7 +238,7 @@ func (s *ResultsService) getIntervalledCompliancePipeline(ctx context.Context, i
 									{"as", "finding"},
 									{"cond", bson.D{
 										{"$regexMatch", bson.D{
-											{"input", "$$finding.status"},
+											{"input", "$$finding.target.status.state"},
 											{"regex", "^open"},
 											{"options", "i"},
 										}},
