@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/google/uuid"
 	"net/http"
 
 	"github.com/compliance-framework/configuration-service/api"
@@ -82,7 +83,7 @@ func (h *PlanHandler) CreatePlan(ctx echo.Context) error {
 //	@Failure		500	{object}	api.Error
 //	@Router			/plan/:id [get]
 func (h *PlanHandler) GetPlan(ctx echo.Context) error {
-	plan, err := h.service.GetById(ctx.Request().Context(), ctx.Param("id"))
+	plan, err := h.service.GetById(ctx.Request().Context(), uuid.MustParse(ctx.Param("id")))
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	} else if plan == nil {

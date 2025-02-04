@@ -62,15 +62,15 @@ func (r *CreateSSPRequest) bind(ctx echo.Context, ssp *oscaltypes113.SystemSecur
 // createPlanRequest defines the request payload for method Create
 // TODO: Using minimal data for now, we might need to expand it later
 type createPlanRequest struct {
-	Title  string             `json:"title" yaml:"title" validate:"required"`
-	Filter labelfilter.Filter `json:"filter" yaml:"filter" validate:"required"`
+	Metadata oscaltypes113.Metadata `json:"metadata" yaml:"metadata" validate:"required"`
+	Filter   labelfilter.Filter     `json:"filter" yaml:"filter" validate:"required"`
 }
 
 func (r *createPlanRequest) bind(ctx echo.Context, p *domain.Plan) error {
 	if err := ctx.Bind(r); err != nil {
 		return err
 	}
-	p.Metadata.Title = r.Title
+	p.Metadata.Title = r.Metadata.Title
 	p.ResultFilter = r.Filter
 	return nil
 }

@@ -50,10 +50,9 @@ import (
 // ▪	“Specify the output (report) format”
 // In context of an automated compliance check, the description of Task, Activity, and Step provides a systematic plan or procedure that the tool is expected to follow. This breakdown of tasks, activities, and steps could also supply useful context and explain the tool’s operation and results to system admins, auditors or other stakeholders. It also allows for easier troubleshooting in the event of problems.
 type Plan struct {
-	UUID         uuid.UUID          `bson:"_id" json:"_id" yaml:"_id"`
-	ResultFilter labelfilter.Filter `json:"resultFilter" yaml:"resultFilter"`
-
-	oscaltypes113.AssessmentPlan
+	UUID                         *uuid.UUID         `bson:"_id" json:"uuid" yaml:"uuid"`
+	ResultFilter                 labelfilter.Filter `bson:"resultFilter" json:"resultFilter" yaml:"resultFilter"`
+	oscaltypes113.AssessmentPlan `bson:",inline"`
 }
 
 type TaskType string

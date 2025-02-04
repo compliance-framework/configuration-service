@@ -3,12 +3,12 @@ package service
 import (
 	"context"
 	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
+	"github.com/google/uuid"
 	"log"
 
 	. "github.com/compliance-framework/configuration-service/domain"
 	"github.com/compliance-framework/configuration-service/event"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -26,19 +26,14 @@ func NewPlanService(db *mongo.Database, p event.Publisher) *PlanService {
 	}
 }
 
-func (s *PlanService) GetById(ctx context.Context, id string) (*Plan, error) {
-	objectId, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, err
-	}
-
-	output := s.planCollection.FindOne(ctx, bson.D{bson.E{Key: "_id", Value: objectId}})
+func (s *PlanService) GetById(ctx context.Context, id uuid.UUID) (*Plan, error) {
+	output := s.planCollection.FindOne(ctx, bson.D{bson.E{Key: "_id", Value: id}})
 	if output.Err() != nil {
 		return nil, output.Err()
 	}
 
 	result := &Plan{}
-	err = output.Decode(result)
+	err := output.Decode(result)
 	if err != nil {
 		return result, err
 	}
@@ -46,13 +41,17 @@ func (s *PlanService) GetById(ctx context.Context, id string) (*Plan, error) {
 	return result, nil
 }
 
-func (s *PlanService) Create(plan *Plan) (string, error) {
+func (s *PlanService) Create(plan *Plan) (*Plan, error) {
 	log.Println("Create")
-	result, err := s.planCollection.InsertOne(context.TODO(), plan)
-	if err != nil {
-		return "", err
+	if plan.UUID == nil {
+		newId := uuid.New()
+		plan.UUID = &newId
 	}
-	return result.InsertedID.(primitive.ObjectID).Hex(), nil
+	_, err := s.planCollection.InsertOne(context.TODO(), plan)
+	if err != nil {
+		return plan, err
+	}
+	return plan, nil
 }
 
 func (s *PlanService) SaveSubject(subject oscaltypes113.SubjectReference) error {

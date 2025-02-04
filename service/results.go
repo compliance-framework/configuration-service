@@ -2,12 +2,10 @@ package service
 
 import (
 	"context"
-	"errors"
 	"github.com/compliance-framework/configuration-service/converters/labelfilter"
 	"github.com/compliance-framework/configuration-service/domain"
 	"github.com/google/uuid"
 	bson "go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
@@ -79,18 +77,14 @@ func (s *ResultsService) Create(ctx context.Context, result *domain.Result) erro
 		id := uuid.New()
 		result.UUID = &id
 	}
-	output, err := s.resultsCollection.InsertOne(ctx, result)
+	_, err := s.resultsCollection.InsertOne(ctx, result)
 	if err != nil {
 		return err
-	}
-	_, ok := output.InsertedID.(primitive.ObjectID)
-	if !ok {
-		return errors.New("result ID is not a primitive.ObjectID")
 	}
 	return nil
 }
 
-func (s *ResultsService) Get(ctx context.Context, id *primitive.ObjectID) (*domain.Result, error) {
+func (s *ResultsService) Get(ctx context.Context, id *uuid.UUID) (*domain.Result, error) {
 	var result domain.Result
 	err := s.resultsCollection.FindOne(ctx, bson.D{
 		{Key: "_id", Value: id},

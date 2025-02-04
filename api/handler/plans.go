@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/compliance-framework/configuration-service/domain"
 	"net/http"
 
 	"github.com/compliance-framework/configuration-service/api"
@@ -33,7 +34,7 @@ func NewPlansHandler(l *zap.SugaredLogger, s *service.PlansService) *PlansHandle
 //	@Tags			Plan
 //	@Accept			json
 //	@Produce		json
-//	@Success		200	{object}	[]domain.PlanPrecis
+//	@Success		200	{object}	handler.GenericDataListResponse[domain.Plan]
 //	@Failure		500	{object}	api.Error
 //	@Router			/plans [get]
 func (h *PlansHandler) GetPlans(c echo.Context) error {
@@ -41,5 +42,7 @@ func (h *PlansHandler) GetPlans(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
-	return c.JSON(http.StatusOK, results)
+	return c.JSON(http.StatusOK, GenericDataListResponse[domain.Plan]{
+		Data: *results,
+	})
 }

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/compliance-framework/configuration-service/domain"
 	"log"
 
 	"github.com/compliance-framework/configuration-service/event"
@@ -21,24 +22,17 @@ func NewPlansService(database *mongo.Database, p event.Publisher) *PlansService 
 	}
 }
 
-func (s *PlansService) GetPlans() ([]bson.M, error) {
+func (s *PlansService) GetPlans() (*[]domain.Plan, error) {
 	log.Println("GetPlans")
 
-	var pipeline mongo.Pipeline
-	var results []bson.M
+	results := &[]domain.Plan{}
 
-	pipeline = append(pipeline,
-		bson.D{{Key: "$project", Value: bson.D{
-			bson.E{Key: "_id", Value: 1},
-			bson.E{Key: "title", Value: 1},
-		}}},
-	)
-	cursor, err := s.planCollection.Aggregate(context.Background(), pipeline)
+	cursor, err := s.planCollection.Find(context.Background(), bson.D{})
 	if err != nil {
 		return nil, err
 	}
 
-	if err = cursor.All(context.Background(), &results); err != nil {
+	if err = cursor.All(context.Background(), results); err != nil {
 		return nil, err
 	}
 
