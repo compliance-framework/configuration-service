@@ -10,7 +10,7 @@ import (
 	"github.com/compliance-framework/configuration-service/internal/converters/labelfilter"
 	domain2 "github.com/compliance-framework/configuration-service/internal/domain"
 	service2 "github.com/compliance-framework/configuration-service/internal/service"
-	"github.com/compliance-framework/configuration-service/tests"
+	"github.com/compliance-framework/configuration-service/internal/tests"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"

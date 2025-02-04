@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/service"
-	"github.com/compliance-framework/configuration-service/tests"
+	"github.com/compliance-framework/configuration-service/internal/tests"
 	"net/http"
 	"net/http/httptest"
 	"testing"

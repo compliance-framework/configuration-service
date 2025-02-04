@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/compliance-framework/configuration-service/internal/converters/labelfilter"
 	domain2 "github.com/compliance-framework/configuration-service/internal/domain"
-	"github.com/compliance-framework/configuration-service/tests"
+	"github.com/compliance-framework/configuration-service/internal/tests"
 	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
