@@ -9,9 +9,7 @@ services:
       - "8080:8080"
     depends_on:
       - mongodb
-      - nats
     environment:
-      - NATS_URI=nats://nats:4222
       - MONGO_URI=mongodb://mongodb:27017
 
   mongodb:
