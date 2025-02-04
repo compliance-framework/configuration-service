@@ -7,13 +7,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/compliance-framework/configuration-service/runtime"
-
 	"github.com/joho/godotenv"
 
 	"github.com/compliance-framework/configuration-service/api"
 	"github.com/compliance-framework/configuration-service/api/handler"
-	"github.com/compliance-framework/configuration-service/event/bus"
 	"github.com/compliance-framework/configuration-service/service"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
@@ -21,13 +18,11 @@ import (
 
 const (
 	DefaultMongoURI = "mongodb://localhost:27017"
-	DefaultNATSURI  = "nats://localhost:4222"
 	DefaultPort     = ":8080"
 )
 
 type Config struct {
 	MongoURI string
-	NatsURI  string
 }
 
 //	@title			Compliance Framework Configuration Service API
@@ -56,18 +51,13 @@ func main() {
 	}
 	defer mongoDatabase.Client().Disconnect(ctx)
 
-	err = bus.Listen(config.NatsURI, sugar)
-	if err != nil {
-		sugar.Fatal(err)
-	}
-
 	server := api.NewServer(ctx, sugar)
 
 	catalogStore := mongoStore.NewCatalogStore(mongoDatabase)
 	catalogHandler := handler.NewCatalogHandler(catalogStore)
 	catalogHandler.Register(server.API().Group("/catalog"))
 
-	planService := service.NewPlanService(mongoDatabase, bus.Publish)
+	planService := service.NewPlanService(mongoDatabase)
 	planHandler := handler.NewPlanHandler(sugar, planService)
 	planHandler.Register(server.API().Group("/plan"))
 
@@ -75,10 +65,7 @@ func main() {
 	resultHandler := handler.NewResultsHandler(sugar, resultService, planService)
 	resultHandler.Register(server.API().Group("/results"))
 
-	resultProcessor := runtime.NewProcessor(bus.Subscribe[runtime.ExecutionResult], planService, resultService)
-	resultProcessor.Listen()
-
-	plansService := service.NewPlansService(mongoDatabase, bus.Publish)
+	plansService := service.NewPlansService(mongoDatabase)
 	plansHandler := handler.NewPlansHandler(sugar, plansService)
 	plansHandler.Register(server.API().Group("/plans"))
 
@@ -116,14 +103,8 @@ func loadConfig() (config Config) {
 		mongoURI = DefaultMongoURI
 	}
 
-	natsURI := os.Getenv("NATS_URI")
-	if natsURI == "" {
-		natsURI = DefaultNATSURI
-	}
-
 	config = Config{
 		MongoURI: mongoURI,
-		NatsURI:  natsURI,
 	}
 	return config
 }

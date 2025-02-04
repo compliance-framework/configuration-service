@@ -6,10 +6,10 @@ import (
 	"context"
 	"github.com/compliance-framework/configuration-service/domain"
 	"github.com/compliance-framework/configuration-service/tests"
+	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"testing"
 )
 
@@ -27,12 +27,14 @@ func (suite *PlanIntegrationSuite) TestCreateResult() {
 		resultService := NewResultsService(suite.MongoDatabase)
 
 		result := &domain.Result{
-			Title: "Testing Result",
+			Result: oscaltypes113.Result{
+				Title: "Testing Result",
+			},
 			Labels: map[string]string{
 				"foo": "bar",
 			},
 		}
-		if result.Id != nil {
+		if result.UUID != nil {
 			// We are not expecting and ID yet.
 			suite.T().Fatal("unexpected ID found on result object")
 		}
@@ -40,16 +42,16 @@ func (suite *PlanIntegrationSuite) TestCreateResult() {
 		if err != nil {
 			suite.T().Fatal(err)
 		}
-		if result.Id == nil {
+		if result.UUID == nil {
 			// We expect to see the ID field populated by the mongo driver.
 			suite.T().Fatal(err)
 		}
-		if primitive.NilObjectID.Hex() == result.Id.Hex() {
+		if err = uuid.Validate(result.UUID.String()); err != nil {
 			suite.T().Fatalf("A nil result was recived from the result service create")
 		}
 
 		// Now we ensure it exists in the database
-		count, err := suite.MongoDatabase.Collection("results").CountDocuments(ctx, bson.M{"_id": result.Id})
+		count, err := suite.MongoDatabase.Collection("results").CountDocuments(ctx, bson.M{"_id": result.UUID})
 		if err != nil {
 			suite.T().Fatal(err)
 		}
@@ -64,7 +66,9 @@ func (suite *PlanIntegrationSuite) TestCreateResult() {
 
 		streamId := uuid.New()
 		result := &domain.Result{
-			Title:    "Testing Result",
+			Result: oscaltypes113.Result{
+				Title: "Testing Result",
+			},
 			StreamID: streamId,
 			Labels: map[string]string{
 				"foo": "bar",
@@ -99,7 +103,9 @@ func (suite *PlanIntegrationSuite) TestCreateResult() {
 		}
 
 		result := &domain.Result{
-			Title: "Result",
+			Result: oscaltypes113.Result{
+				Title: "Result",
+			},
 			Labels: map[string]string{
 				"foo": "bar",
 			},
@@ -111,7 +117,9 @@ func (suite *PlanIntegrationSuite) TestCreateResult() {
 
 		// A flake document
 		err = resultService.Create(ctx, &domain.Result{
-			Title: "Result",
+			Result: oscaltypes113.Result{
+				Title: "Result",
+			},
 		})
 		if err != nil {
 			suite.T().Fatal(err)

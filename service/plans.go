@@ -5,20 +5,17 @@ import (
 	"github.com/compliance-framework/configuration-service/domain"
 	"log"
 
-	"github.com/compliance-framework/configuration-service/event"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type PlansService struct {
 	planCollection *mongo.Collection
-	publisher      event.Publisher
 }
 
-func NewPlansService(database *mongo.Database, p event.Publisher) *PlansService {
+func NewPlansService(database *mongo.Database) *PlansService {
 	return &PlansService{
 		planCollection: database.Collection("plan"),
-		publisher:      p,
 	}
 }
 

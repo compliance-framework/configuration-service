@@ -9,13 +9,11 @@ import (
 	"github.com/compliance-framework/configuration-service/api"
 	"github.com/compliance-framework/configuration-service/converters/labelfilter"
 	"github.com/compliance-framework/configuration-service/domain"
-	"github.com/compliance-framework/configuration-service/event/bus"
 	"github.com/compliance-framework/configuration-service/service"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"net/http"
 	"net/http/httptest"
@@ -42,13 +40,14 @@ func (suite *ResultsIntegrationSuite) TestGetPlanResults() {
 			suite.T().Fatal(err)
 		}
 
-		resultsHandler := NewResultsHandler(logger.Sugar(), service.NewResultsService(suite.MongoDatabase), service.NewPlanService(suite.MongoDatabase, bus.Publish))
+		resultsHandler := NewResultsHandler(logger.Sugar(), service.NewResultsService(suite.MongoDatabase), service.NewPlanService(suite.MongoDatabase))
 		server := api.NewServer(context.Background(), logger.Sugar())
 		resultsHandler.Register(server.API().Group("/results"))
 		// Create an empty plan
-		planService := service.NewPlanService(suite.MongoDatabase, bus.Publish)
-		planId, err := planService.Create(&domain.Plan{
-			Id: primitive.NewObjectID(),
+		planService := service.NewPlanService(suite.MongoDatabase)
+		id := uuid.New()
+		plan, err := planService.Create(&domain.Plan{
+			UUID: &id,
 			ResultFilter: labelfilter.Filter{
 				Scope: &labelfilter.Scope{
 					Condition: &labelfilter.Condition{
@@ -63,7 +62,7 @@ func (suite *ResultsIntegrationSuite) TestGetPlanResults() {
 			suite.T().Fatal(err)
 		}
 
-		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/results/plan/%s", planId), nil)
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/results/plan/%s", plan.UUID), nil)
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 
 		rec := httptest.NewRecorder()
@@ -88,9 +87,10 @@ func (suite *ResultsIntegrationSuite) TestGetPlanResults() {
 		}
 
 		// Create an empty plan
-		planService := service.NewPlanService(suite.MongoDatabase, bus.Publish)
-		planId, err := planService.Create(&domain.Plan{
-			Id: primitive.NewObjectID(),
+		planService := service.NewPlanService(suite.MongoDatabase)
+		id := uuid.New()
+		plan, err := planService.Create(&domain.Plan{
+			UUID: &id,
 			ResultFilter: labelfilter.Filter{
 				Scope: &labelfilter.Scope{
 					Condition: &labelfilter.Condition{
@@ -121,7 +121,7 @@ func (suite *ResultsIntegrationSuite) TestGetPlanResults() {
 		server := api.NewServer(context.Background(), logger.Sugar())
 		resultsHandler.Register(server.API().Group("/results"))
 
-		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/results/plan/%s", planId), nil)
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/results/plan/%s", plan.UUID), nil)
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 
 		rec := httptest.NewRecorder()

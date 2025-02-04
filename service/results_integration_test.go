@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/compliance-framework/configuration-service/converters/labelfilter"
+	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
@@ -33,9 +34,11 @@ func (suite *ResultIntegrationSuite) TestCreateResult() {
 		resultService := NewResultsService(suite.MongoDatabase)
 
 		result := &domain.Result{
-			Title: "Testing Result",
+			Result: oscaltypes113.Result{
+				Title: "Testing Result",
+			},
 		}
-		if result.Id != nil {
+		if result.UUID != nil {
 			// We are not expecting and ID yet.
 			suite.T().Fatal("unexpected ID found on result object")
 		}
@@ -43,16 +46,16 @@ func (suite *ResultIntegrationSuite) TestCreateResult() {
 		if err != nil {
 			suite.T().Fatal(err)
 		}
-		if result.Id == nil {
+		if result.UUID == nil {
 			// We expect to see the ID field populated by the mongo driver.
 			suite.T().Fatal(err)
 		}
-		if primitive.NilObjectID.Hex() == result.Id.Hex() {
+		if err = uuid.Validate(result.UUID.String()); err != nil {
 			suite.T().Fatalf("A nil result was recived from the result service create")
 		}
 
 		// Now we ensure it exists in the database
-		count, err := suite.MongoDatabase.Collection("results").CountDocuments(ctx, bson.M{"_id": result.Id})
+		count, err := suite.MongoDatabase.Collection("results").CountDocuments(ctx, bson.M{"_id": result.UUID})
 		if err != nil {
 			suite.T().Fatal(err)
 		}
@@ -67,7 +70,9 @@ func (suite *ResultIntegrationSuite) TestCreateResult() {
 
 		streamId := uuid.New()
 		result := &domain.Result{
-			Title:    "Testing Result",
+			Result: oscaltypes113.Result{
+				Title: "Testing Result",
+			},
 			StreamID: streamId,
 		}
 		err := resultService.Create(ctx, result)
@@ -94,7 +99,9 @@ func (suite *ResultIntegrationSuite) TestCreateResult() {
 
 		planId := primitive.NewObjectID()
 		result := &domain.Result{
-			Title: "Result",
+			Result: oscaltypes113.Result{
+				Title: "Result",
+			},
 			Labels: map[string]string{
 				"plan_id": planId.String(),
 				"foo":     "bar",
@@ -107,7 +114,9 @@ func (suite *ResultIntegrationSuite) TestCreateResult() {
 
 		// A flake document
 		err = resultService.Create(ctx, &domain.Result{
-			Title: "Result",
+			Result: oscaltypes113.Result{
+				Title: "Result",
+			},
 		})
 		if err != nil {
 			suite.T().Fatal(err)
@@ -140,18 +149,24 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 
 		// Create a few with sequential timestamps
 		streamId := uuid.New()
+		theTime := time.Now()
 		err = resultService.Create(ctx, &domain.Result{
-			Title:    "Testing Result #1",
+			Result: oscaltypes113.Result{
+				Title: "Testing Result #1",
+				End:   &theTime,
+			},
 			StreamID: streamId,
-			End:      time.Now(),
 		})
 		if err != nil {
 			suite.T().Fatal(err)
 		}
+		endTime := time.Now().Add(-time.Minute)
 		err = resultService.Create(ctx, &domain.Result{
-			Title:    "Testing Result #2",
+			Result: oscaltypes113.Result{
+				Title: "Testing Result #2",
+				End:   &endTime,
+			},
 			StreamID: streamId,
-			End:      time.Now().Add(-time.Minute),
 		})
 		if err != nil {
 			suite.T().Fatal(err)
@@ -180,26 +195,36 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 		// Give us a consistent order
 		stream1 := uuid.MustParse("3dfae71a-a1a0-4b25-9abc-4cc6838a95bb")
 		stream2 := uuid.MustParse("c087f2c4-5dc5-4b16-9ddf-74610856976a")
+		theTime := time.Now()
+		endTime := time.Now().Add(-time.Minute)
 		_, err = suite.MongoDatabase.Collection("results").InsertMany(ctx, []interface{}{
 			domain.Result{
-				Title:    "Res #1-#1",
+				Result: oscaltypes113.Result{
+					Title: "Res #1-#1",
+					End:   &theTime,
+				},
 				StreamID: stream1,
-				End:      time.Now(),
 			},
 			domain.Result{
-				Title:    "Res #1-#2",
+				Result: oscaltypes113.Result{
+					Title: "Res #1-#2",
+					End:   &endTime,
+				},
 				StreamID: stream1,
-				End:      time.Now().Add(-time.Minute),
 			},
 			domain.Result{
-				Title:    "Res #2-#1",
+				Result: oscaltypes113.Result{
+					Title: "Res #2-#1",
+					End:   &theTime,
+				},
 				StreamID: stream2,
-				End:      time.Now(),
 			},
 			domain.Result{
-				Title:    "Res #2-#2",
+				Result: oscaltypes113.Result{
+					Title: "Res #2-#2",
+					End:   &endTime,
+				},
 				StreamID: stream2,
-				End:      time.Now().Add(-time.Minute),
 			},
 		})
 
@@ -227,19 +252,24 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 			suite.T().Fatal(err)
 		}
 
+		theTime := time.Now()
 		_, err = suite.MongoDatabase.Collection("results").InsertMany(ctx, []interface{}{
 			domain.Result{
-				Title:    "Res #1-#1",
+				Result: oscaltypes113.Result{
+					Title: "Res #1-#1",
+					End:   &theTime,
+				},
 				StreamID: uuid.New(),
-				End:      time.Now(),
 				Labels: map[string]string{
 					"foo": "bar",
 				},
 			},
 			domain.Result{
-				Title:    "Res #1-#2",
+				Result: oscaltypes113.Result{
+					Title: "Res #1-#2",
+					End:   &theTime,
+				},
 				StreamID: uuid.New(),
-				End:      time.Now(),
 				Labels: map[string]string{
 					"foo": "baz",
 				},
@@ -251,7 +281,7 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 		}
 
 		results, err := resultService.Search(ctx, &labelfilter.Filter{
-			&labelfilter.Scope{
+			Scope: &labelfilter.Scope{
 				Condition: &labelfilter.Condition{
 					Label:    "foo",
 					Operator: "=",
@@ -280,19 +310,24 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 		// Give us a consistent order
 		stream1 := uuid.MustParse("3dfae71a-a1a0-4b25-9abc-4cc6838a95bb")
 		stream2 := uuid.MustParse("c087f2c4-5dc5-4b16-9ddf-74610856976a")
+		theTime := time.Now()
 		_, err = suite.MongoDatabase.Collection("results").InsertMany(ctx, []interface{}{
 			domain.Result{
-				Title:    "Res #1-#1",
+				Result: oscaltypes113.Result{
+					Title: "Res #1-#1",
+					End:   &theTime,
+				},
 				StreamID: stream1,
-				End:      time.Now(),
 				Labels: map[string]string{
 					"foo": "bar",
 				},
 			},
 			domain.Result{
-				Title:    "Res #1-#2",
+				Result: oscaltypes113.Result{
+					Title: "Res #1-#2",
+					End:   &theTime,
+				},
 				StreamID: stream2,
-				End:      time.Now(),
 				Labels: map[string]string{
 					"foo": "baz",
 				},
@@ -333,19 +368,24 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 		// Give us a consistent order
 		stream1 := uuid.MustParse("3dfae71a-a1a0-4b25-9abc-4cc6838a95bb")
 		stream2 := uuid.MustParse("c087f2c4-5dc5-4b16-9ddf-74610856976a")
+		theTime := time.Now()
 		_, err = suite.MongoDatabase.Collection("results").InsertMany(ctx, []interface{}{
 			domain.Result{
-				Title:    "Res #1-#1",
+				Result: oscaltypes113.Result{
+					Title: "Res #1-#1",
+					End:   &theTime,
+				},
 				StreamID: stream1,
-				End:      time.Now(),
 				Labels: map[string]string{
 					"foo": "bar",
 				},
 			},
 			domain.Result{
-				Title:    "Res #1-#2",
+				Result: oscaltypes113.Result{
+					Title: "Res #1-#2",
+					End:   &theTime,
+				},
 				StreamID: stream2,
-				End:      time.Now(),
 				Labels: map[string]string{
 					"foo": "baz",
 				},
@@ -401,20 +441,25 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 		// Give us a consistent order
 		stream1 := uuid.MustParse("3dfae71a-a1a0-4b25-9abc-4cc6838a95bb")
 		stream2 := uuid.MustParse("c087f2c4-5dc5-4b16-9ddf-74610856976a")
+		theTime := time.Now()
 		_, err = suite.MongoDatabase.Collection("results").InsertMany(ctx, []interface{}{
 			domain.Result{
-				Title:    "Res #1-#1",
+				Result: oscaltypes113.Result{
+					Title: "Res #1-#1",
+					End:   &theTime,
+				},
 				StreamID: stream1,
-				End:      time.Now(),
 				Labels: map[string]string{
 					"foo": "bar",
 					"bar": "baz",
 				},
 			},
 			domain.Result{
-				Title:    "Res #1-#2",
+				Result: oscaltypes113.Result{
+					Title: "Res #1-#2",
+					End:   &theTime,
+				},
 				StreamID: stream2,
-				End:      time.Now(),
 				Labels: map[string]string{
 					"foo": "bar",
 					"baz": "bat",
@@ -485,20 +530,25 @@ func (suite *ResultIntegrationSuite) TestResultSearch() {
 		// Give us a consistent order
 		stream1 := uuid.MustParse("3dfae71a-a1a0-4b25-9abc-4cc6838a95bb")
 		stream2 := uuid.MustParse("c087f2c4-5dc5-4b16-9ddf-74610856976a")
+		theTime := time.Now()
 		_, err = suite.MongoDatabase.Collection("results").InsertMany(ctx, []interface{}{
 			domain.Result{
-				Title:    "Res #1-#1",
+				Result: oscaltypes113.Result{
+					Title: "Res #1-#1",
+					End:   &theTime,
+				},
 				StreamID: stream1,
-				End:      time.Now(),
 				Labels: map[string]string{
 					"foo": "bar",
 					"bar": "baz",
 				},
 			},
 			domain.Result{
-				Title:    "Res #1-#2",
+				Result: oscaltypes113.Result{
+					Title: "Res #1-#2",
+					End:   &theTime,
+				},
 				StreamID: stream2,
-				End:      time.Now(),
 				Labels: map[string]string{
 					"foo": "bar",
 					"baz": "bat",
@@ -565,7 +615,9 @@ func (suite *ResultIntegrationSuite) TestResultsByStream() {
 
 		for i := range 2 {
 			err := resultService.Create(ctx, &domain.Result{
-				Title:    fmt.Sprintf("Result #%d", i),
+				Result: oscaltypes113.Result{
+					Title: fmt.Sprintf("Result #%d", i),
+				},
 				StreamID: streamId,
 			})
 			if err != nil {
@@ -576,7 +628,9 @@ func (suite *ResultIntegrationSuite) TestResultsByStream() {
 		for i := range 2 {
 			// Unrelated results
 			err := resultService.Create(ctx, &domain.Result{
-				Title: fmt.Sprintf("Unrelated Result #%d", i),
+				Result: oscaltypes113.Result{
+					Title: fmt.Sprintf("Unrelated Result #%d", i),
+				},
 			})
 			if err != nil {
 				suite.T().Fatal(err)
@@ -607,14 +661,18 @@ func (suite *ResultIntegrationSuite) TestResultStreams() {
 		}
 
 		var streamId uuid.UUID
-		latestResults := make([]primitive.ObjectID, 0)
+		latestResults := make([]uuid.UUID, 0)
 		for i := range 2 {
 			streamId = uuid.New()
+			theTime := time.Now()
+			endTime := time.Now().Add(-1 * time.Hour)
 			err = resultService.Create(ctx, &domain.Result{
-				Title:    fmt.Sprintf("Older result #%d", i),
+				Result: oscaltypes113.Result{
+					Title: fmt.Sprintf("Older result #%d", i),
+					End:   &endTime,
+				},
 				StreamID: streamId,
 				// Older result
-				End: time.Now().Add(-1 * time.Hour),
 				Labels: map[string]string{
 					"foo": "bar",
 				},
@@ -622,14 +680,16 @@ func (suite *ResultIntegrationSuite) TestResultStreams() {
 			if err != nil {
 				suite.T().Fatal(err)
 			}
-			newResultId := primitive.NewObjectID()
+			newResultId := uuid.New()
 			latestResults = append(latestResults, newResultId)
 			err = resultService.Create(ctx, &domain.Result{
-				Id:       &newResultId,
-				Title:    fmt.Sprintf("Result #%d", i),
+				Result: oscaltypes113.Result{
+					Title: fmt.Sprintf("Result #%d", i),
+					End:   &theTime,
+				},
+				UUID:     &newResultId,
 				StreamID: streamId,
 				// Older result
-				End: time.Now(),
 				Labels: map[string]string{
 					"foo": "bar",
 				},
@@ -661,7 +721,7 @@ func (suite *ResultIntegrationSuite) TestResultStreams() {
 		}
 		for _, result := range results {
 			// Here we want to check that the result IDs are the ons from `latestResults` to make sure the latest have come back.
-			if !slices.Contains(latestResults, *result.Id) {
+			if !slices.Contains(latestResults, *result.UUID) {
 				suite.T().Fatalf("Expected to find latest result in collection")
 			}
 		}
@@ -676,10 +736,13 @@ func (suite *ResultIntegrationSuite) TestLatestStreamResult() {
 		var err error
 		var streamId = uuid.New()
 		planId := primitive.NewObjectID()
+		theTime := time.Now()
 		latestResult := &domain.Result{
-			Title:    fmt.Sprintf("Latest result"),
+			Result: oscaltypes113.Result{
+				Title: fmt.Sprintf("Latest result"),
+				End:   &theTime,
+			},
 			StreamID: streamId,
-			End:      time.Now(),
 			Labels: map[string]string{
 				"plan_id": planId.String(),
 			},
@@ -693,11 +756,14 @@ func (suite *ResultIntegrationSuite) TestLatestStreamResult() {
 
 		// Create 3 older results in the stream
 		for i := range 3 {
+			theTime = time.Now().Add(-time.Duration(1) * time.Hour)
 			err = resultService.Create(ctx, &domain.Result{
-				Title:    fmt.Sprintf("Older result #%d", i),
+				Result: oscaltypes113.Result{
+					Title: fmt.Sprintf("Older result #%d", i),
+					End:   &theTime,
+				},
 				StreamID: streamId,
 				// Older results
-				End: time.Now().Add(-time.Duration(1) * time.Hour),
 			})
 			if err != nil {
 				suite.T().Fatal(err)
@@ -709,8 +775,8 @@ func (suite *ResultIntegrationSuite) TestLatestStreamResult() {
 			suite.T().Fatal(err)
 		}
 
-		if result.Id.String() != latestResult.Id.String() {
-			suite.T().Fatalf("Expected to find latest result in collection. Expected %v, got %v", latestResult.Id, result.Id)
+		if result.UUID.String() != latestResult.UUID.String() {
+			suite.T().Fatalf("Expected to find latest result in collection. Expected %v, got %v", latestResult.UUID, result.UUID)
 		}
 	})
 }
@@ -723,10 +789,13 @@ func (suite *ResultIntegrationSuite) TestGetResult() {
 		var err error
 		var streamId = uuid.New()
 		planId := primitive.NewObjectID()
+		theTime := time.Now()
 		latestResult := &domain.Result{
-			Title:    fmt.Sprintf("Latest result"),
+			Result: oscaltypes113.Result{
+				Title: fmt.Sprintf("Latest result"),
+				End:   &theTime,
+			},
 			StreamID: streamId,
-			End:      time.Now(),
 			Labels: map[string]string{
 				"plan_id": planId.String(),
 			},
@@ -738,7 +807,7 @@ func (suite *ResultIntegrationSuite) TestGetResult() {
 			suite.T().Fatal(err)
 		}
 
-		result, err := resultService.Get(ctx, latestResult.Id)
+		result, err := resultService.Get(ctx, latestResult.UUID)
 		if err != nil {
 			suite.T().Fatal(err)
 		}
@@ -760,16 +829,22 @@ func (suite *ResultIntegrationSuite) TestGetIntervalledComplianceReport() {
 		}
 
 		streamId := uuid.New()
+		theTime := time.Now().Add(-1 * time.Second)
+		theNextTime := time.Now().Add(-6 * time.Minute) // 5 minutes later to be in next interval
 		_, err = suite.MongoDatabase.Collection("results").InsertMany(ctx, []interface{}{
 			domain.Result{
-				Title:    "Res #1-#1",
+				Result: oscaltypes113.Result{
+					Title: "Res #1-#1",
+					End:   &theTime,
+				},
 				StreamID: streamId,
-				End:      time.Now().Add(-1 * time.Second),
 			},
 			domain.Result{
-				Title:    "Res #1-#2",
+				Result: oscaltypes113.Result{
+					Title: "Res #1-#2",
+					End:   &theNextTime,
+				},
 				StreamID: streamId,
-				End:      time.Now().Add(-6 * time.Minute), // 5 minutes later to be in next interval
 			},
 		})
 		if err != nil {
@@ -799,16 +874,22 @@ func (suite *ResultIntegrationSuite) TestGetIntervalledComplianceReport() {
 		}
 
 		streamId := uuid.New()
+		theTime := time.Now().Add(-1 * time.Second)
+		theNextTime := time.Now().Add(-15 * time.Minute)
 		_, err = suite.MongoDatabase.Collection("results").InsertMany(ctx, []interface{}{
 			domain.Result{
-				Title:    "Res #1-#1",
+				Result: oscaltypes113.Result{
+					Title: "Res #1-#1",
+					End:   &theTime,
+				},
 				StreamID: streamId,
-				End:      time.Now().Add(-1 * time.Second),
 			},
 			domain.Result{
-				Title:    "Res #1-#2",
+				Result: oscaltypes113.Result{
+					Title: "Res #1-#2",
+					End:   &theNextTime, // 5 minutes later to be in next interval
+				},
 				StreamID: streamId,
-				End:      time.Now().Add(-15 * time.Minute), // 5 minutes later to be in next interval
 			},
 		})
 		if err != nil {

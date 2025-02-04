@@ -12,7 +12,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/compliance-framework/configuration-service/event/bus"
 	"github.com/compliance-framework/configuration-service/service"
 	"github.com/compliance-framework/configuration-service/tests"
 	"github.com/labstack/echo/v4"
@@ -32,7 +31,7 @@ type PlanIntegrationSuite struct {
 func (suite *PlanIntegrationSuite) TestCreatePlan() {
 	suite.Run("A plan can be created through the API", func() {
 		logger, _ := zap.NewProduction()
-		planHandler := NewPlanHandler(logger.Sugar(), service.NewPlanService(suite.MongoDatabase, bus.Publish))
+		planHandler := NewPlanHandler(logger.Sugar(), service.NewPlanService(suite.MongoDatabase))
 
 		server := api.NewServer(context.Background(), logger.Sugar())
 		planHandler.Register(server.API().Group("/plan"))
@@ -61,7 +60,7 @@ func (suite *PlanIntegrationSuite) TestCreatePlan() {
 		assert.NoError(suite.T(), json.Unmarshal(rec.Body.Bytes(), response), "Failed to parse response from CreatePlan")
 		expectedJson, err := json.Marshal(map[string]interface{}{
 			"data": map[string]interface{}{
-				"id":    response.Data.Id,
+				"uuid":  response.Data.UUID,
 				"title": "Some Plan",
 				"filter": map[string]interface{}{
 					"scope": map[string]interface{}{
@@ -83,7 +82,7 @@ func (suite *PlanIntegrationSuite) TestCreatePlan() {
 func (suite *PlanIntegrationSuite) TestCreateAndGetPlan() {
 	suite.Run("A plan can be created, and then fetched through the API", func() {
 		logger, _ := zap.NewProduction()
-		planHandler := NewPlanHandler(logger.Sugar(), service.NewPlanService(suite.MongoDatabase, bus.Publish))
+		planHandler := NewPlanHandler(logger.Sugar(), service.NewPlanService(suite.MongoDatabase))
 
 		server := api.NewServer(context.Background(), logger.Sugar())
 		planHandler.Register(server.API().Group("/plan"))
@@ -112,13 +111,13 @@ func (suite *PlanIntegrationSuite) TestCreateAndGetPlan() {
 
 		response := &GenericDataResponse[PlanResponse]{}
 		assert.NoError(suite.T(), json.Unmarshal(rec.Body.Bytes(), response), "Failed to parse response from CreatePlan")
-		assert.NotEmpty(suite.T(), response.Data.Id, "Response ID should not be empty")
+		assert.NotEmpty(suite.T(), response.Data.UUID, "Response ID should not be empty")
 
 		// Fetch the created plan
 		rec = httptest.NewRecorder()
 		req = httptest.NewRequest(
 			http.MethodGet,
-			fmt.Sprintf("/api/plan/%s", response.Data.Id),
+			fmt.Sprintf("/api/plan/%s", response.Data.UUID),
 			nil,
 		)
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
@@ -132,7 +131,7 @@ func (suite *PlanIntegrationSuite) TestCreateAndGetPlan() {
 		assert.NoError(suite.T(), json.Unmarshal(rec.Body.Bytes(), getResponse), "Failed to parse response from GetPlan")
 		expectedJson, err := json.Marshal(map[string]interface{}{
 			"data": map[string]interface{}{
-				"id":    getResponse.Data.Id,
+				"uuid":  getResponse.Data.UUID,
 				"title": "Some Plan",
 				"filter": map[string]interface{}{
 					"scope": map[string]interface{}{
