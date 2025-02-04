@@ -7,7 +7,6 @@ import (
 	"github.com/compliance-framework/configuration-service/service"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"net/http"
 )
@@ -22,6 +21,7 @@ func (h *ResultsHandler) Register(api *echo.Group) {
 	api.GET("/:id", h.GetResult)
 	api.GET("/plan/:plan", h.GetPlanResults)
 	api.GET("/stream/:stream", h.GetStreamResults)
+	api.POST("", h.CreateResult)
 	api.POST("/search", h.SearchResults)
 	api.POST("/compliance-by-search", h.ComplianceOverTimeBySearch)
 	api.POST("/compliance-by-stream", h.ComplianceOverTimeByStream)
@@ -46,12 +46,12 @@ func NewResultsHandler(l *zap.SugaredLogger, s *service.ResultsService, planServ
 //	@Failure		500	{object}	api.Error
 //	@Router			/results/plan/:plan [get]
 func (h *ResultsHandler) GetPlanResults(c echo.Context) error {
-	planId, err := primitive.ObjectIDFromHex(c.Param("plan"))
+	planId, err := uuid.Parse(c.Param("plan"))
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	plan, err := h.planService.GetById(c.Request().Context(), planId.Hex())
+	plan, err := h.planService.GetById(c.Request().Context(), planId)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, api.NewError(err))
 	}
@@ -101,7 +101,7 @@ func (h *ResultsHandler) GetStreamResults(c echo.Context) error {
 //	@Failure		500	{object}	api.Error
 //	@Router			/results/:id [get]
 func (h *ResultsHandler) GetResult(c echo.Context) error {
-	resultId, err := primitive.ObjectIDFromHex(c.Param("id"))
+	resultId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, api.NewError(err))
 	}
@@ -182,8 +182,13 @@ func (h *ResultsHandler) ComplianceOverTimeBySearch(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
+	// This ensures we don't get a null in the JSON response
+	if len(results) == 0 {
+		results = []*service.StreamRecords{}
+	}
+
 	// If everything went well, return a 201 status code with the ID of the created plan
-	return ctx.JSON(http.StatusCreated, GenericDataListResponse[*service.StreamRecords]{
+	return ctx.JSON(http.StatusOK, GenericDataListResponse[*service.StreamRecords]{
 		Data: results,
 	})
 }
@@ -214,8 +219,31 @@ func (h *ResultsHandler) ComplianceOverTimeByStream(ctx echo.Context) error {
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
-	//// If everything went well, return a 201 status code with the ID of the created plan
-	return ctx.JSON(http.StatusCreated, GenericDataListResponse[*service.StreamRecords]{
+
+	// This ensures we don't get a null in the JSON response
+	if len(results) == 0 {
+		results = []*service.StreamRecords{}
+	}
+
+	return ctx.JSON(http.StatusOK, GenericDataListResponse[*service.StreamRecords]{
 		Data: results,
+	})
+}
+
+func (h *ResultsHandler) CreateResult(ctx echo.Context) error {
+	result := &domain.Result{}
+
+	err := ctx.Bind(result)
+	if err != nil {
+		return ctx.JSON(http.StatusUnprocessableEntity, api.NewError(err))
+	}
+
+	err = h.service.Create(ctx.Request().Context(), result)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusCreated, GenericDataResponse[domain.Result]{
+		Data: *result,
 	})
 }

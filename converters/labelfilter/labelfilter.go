@@ -56,5 +56,5 @@ func (s *Scope) MarshalJSON() ([]byte, error) {
 			"query": s.Query,
 		})
 	}
-	return json.Marshal(s)
+	return json.Marshal(map[string]interface{}{})
 }

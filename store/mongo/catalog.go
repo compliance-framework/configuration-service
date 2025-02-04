@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
+	"github.com/google/uuid"
 	"log"
 
-	"github.com/compliance-framework/configuration-service/domain"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -22,7 +23,7 @@ func NewCatalogStore(database *mongo.Database) *CatalogStoreMongo {
 	}
 }
 
-func (c *CatalogStoreMongo) CreateCatalog(catalog *domain.Catalog) (interface{}, error) {
+func (c *CatalogStoreMongo) CreateCatalog(catalog *oscaltypes113.Catalog) (interface{}, error) {
 	result, err := c.collection.InsertOne(context.TODO(), catalog)
 	if err != nil {
 		return "", err
@@ -30,8 +31,8 @@ func (c *CatalogStoreMongo) CreateCatalog(catalog *domain.Catalog) (interface{},
 	return result.InsertedID.(primitive.ObjectID).Hex(), nil
 }
 
-func (store *CatalogStoreMongo) GetCatalog(id string) (*domain.Catalog, error) {
-	var catalog domain.Catalog
+func (store *CatalogStoreMongo) GetCatalog(id string) (*oscaltypes113.Catalog, error) {
+	var catalog oscaltypes113.Catalog
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
@@ -49,7 +50,7 @@ func (store *CatalogStoreMongo) GetCatalog(id string) (*domain.Catalog, error) {
 	return &catalog, nil
 }
 
-func (store *CatalogStoreMongo) UpdateCatalog(id string, catalog *domain.Catalog) error {
+func (store *CatalogStoreMongo) UpdateCatalog(id string, catalog *oscaltypes113.Catalog) error {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return fmt.Errorf("error converting id to ObjectID: %w", err)
@@ -59,19 +60,19 @@ func (store *CatalogStoreMongo) UpdateCatalog(id string, catalog *domain.Catalog
 
 	update := bson.M{}
 
-	if len(catalog.Uuid) > 0 {
-		update["uuid"] = catalog.Uuid
+	if len(catalog.UUID) > 0 {
+		update["uuid"] = catalog.UUID
 	}
-	if len(catalog.Title) > 0 {
-		update["title"] = catalog.Title
+	if len(catalog.Metadata.Title) > 0 {
+		update["title"] = catalog.Metadata.Title
 	}
-	if len(catalog.Params) > 0 {
+	if len(*catalog.Params) > 0 {
 		update["params"] = catalog.Params
 	}
-	if len(catalog.Controls) > 0 {
+	if len(*catalog.Controls) > 0 {
 		update["controls"] = catalog.Controls
 	}
-	if len(catalog.Groups) > 0 {
+	if len(*catalog.Groups) > 0 {
 		update["groups"] = catalog.Groups
 	}
 	// BackMatter and Metadata do not have an update option
@@ -107,12 +108,12 @@ func (store *CatalogStoreMongo) DeleteCatalog(id string) error {
 	return nil
 }
 
-func (store *CatalogStoreMongo) CreateControl(catalogId string, control *domain.Control) (interface{}, error) {
+func (store *CatalogStoreMongo) CreateControl(catalogId string, control *oscaltypes113.Control) (interface{}, error) {
 	log.Println("CreateControl called with catalogId:", catalogId)
 
 	// Create a new UUID for the control
-	controlId := domain.NewUuid()
-	control.Uuid = controlId
+	controlId := uuid.New()
+	control.ID = controlId.String()
 
 	catalogObjID, err := primitive.ObjectIDFromHex(catalogId)
 	if err != nil {
@@ -157,7 +158,7 @@ func (store *CatalogStoreMongo) CreateControl(catalogId string, control *domain.
 	return controlId, nil // Return the UUID of the control
 }
 
-func (store *CatalogStoreMongo) GetControl(catalogId string, controlId string) (*domain.Control, error) {
+func (store *CatalogStoreMongo) GetControl(catalogId string, controlId string) (*oscaltypes113.Control, error) {
 	catalogObjID, err := primitive.ObjectIDFromHex(catalogId)
 	if err != nil {
 		log.Println("Error converting catalogId to ObjectID:", err)
@@ -184,7 +185,7 @@ func (store *CatalogStoreMongo) GetControl(catalogId string, controlId string) (
 	controlsPrimitiveA := result["controls"].(primitive.A)
 	for _, raw := range controlsPrimitiveA {
 		controlMap := raw.(primitive.M)
-		control := domain.Control{}
+		control := oscaltypes113.Control{}
 		bsonBytes, _ := bson.Marshal(controlMap)
 		err = bson.Unmarshal(bsonBytes, &control)
 		if err != nil {
@@ -192,7 +193,7 @@ func (store *CatalogStoreMongo) GetControl(catalogId string, controlId string) (
 			return nil, err
 		}
 
-		if fmt.Sprintf("%v", control.Uuid) == controlId {
+		if fmt.Sprintf("%v", control.ID) == controlId {
 			return &control, nil
 		}
 	}
@@ -201,7 +202,7 @@ func (store *CatalogStoreMongo) GetControl(catalogId string, controlId string) (
 	return nil, nil
 }
 
-func (store *CatalogStoreMongo) UpdateControl(catalogId string, controlId string, control *domain.Control) (*domain.Catalog, error) {
+func (store *CatalogStoreMongo) UpdateControl(catalogId string, controlId string, control *oscaltypes113.Control) (*oscaltypes113.Catalog, error) {
 	catalogObjID, err := primitive.ObjectIDFromHex(catalogId)
 	if err != nil {
 		log.Println("Invalid catalogId")
@@ -214,16 +215,16 @@ func (store *CatalogStoreMongo) UpdateControl(catalogId string, controlId string
 	}
 
 	update := bson.M{}
-	if control.Uuid != "" {
-		update["controls.$.uuid"] = control.Uuid
+	if control.ID != "" {
+		update["controls.$.uuid"] = control.ID
 	}
-	if len(control.Props) > 0 {
+	if len(*control.Props) > 0 {
 		update["controls.$.props"] = control.Props
 	}
-	if len(control.Links) > 0 {
+	if len(*control.Links) > 0 {
 		update["controls.$.links"] = control.Links
 	}
-	if len(control.Parts) > 0 {
+	if len(*control.Parts) > 0 {
 		update["controls.$.parts"] = control.Parts
 	}
 	if control.Class != "" {
@@ -232,10 +233,10 @@ func (store *CatalogStoreMongo) UpdateControl(catalogId string, controlId string
 	if control.Title != "" {
 		update["controls.$.title"] = control.Title
 	}
-	if len(control.Params) > 0 {
+	if len(*control.Params) > 0 {
 		update["controls.$.params"] = control.Params
 	}
-	if len(control.Controls) > 0 {
+	if len(*control.Controls) > 0 {
 		update["controls.$.controlUuids"] = control.Controls
 	}
 
@@ -251,7 +252,7 @@ func (store *CatalogStoreMongo) UpdateControl(catalogId string, controlId string
 	}
 
 	// If you need to return the updated catalog, you can find it by its ID
-	var updatedCatalog domain.Catalog
+	var updatedCatalog oscaltypes113.Catalog
 	err = store.collection.FindOne(context.Background(), bson.M{"_id": catalogObjID}).Decode(&updatedCatalog)
 	if err != nil {
 		log.Println("Error finding updated catalog:", err)

@@ -2,12 +2,10 @@ package service
 
 import (
 	"context"
-	"errors"
 	"github.com/compliance-framework/configuration-service/converters/labelfilter"
 	"github.com/compliance-framework/configuration-service/domain"
 	"github.com/google/uuid"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	bson "go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
@@ -79,19 +77,18 @@ func NewResultsService(db *mongo.Database) *ResultsService {
 }
 
 func (s *ResultsService) Create(ctx context.Context, result *domain.Result) error {
-	output, err := s.resultsCollection.InsertOne(ctx, result)
+	if result.UUID == nil {
+		id := uuid.New()
+		result.UUID = &id
+	}
+	_, err := s.resultsCollection.InsertOne(ctx, result)
 	if err != nil {
 		return err
 	}
-	insertedId, ok := output.InsertedID.(primitive.ObjectID)
-	if !ok {
-		return errors.New("result ID is not a primitive.ObjectID")
-	}
-	result.Id = &insertedId
 	return nil
 }
 
-func (s *ResultsService) Get(ctx context.Context, id *primitive.ObjectID) (*domain.Result, error) {
+func (s *ResultsService) Get(ctx context.Context, id *uuid.UUID) (*domain.Result, error) {
 	var result domain.Result
 	err := s.resultsCollection.FindOne(ctx, bson.D{
 		{Key: "_id", Value: id},
@@ -164,15 +161,15 @@ func (s *ResultsService) Search(ctx context.Context, filter *labelfilter.Filter)
 func (s *ResultsService) getIntervalledCompliancePipeline(ctx context.Context, interval time.Duration) []bson.D {
 	return []bson.D{
 		{
-			{"$addFields", bson.D{
-				{"interval", bson.D{
-					{"$toDate", bson.D{
-						{"$subtract", bson.A{
-							bson.D{{"$toLong", "$end"}},
-							bson.D{{"$mod", bson.A{
-								bson.D{{"$subtract", bson.A{
-									bson.D{{"$toLong", "$end"}},
-									bson.D{{"$toLong", time.Now()}},
+			{Key: "$addFields", Value: bson.D{
+				{Key: "interval", Value: bson.D{
+					{Key: "$toDate", Value: bson.D{
+						{Key: "$subtract", Value: bson.A{
+							bson.D{{Key: "$toLong", Value: "$end"}},
+							bson.D{{Key: "$mod", Value: bson.A{
+								bson.D{{Key: "$subtract", Value: bson.A{
+									bson.D{{Key: "$toLong", Value: "$end"}},
+									bson.D{{Key: "$toLong", Value: time.Now()}},
 								}}},
 								interval.Milliseconds(),
 							}}},
@@ -183,44 +180,44 @@ func (s *ResultsService) getIntervalledCompliancePipeline(ctx context.Context, i
 		},
 		// Step 3: Group stage
 		{
-			{"$group", bson.D{
-				{"_id", bson.D{
-					{"streamId", "$streamId"},
-					{"interval", "$interval"},
+			{Key: "$group", Value: bson.D{
+				{Key: "_id", Value: bson.D{
+					{Key: "streamId", Value: "$streamId"},
+					{Key: "interval", Value: "$interval"},
 				}},
-				{"latestRecord", bson.D{
-					{"$last", "$$ROOT"},
+				{Key: "latestRecord", Value: bson.D{
+					{Key: "$last", Value: "$$ROOT"},
 				}},
 			}},
 		},
 		// Step 4: Project stage
 		{
-			{"$project", bson.D{
-				{"_id", 0}, // Exclude default _id
-				{"streamId", "$_id.streamId"},
-				{"interval", "$_id.interval"},
-				{"title", "$latestRecord.title"},
-				{"findings", bson.D{
+			{Key: "$project", Value: bson.D{
+				{Key: "_id", Value: 0}, // Exclude default _id
+				{Key: "streamId", Value: "$_id.streamId"},
+				{Key: "interval", Value: "$_id.interval"},
+				{Key: "title", Value: "$latestRecord.title"},
+				{Key: "findings", Value: bson.D{
 					{Key: "$size", Value: bson.D{
-						{"$ifNull", bson.A{"$latestRecord.findings", bson.A{}}},
+						{Key: "$ifNull", Value: bson.A{"$latestRecord.findings", bson.A{}}},
 					}},
 				}},
 				bson.E{
 					Key: "findings_pass",
 					Value: bson.D{
-						{"$size", bson.D{
-							{"$ifNull", bson.A{
-								bson.D{{"$filter", bson.D{
-									{"input", "$latestRecord.findings"},
-									{"as", "finding"},
-									{"cond", bson.D{
+						{Key: "$size", Value: bson.D{
+							{Key: "$ifNull", Value: bson.A{
+								bson.D{{Key: "$filter", Value: bson.D{
+									{Key: "input", Value: "$latestRecord.findings"},
+									{Key: "as", Value: "finding"},
+									{Key: "cond", Value: bson.D{
 										{
-											"$not",
-											bson.D{
-												{"$regexMatch", bson.D{
-													{"input", "$$finding.status"},
-													{"regex", "^open"},
-													{"options", "i"},
+											Key: "$not",
+											Value: bson.D{
+												{Key: "$regexMatch", Value: bson.D{
+													{Key: "input", Value: "$$finding.target.status.state"},
+													{Key: "regex", Value: "^open"},
+													{Key: "options", Value: "i"},
 												}},
 											},
 										},
@@ -234,16 +231,16 @@ func (s *ResultsService) getIntervalledCompliancePipeline(ctx context.Context, i
 				bson.E{
 					Key: "findings_fail",
 					Value: bson.D{
-						{"$size", bson.D{
-							{"$ifNull", bson.A{
-								bson.D{{"$filter", bson.D{
-									{"input", "$latestRecord.findings"},
-									{"as", "finding"},
-									{"cond", bson.D{
-										{"$regexMatch", bson.D{
-											{"input", "$$finding.status"},
-											{"regex", "^open"},
-											{"options", "i"},
+						{Key: "$size", Value: bson.D{
+							{Key: "$ifNull", Value: bson.A{
+								bson.D{{Key: "$filter", Value: bson.D{
+									{Key: "input", Value: "$latestRecord.findings"},
+									{Key: "as", Value: "finding"},
+									{Key: "cond", Value: bson.D{
+										{Key: "$regexMatch", Value: bson.D{
+											{Key: "input", Value: "$$finding.target.status.state"},
+											{Key: "regex", Value: "^open"},
+											{Key: "options", Value: "i"},
 										}},
 									}},
 								}}},
@@ -252,26 +249,26 @@ func (s *ResultsService) getIntervalledCompliancePipeline(ctx context.Context, i
 						}},
 					},
 				},
-				{"observations", bson.D{
+				{Key: "observations", Value: bson.D{
 					{Key: "$size", Value: bson.D{
-						{"$ifNull", bson.A{"$latestRecord.observations", bson.A{}}},
+						{Key: "$ifNull", Value: bson.A{"$latestRecord.observations", bson.A{}}},
 					}},
 				}},
 			}},
 		},
 		// Step 5: Sort stage
 		{
-			{"$sort", bson.D{
-				{"streamId", -1},
-				{"interval", -1},
+			{Key: "$sort", Value: bson.D{
+				{Key: "streamId", Value: -1},
+				{Key: "interval", Value: -1},
 			}},
 		},
 
 		{
 			{Key: "$group", Value: bson.D{
 				{Key: "_id", Value: "$streamId"},
-				{"records", bson.D{
-					{"$push", "$$ROOT"},
+				{Key: "records", Value: bson.D{
+					{Key: "$push", Value: "$$ROOT"},
 				}},
 			}},
 		},

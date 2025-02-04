@@ -2,13 +2,13 @@ package service
 
 import (
 	"context"
-	"errors"
+	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
+	"github.com/google/uuid"
 	"log"
 
 	. "github.com/compliance-framework/configuration-service/domain"
 	"github.com/compliance-framework/configuration-service/event"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -26,19 +26,14 @@ func NewPlanService(db *mongo.Database, p event.Publisher) *PlanService {
 	}
 }
 
-func (s *PlanService) GetById(ctx context.Context, id string) (*Plan, error) {
-	objectId, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, err
-	}
-
-	output := s.planCollection.FindOne(ctx, bson.D{bson.E{Key: "_id", Value: objectId}})
+func (s *PlanService) GetById(ctx context.Context, id uuid.UUID) (*Plan, error) {
+	output := s.planCollection.FindOne(ctx, bson.D{bson.E{Key: "_id", Value: id}})
 	if output.Err() != nil {
 		return nil, output.Err()
 	}
 
 	result := &Plan{}
-	err = output.Decode(result)
+	err := output.Decode(result)
 	if err != nil {
 		return result, err
 	}
@@ -46,112 +41,20 @@ func (s *PlanService) GetById(ctx context.Context, id string) (*Plan, error) {
 	return result, nil
 }
 
-func (s *PlanService) Create(plan *Plan) (string, error) {
+func (s *PlanService) Create(plan *Plan) (*Plan, error) {
 	log.Println("Create")
-	result, err := s.planCollection.InsertOne(context.TODO(), plan)
-	if err != nil {
-		return "", err
+	if plan.UUID == nil {
+		newId := uuid.New()
+		plan.UUID = &newId
 	}
-	return result.InsertedID.(primitive.ObjectID).Hex(), nil
+	_, err := s.planCollection.InsertOne(context.TODO(), plan)
+	if err != nil {
+		return plan, err
+	}
+	return plan, nil
 }
 
-func (s *PlanService) CreateTask(planId string, task Task) (string, error) {
-	log.Println("CreateTask")
-	log.Println("planId: ", planId)
-	// Validate the task
-	if task.Title == "" {
-		return "", errors.New("task title cannot be empty")
-	}
-
-	if task.Type != TaskTypeMilestone && task.Type != TaskTypeAction {
-		return "", errors.New("task type must be either 'milestone' or 'action'")
-	}
-
-	task.Activities = []Activity{}
-
-	pid, err := primitive.ObjectIDFromHex(planId)
-	if err != nil {
-		return "", err
-	}
-	task.Id = primitive.NewObjectID()
-	filter := bson.D{bson.E{Key: "_id", Value: pid}}
-
-	update := bson.M{
-		"$push": bson.M{
-			"tasks": task,
-		},
-	}
-	_ = s.planCollection.FindOneAndUpdate(context.Background(), filter, update)
-	if err != nil {
-		return "", err
-	}
-
-	return task.Id.Hex(), nil
-}
-
-func (s *PlanService) CreateActivity(planId string, taskId string, activity Activity) (string, error) {
-	log.Println("CreateActivity")
-	log.Println("planId: ", planId)
-	log.Println("taskId: ", taskId)
-	pid, err := primitive.ObjectIDFromHex(planId)
-	if err != nil {
-		return "", err
-	}
-	tid, err := primitive.ObjectIDFromHex(taskId)
-	if err != nil {
-		return "", err
-	}
-
-	activity.Id = primitive.NewObjectID()
-	filter := bson.D{bson.E{Key: "_id", Value: pid}, bson.E{Key: "tasks.id", Value: tid}}
-
-	var p Plan
-	err = s.planCollection.FindOne(context.Background(), filter).Decode(&p)
-	if err != nil {
-		return "", err
-	}
-
-	update := bson.M{
-		"$push": bson.M{
-			"tasks.0.activities": activity,
-		},
-	}
-	output := s.planCollection.FindOneAndUpdate(context.Background(), filter, update)
-	if output.Err() != nil {
-		return "", err
-	}
-
-	return activity.Id.Hex(), nil
-}
-
-func (s *PlanService) ActivatePlan(ctx context.Context, planId string) error {
-	log.Println("ActivatePlan")
-	log.Println("planId: ", planId)
-	plan, err := s.GetById(ctx, planId)
-	if err != nil {
-		return err
-	}
-	plan.Status = "active"
-
-	job := plan.JobSpecification()
-	_ = s.publisher(event.PlanEvent{
-		Type:             "activated",
-		JobSpecification: job,
-	}, event.TopicTypePlan)
-
-	// Update the plan document and set its status to active
-	pid, err := primitive.ObjectIDFromHex(planId)
-	if err != nil {
-		return err
-	}
-	filter := bson.D{bson.E{Key: "_id", Value: pid}}
-	update := bson.M{"$set": bson.M{"status": "active"}}
-	_ = s.planCollection.FindOneAndUpdate(context.Background(), filter, update)
-
-	return nil
-}
-
-func (s *PlanService) SaveSubject(subject Subject) error {
+func (s *PlanService) SaveSubject(subject oscaltypes113.SubjectReference) error {
 	log.Println("SaveSubject")
 	_, err := s.subjectCollection.InsertOne(context.Background(), subject)
 	if err != nil {
@@ -160,7 +63,7 @@ func (s *PlanService) SaveSubject(subject Subject) error {
 	return nil
 }
 
-func (s *PlanService) Risks(planId string, resultId string) ([]Risk, error) {
+func (s *PlanService) Risks(planId string, resultId string) ([]oscaltypes113.Risk, error) {
 	log.Println("Risks", "planId: ", planId, "resultId: ", resultId)
 	pipeline := bson.A{
 		bson.D{{Key: "$unwind", Value: bson.D{{Key: "path", Value: "$tasks"}}}},
@@ -178,7 +81,7 @@ func (s *PlanService) Risks(planId string, resultId string) ([]Risk, error) {
 		return nil, err
 	}
 
-	var risks []Risk
+	var risks []oscaltypes113.Risk
 	if err = cursor.All(context.Background(), &risks); err != nil {
 		return nil, err
 	}

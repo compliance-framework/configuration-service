@@ -1,6 +1,6 @@
 module github.com/compliance-framework/configuration-service
 
-go 1.22
+go 1.22.3
 
 toolchain go1.23.2
 
@@ -33,6 +33,7 @@ require (
 	github.com/containerd/platforms v0.2.1 // indirect
 	github.com/cpuguy83/dockercfg v0.3.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/defenseunicorns/go-oscal v0.6.2 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/docker v27.1.1+incompatible // indirect
 	github.com/docker/go-units v0.5.0 // indirect
@@ -50,6 +51,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/klauspost/compress v1.17.4 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
@@ -73,9 +75,14 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.1 // indirect
 	github.com/shirou/gopsutil/v3 v3.23.12 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/spf13/cobra v1.8.1 // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/swaggest/jsonschema-go v0.3.72 // indirect
+	github.com/swaggest/refl v1.3.0 // indirect
 	github.com/swaggo/files/v2 v2.0.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect

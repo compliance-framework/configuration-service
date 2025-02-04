@@ -1,10 +1,10 @@
 package handler
 
 import (
+	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"net/http"
 
 	"github.com/compliance-framework/configuration-service/api"
-	"github.com/compliance-framework/configuration-service/domain"
 	"github.com/compliance-framework/configuration-service/service"
 	"github.com/labstack/echo/v4"
 )
@@ -39,7 +39,7 @@ func (h *SSPHandler) Register(api *echo.Group) {
 //	@Failure		500	{object}	api.Error
 //	@Router			/ssp [post]
 func (h *SSPHandler) CreateSSP(ctx echo.Context) error {
-	var ssp domain.SystemSecurityPlan
+	var ssp oscaltypes113.SystemSecurityPlan
 	req := CreateSSPRequest{}
 
 	if err := req.bind(ctx, &ssp); err != nil {
@@ -114,7 +114,7 @@ func (h *SSPHandler) ListSSP(ctx echo.Context) error {
 //	@Router			/ssp/{id} [put]
 func (h *SSPHandler) UpdateSSP(ctx echo.Context) error {
 	id := ctx.Param("id")
-	var ssp domain.SystemSecurityPlan
+	var ssp oscaltypes113.SystemSecurityPlan
 	req := UpdateSSPRequest{}
 
 	if err := req.bind(ctx, &ssp); err != nil {
