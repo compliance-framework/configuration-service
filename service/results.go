@@ -205,19 +205,19 @@ func (s *ResultsService) getIntervalledCompliancePipeline(ctx context.Context, i
 				bson.E{
 					Key: "findings_pass",
 					Value: bson.D{
-						{"$size", bson.D{
-							{"$ifNull", bson.A{
-								bson.D{{"$filter", bson.D{
-									{"input", "$latestRecord.findings"},
-									{"as", "finding"},
-									{"cond", bson.D{
+						{Key: "$size", Value: bson.D{
+							{Key: "$ifNull", Value: bson.A{
+								bson.D{{Key: "$filter", Value: bson.D{
+									{Key: "input", Value: "$latestRecord.findings"},
+									{Key: "as", Value: "finding"},
+									{Key: "cond", Value: bson.D{
 										{
-											"$not",
-											bson.D{
-												{"$regexMatch", bson.D{
-													{"input", "$$finding.target.status.state"},
-													{"regex", "^open"},
-													{"options", "i"},
+											Key: "$not",
+											Value: bson.D{
+												{Key: "$regexMatch", Value: bson.D{
+													{Key: "input", Value: "$$finding.target.status.state"},
+													{Key: "regex", Value: "^open"},
+													{Key: "options", Value: "i"},
 												}},
 											},
 										},
@@ -231,16 +231,16 @@ func (s *ResultsService) getIntervalledCompliancePipeline(ctx context.Context, i
 				bson.E{
 					Key: "findings_fail",
 					Value: bson.D{
-						{"$size", bson.D{
-							{"$ifNull", bson.A{
-								bson.D{{"$filter", bson.D{
-									{"input", "$latestRecord.findings"},
-									{"as", "finding"},
-									{"cond", bson.D{
-										{"$regexMatch", bson.D{
-											{"input", "$$finding.target.status.state"},
-											{"regex", "^open"},
-											{"options", "i"},
+						{Key: "$size", Value: bson.D{
+							{Key: "$ifNull", Value: bson.A{
+								bson.D{{Key: "$filter", Value: bson.D{
+									{Key: "input", Value: "$latestRecord.findings"},
+									{Key: "as", Value: "finding"},
+									{Key: "cond", Value: bson.D{
+										{Key: "$regexMatch", Value: bson.D{
+											{Key: "input", Value: "$$finding.target.status.state"},
+											{Key: "regex", Value: "^open"},
+											{Key: "options", Value: "i"},
 										}},
 									}},
 								}}},
@@ -249,7 +249,7 @@ func (s *ResultsService) getIntervalledCompliancePipeline(ctx context.Context, i
 						}},
 					},
 				},
-				{"observations", bson.D{
+				{Key: "observations", Value: bson.D{
 					{Key: "$size", Value: bson.D{
 						{Key: "$ifNull", Value: bson.A{"$latestRecord.observations", bson.A{}}},
 					}},
@@ -258,9 +258,9 @@ func (s *ResultsService) getIntervalledCompliancePipeline(ctx context.Context, i
 		},
 		// Step 5: Sort stage
 		{
-			{"$sort", bson.D{
-				{"streamId", -1},
-				{"interval", -1},
+			{Key: "$sort", Value: bson.D{
+				{Key: "streamId", Value: -1},
+				{Key: "interval", Value: -1},
 			}},
 		},
 
