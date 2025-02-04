@@ -4,8 +4,6 @@ import (
 	"context"
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/api/handler"
-	"github.com/compliance-framework/configuration-service/internal/service"
-	mongoStore "github.com/compliance-framework/configuration-service/internal/store/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"os"
@@ -53,25 +51,7 @@ func main() {
 
 	server := api.NewServer(ctx, sugar)
 
-	catalogStore := mongoStore.NewCatalogStore(mongoDatabase)
-	catalogHandler := handler.NewCatalogHandler(catalogStore)
-	catalogHandler.Register(server.API().Group("/catalog"))
-
-	planService := service.NewPlanService(mongoDatabase)
-	planHandler := handler.NewPlanHandler(sugar, planService)
-	planHandler.Register(server.API().Group("/plan"))
-
-	resultService := service.NewResultsService(mongoDatabase)
-	resultHandler := handler.NewResultsHandler(sugar, resultService, planService)
-	resultHandler.Register(server.API().Group("/results"))
-
-	plansService := service.NewPlansService(mongoDatabase)
-	plansHandler := handler.NewPlansHandler(sugar, plansService)
-	plansHandler.Register(server.API().Group("/plans"))
-
-	systemPlanService := service.NewSSPService(mongoDatabase)
-	systemPlanHandler := handler.NewSSPHandler(systemPlanService)
-	systemPlanHandler.Register(server.API())
+	handler.RegisterHandlers(server, mongoDatabase, sugar)
 
 	server.PrintRoutes()
 

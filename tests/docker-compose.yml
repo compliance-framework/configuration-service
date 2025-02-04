@@ -1,7 +1,7 @@
 services:
   configuration-service:
     build:
-      context: ../..
+      context: ..
       dockerfile: configuration-service/Dockerfile
     ports:
       - "8080:8080"
