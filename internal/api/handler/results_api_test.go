@@ -40,11 +40,11 @@ func (suite *ResultsIntegrationSuite) TestGetPlanResults() {
 			suite.T().Fatal(err)
 		}
 
-		resultsHandler := NewResultsHandler(logger.Sugar(), service2.NewResultsService(suite.MongoDatabase), service2.NewPlanService(suite.MongoDatabase))
+		resultsHandler := NewResultsHandler(logger.Sugar(), service2.NewResultsService(suite.MongoDatabase), service2.NewPlansService(suite.MongoDatabase))
 		server := api.NewServer(context.Background(), logger.Sugar())
 		resultsHandler.Register(server.API().Group("/results"))
 		// Create an empty plan
-		planService := service2.NewPlanService(suite.MongoDatabase)
+		planService := service2.NewPlansService(suite.MongoDatabase)
 		id := uuid.New()
 		plan, err := planService.Create(&domain2.Plan{
 			UUID: &id,
@@ -87,7 +87,7 @@ func (suite *ResultsIntegrationSuite) TestGetPlanResults() {
 		}
 
 		// Create an empty plan
-		planService := service2.NewPlanService(suite.MongoDatabase)
+		planService := service2.NewPlansService(suite.MongoDatabase)
 		id := uuid.New()
 		plan, err := planService.Create(&domain2.Plan{
 			UUID: &id,

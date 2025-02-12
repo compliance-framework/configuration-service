@@ -13,7 +13,7 @@ import (
 
 type ResultsHandler struct {
 	service     *service2.ResultsService
-	planService *service2.PlanService
+	planService *service2.PlansService
 	sugar       *zap.SugaredLogger
 }
 
@@ -27,7 +27,7 @@ func (h *ResultsHandler) Register(api *echo.Group) {
 	api.POST("/compliance-by-stream", h.ComplianceOverTimeByStream)
 }
 
-func NewResultsHandler(l *zap.SugaredLogger, s *service2.ResultsService, planService *service2.PlanService) *ResultsHandler {
+func NewResultsHandler(l *zap.SugaredLogger, s *service2.ResultsService, planService *service2.PlansService) *ResultsHandler {
 	return &ResultsHandler{
 		sugar:       l,
 		service:     s,
