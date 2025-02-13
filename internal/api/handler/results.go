@@ -39,12 +39,12 @@ func NewResultsHandler(l *zap.SugaredLogger, s *service2.ResultsService, planSer
 //
 //	@Summary		Gets a plan's results
 //	@Description	Returns data of all the latest results for a plan
-//	@Tags			Result
+//	@Tags			Assessment Results
 //	@Accept			json
 //	@Produce		json
 //	@Success		200	{object}	handler.GenericDataListResponse[domain.Result]
 //	@Failure		500	{object}	api.Error
-//	@Router			/results/plan/:plan [get]
+//	@Router			/assessment-results/plan/:plan [get]
 func (h *ResultsHandler) GetPlanResults(c echo.Context) error {
 	planId, err := uuid.Parse(c.Param("plan"))
 	if err != nil {
@@ -71,12 +71,12 @@ func (h *ResultsHandler) GetPlanResults(c echo.Context) error {
 //
 //	@Summary		Gets a plan's results
 //	@Description	Returns a list of all the results for a strea,data of all the latest results for a plan
-//	@Tags			Result
+//	@Tags			Assessment Results
 //	@Accept			json
 //	@Produce		json
 //	@Success		200	{object}	handler.GenericDataListResponse[domain.Result]
 //	@Failure		500	{object}	api.Error
-//	@Router			/results/stream/:stream [get]
+//	@Router			/assessment-results/stream/:stream [get]
 func (h *ResultsHandler) GetStreamResults(c echo.Context) error {
 	streamId := uuid.MustParse(c.Param("stream"))
 	results, err := h.service.GetAllForStream(c.Request().Context(), streamId)
@@ -94,12 +94,12 @@ func (h *ResultsHandler) GetStreamResults(c echo.Context) error {
 //
 //	@Summary		Get a result
 //	@Description	Returns singular result
-//	@Tags			Result
+//	@Tags			Assessment Results
 //	@Accept			json
 //	@Produce		json
 //	@Success		200	{object}	handler.GenericDataResponse[domain.Result]
 //	@Failure		500	{object}	api.Error
-//	@Router			/results/:id [get]
+//	@Router			/assessment-results/:id [get]
 func (h *ResultsHandler) GetResult(c echo.Context) error {
 	resultId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -121,12 +121,12 @@ func (h *ResultsHandler) GetResult(c echo.Context) error {
 //
 //	@Summary		Search results using labels
 //	@Description	Returns singular result
-//	@Tags			Result
+//	@Tags			Assessment Results
 //	@Accept			json
 //	@Produce		json
 //	@Success		200	{object}	handler.GenericDataListResponse[domain.Result]
 //	@Failure		500	{object}	api.Error
-//	@Router			/results/search [POST]
+//	@Router			/assessment-results/search [POST]
 func (h *ResultsHandler) SearchResults(ctx echo.Context) error {
 	// Initialize a new plan object
 	filter := &labelfilter.Filter{}
@@ -152,16 +152,44 @@ func (h *ResultsHandler) SearchResults(ctx echo.Context) error {
 	})
 }
 
-// ComplianceOverTimeBySearch godoc
+// CreateResult godoc
 //
-//	@Summary		Get Compliance Over Time for Search query
-//	@Description	Returns the compliance over time records for a particular search query
-//	@Tags			Result
+//	@Summary		Create new result
+//	@Description	Creates a new result in the associated stream and labels
+//	@Tags			Assessment Results
 //	@Accept			json
 //	@Produce		json
 //	@Success		200	{object}	handler.GenericDataListResponse[service.StreamRecords]
 //	@Failure		500	{object}	api.Error
-//	@Router			/results/search [POST]
+//	@Router			/assessment-results [POST]
+func (h *ResultsHandler) CreateResult(ctx echo.Context) error {
+	result := &domain.Result{}
+
+	err := ctx.Bind(result)
+	if err != nil {
+		return ctx.JSON(http.StatusUnprocessableEntity, api.NewError(err))
+	}
+
+	err = h.service.Create(ctx.Request().Context(), result)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusCreated, GenericDataResponse[domain.Result]{
+		Data: *result,
+	})
+}
+
+// ComplianceOverTimeBySearch godoc
+//
+//	@Summary		Get Compliance Over Time for Search query
+//	@Description	Returns the compliance over time records for a particular search query
+//	@Tags			Assessment Results Observability
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	handler.GenericDataListResponse[service.StreamRecords]
+//	@Failure		500	{object}	api.Error
+//	@Router			/assessment-results/compliance-by-search [POST]
 func (h *ResultsHandler) ComplianceOverTimeBySearch(ctx echo.Context) error {
 	// Initialize a new plan object
 	filter := &labelfilter.Filter{}
@@ -197,12 +225,12 @@ func (h *ResultsHandler) ComplianceOverTimeBySearch(ctx echo.Context) error {
 //
 //	@Summary		Get Compliance Over Time for stream
 //	@Description	Returns the compliance over time records for a particular streamId
-//	@Tags			Result
+//	@Tags			Assessment Results Observability
 //	@Accept			json
 //	@Produce		json
 //	@Success		200	{object}	handler.GenericDataListResponse[service.StreamRecords]
 //	@Failure		500	{object}	api.Error
-//	@Router			/results/search [POST]
+//	@Router			/assessment-results/compliance-by-stream [POST]
 func (h *ResultsHandler) ComplianceOverTimeByStream(ctx echo.Context) error {
 	// Initialize a new plan object
 	req := &struct {
@@ -227,23 +255,5 @@ func (h *ResultsHandler) ComplianceOverTimeByStream(ctx echo.Context) error {
 
 	return ctx.JSON(http.StatusOK, GenericDataListResponse[*service2.StreamRecords]{
 		Data: results,
-	})
-}
-
-func (h *ResultsHandler) CreateResult(ctx echo.Context) error {
-	result := &domain.Result{}
-
-	err := ctx.Bind(result)
-	if err != nil {
-		return ctx.JSON(http.StatusUnprocessableEntity, api.NewError(err))
-	}
-
-	err = h.service.Create(ctx.Request().Context(), result)
-	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-	}
-
-	return ctx.JSON(http.StatusCreated, GenericDataResponse[domain.Result]{
-		Data: *result,
 	})
 }

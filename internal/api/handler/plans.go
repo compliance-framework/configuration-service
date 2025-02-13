@@ -31,14 +31,11 @@ func (h *PlansHandler) Register(api *echo.Group) {
 
 // GetPlans godoc
 //
-//	@Summary		Gets plan summaries
-//	@Description	Returns id and title of all the plans in the system
-//	@Tags			Plan
-//	@Accept			json
-//	@Produce		json
-//	@Success		200	{object}	handler.GenericDataListResponse[domain.Plan]
-//	@Failure		500	{object}	api.Error
-//	@Router			/plans [get]
+//	@Tags		Assessment Plans
+//	@Summary	Fetch all plans
+//	@Success	200	{object}	handler.GenericDataListResponse[domain.Plan]
+//	@Failure	500	{object}	api.Error
+//	@Router		/assessment-plans [get]
 func (h *PlansHandler) GetPlans(c echo.Context) error {
 	results, err := h.service.GetPlans()
 	if err != nil {
@@ -49,19 +46,39 @@ func (h *PlansHandler) GetPlans(c echo.Context) error {
 	})
 }
 
+// GetPlan godoc
+//
+//	@Tags		Assessment Plans
+//	@Summary	Fetch a single plan
+//	@Param		id	path		string	true	"Plan ID"
+//	@Success	200	{object}	handler.GenericDataResponse[PlanResponse]
+//	@Failure	401	{object}	api.Error
+//	@Failure	422	{object}	api.Error
+//	@Failure	500	{object}	api.Error
+//	@Router		/assessment-plans/:id [get]
+func (h *PlansHandler) GetPlan(ctx echo.Context) error {
+	plan, err := h.service.GetById(ctx.Request().Context(), uuid.MustParse(ctx.Param("id")))
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	} else if plan == nil {
+		return ctx.JSON(http.StatusNotFound, api.NotFound())
+	}
+
+	return ctx.JSON(http.StatusOK, GenericDataResponse[PlanResponse]{
+		Data: PlanResponse{*plan},
+	})
+}
+
 // CreatePlan godoc
 //
-//	@Summary		Create a plan
-//	@Description	Creates a new plan in the system
-//	@Tags			Plan
-//	@Accept			json
-//	@Produce		json
-//	@Param			plan	body		createPlanRequest	true	"Plan to add"
-//	@Success		201		{object}	idResponse
-//	@Failure		401		{object}	api.Error
-//	@Failure		422		{object}	api.Error
-//	@Failure		500		{object}	api.Error
-//	@Router			/plan [post]
+//	@Summary	Create a new Assessment Plan
+//	@Tags		Assessment Plans
+//	@Param		plan	body		createPlanRequest	true	"Plan to add"
+//	@Success	201		{object}	handler.GenericDataResponse[PlanResponse]
+//	@Failure	401		{object}	api.Error
+//	@Failure	422		{object}	api.Error
+//	@Failure	500		{object}	api.Error
+//	@Router		/assessment-plans [post]
 func (h *PlansHandler) CreatePlan(ctx echo.Context) error {
 	// Initialize a new plan object
 	p := &domain.Plan{}
@@ -87,31 +104,5 @@ func (h *PlansHandler) CreatePlan(ctx echo.Context) error {
 		Data: PlanResponse{
 			Plan: *p,
 		},
-	})
-}
-
-// GetPlan godoc
-//
-//	@Summary		Fetches a plan
-//	@Description	Fetches a plan in the system
-//	@Tags			Plan
-//	@Accept			json
-//	@Produce		json
-//	@Param			id	path		string	true	"Plan ID"
-//	@Success		200	{object}	handler.GenericDataResponse[PlanResponse]
-//	@Failure		401	{object}	api.Error
-//	@Failure		422	{object}	api.Error
-//	@Failure		500	{object}	api.Error
-//	@Router			/plan/:id [get]
-func (h *PlansHandler) GetPlan(ctx echo.Context) error {
-	plan, err := h.service.GetById(ctx.Request().Context(), uuid.MustParse(ctx.Param("id")))
-	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-	} else if plan == nil {
-		return ctx.JSON(http.StatusNotFound, api.NotFound())
-	}
-
-	return ctx.JSON(http.StatusOK, GenericDataResponse[PlanResponse]{
-		Data: PlanResponse{*plan},
 	})
 }
