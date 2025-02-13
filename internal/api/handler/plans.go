@@ -92,7 +92,7 @@ func (h *PlansHandler) CreatePlan(ctx echo.Context) error {
 		return ctx.JSON(http.StatusUnprocessableEntity, api.NewError(err))
 	}
 
-	// Attempt to create the plan in the service
+	// Attempt to create the plan in the resultService
 	// If there's an error, return a 500 status code with the error message
 	_, err := h.service.Create(p)
 	if err != nil {

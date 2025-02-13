@@ -12,9 +12,9 @@ import (
 )
 
 type ResultsHandler struct {
-	service     *service2.ResultsService
-	planService *service2.PlansService
-	sugar       *zap.SugaredLogger
+	resultService *service2.ResultsService
+	planService   *service2.PlansService
+	sugar         *zap.SugaredLogger
 }
 
 func (h *ResultsHandler) Register(api *echo.Group) {
@@ -29,9 +29,9 @@ func (h *ResultsHandler) Register(api *echo.Group) {
 
 func NewResultsHandler(l *zap.SugaredLogger, s *service2.ResultsService, planService *service2.PlansService) *ResultsHandler {
 	return &ResultsHandler{
-		sugar:       l,
-		service:     s,
-		planService: planService,
+		sugar:         l,
+		resultService: s,
+		planService:   planService,
 	}
 }
 
@@ -56,7 +56,7 @@ func (h *ResultsHandler) GetPlanResults(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, api.NewError(err))
 	}
 
-	results, err := h.service.GetLatestResultsForPlan(c.Request().Context(), plan)
+	results, err := h.resultService.GetLatestResultsForPlan(c.Request().Context(), plan)
 	if err != nil {
 		h.sugar.Error(err)
 		return c.JSON(http.StatusInternalServerError, api.NewError(err))
@@ -79,7 +79,7 @@ func (h *ResultsHandler) GetPlanResults(c echo.Context) error {
 //	@Router			/assessment-results/stream/:stream [get]
 func (h *ResultsHandler) GetStreamResults(c echo.Context) error {
 	streamId := uuid.MustParse(c.Param("stream"))
-	results, err := h.service.GetAllForStream(c.Request().Context(), streamId)
+	results, err := h.resultService.GetAllForStream(c.Request().Context(), streamId)
 	if err != nil {
 		h.sugar.Error(err)
 		return c.JSON(http.StatusInternalServerError, api.NewError(err))
@@ -106,7 +106,7 @@ func (h *ResultsHandler) GetResult(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	result, err := h.service.Get(c.Request().Context(), &resultId)
+	result, err := h.resultService.Get(c.Request().Context(), &resultId)
 	if err != nil {
 		h.sugar.Error(err)
 		return c.JSON(http.StatusInternalServerError, api.NewError(err))
@@ -139,9 +139,9 @@ func (h *ResultsHandler) SearchResults(ctx echo.Context) error {
 		return ctx.JSON(http.StatusUnprocessableEntity, api.NewError(err))
 	}
 
-	// Attempt to create the plan in the service
+	// Attempt to create the plan in the resultService
 	// If there's an error, return a 500 status code with the error message
-	results, err := h.service.Search(ctx.Request().Context(), filter)
+	results, err := h.resultService.Search(ctx.Request().Context(), filter)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
@@ -159,7 +159,7 @@ func (h *ResultsHandler) SearchResults(ctx echo.Context) error {
 //	@Tags			Assessment Results
 //	@Accept			json
 //	@Produce		json
-//	@Success		200	{object}	handler.GenericDataListResponse[service.StreamRecords]
+//	@Success		200	{object}	handler.GenericDataListResponse[resultService.StreamRecords]
 //	@Failure		500	{object}	api.Error
 //	@Router			/assessment-results [POST]
 func (h *ResultsHandler) CreateResult(ctx echo.Context) error {
@@ -170,7 +170,7 @@ func (h *ResultsHandler) CreateResult(ctx echo.Context) error {
 		return ctx.JSON(http.StatusUnprocessableEntity, api.NewError(err))
 	}
 
-	err = h.service.Create(ctx.Request().Context(), result)
+	err = h.resultService.Create(ctx.Request().Context(), result)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
@@ -187,7 +187,7 @@ func (h *ResultsHandler) CreateResult(ctx echo.Context) error {
 //	@Tags			Assessment Results Observability
 //	@Accept			json
 //	@Produce		json
-//	@Success		200	{object}	handler.GenericDataListResponse[service.StreamRecords]
+//	@Success		200	{object}	handler.GenericDataListResponse[resultService.StreamRecords]
 //	@Failure		500	{object}	api.Error
 //	@Router			/assessment-results/compliance-by-search [POST]
 func (h *ResultsHandler) ComplianceOverTimeBySearch(ctx echo.Context) error {
@@ -203,9 +203,9 @@ func (h *ResultsHandler) ComplianceOverTimeBySearch(ctx echo.Context) error {
 		return ctx.JSON(http.StatusUnprocessableEntity, api.NewError(err))
 	}
 
-	// Attempt to create the plan in the service
+	// Attempt to create the plan in the resultService
 	// If there's an error, return a 500 status code with the error message
-	results, err := h.service.GetIntervalledComplianceReportForFilter(ctx.Request().Context(), filter)
+	results, err := h.resultService.GetIntervalledComplianceReportForFilter(ctx.Request().Context(), filter)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
@@ -228,7 +228,7 @@ func (h *ResultsHandler) ComplianceOverTimeBySearch(ctx echo.Context) error {
 //	@Tags			Assessment Results Observability
 //	@Accept			json
 //	@Produce		json
-//	@Success		200	{object}	handler.GenericDataListResponse[service.StreamRecords]
+//	@Success		200	{object}	handler.GenericDataListResponse[resultService.StreamRecords]
 //	@Failure		500	{object}	api.Error
 //	@Router			/assessment-results/compliance-by-stream [POST]
 func (h *ResultsHandler) ComplianceOverTimeByStream(ctx echo.Context) error {
@@ -241,9 +241,9 @@ func (h *ResultsHandler) ComplianceOverTimeByStream(ctx echo.Context) error {
 		return ctx.JSON(http.StatusUnprocessableEntity, api.NewError(err))
 	}
 
-	// Attempt to create the plan in the service
+	// Attempt to create the plan in the resultService
 	// If there's an error, return a 500 status code with the error message
-	results, err := h.service.GetIntervalledComplianceReportForStream(ctx.Request().Context(), req.Stream)
+	results, err := h.resultService.GetIntervalledComplianceReportForStream(ctx.Request().Context(), req.Stream)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
