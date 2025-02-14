@@ -37,12 +37,14 @@ func NewResultsHandler(l *zap.SugaredLogger, s *service2.ResultsService, planSer
 
 // GetPlanResults godoc
 //
-//	@Summary		Gets a plan's results
-//	@Description	Returns data of all the latest results for a plan
+//	@Summary		Fetch all assessment results for an assessment plan
+//	@Description	Fetches the latest result for each stream associated in an assessment plan
 //	@Tags			Assessment Results
 //	@Accept			json
 //	@Produce		json
 //	@Success		200	{object}	handler.GenericDataListResponse[domain.Result]
+//	@Failure		401	{object}	api.Error
+//	@Failure		404	{object}	api.Error
 //	@Failure		500	{object}	api.Error
 //	@Router			/assessment-results/plan/:plan [get]
 func (h *ResultsHandler) GetPlanResults(c echo.Context) error {
@@ -69,12 +71,13 @@ func (h *ResultsHandler) GetPlanResults(c echo.Context) error {
 
 // GetStreamResults godoc
 //
-//	@Summary		Gets a plan's results
-//	@Description	Returns a list of all the results for a strea,data of all the latest results for a plan
+//	@Summary		Fetch all assessment results for a result stream
 //	@Tags			Assessment Results
 //	@Accept			json
 //	@Produce		json
 //	@Success		200	{object}	handler.GenericDataListResponse[domain.Result]
+//	@Failure		401	{object}	api.Error
+//	@Failure		404	{object}	api.Error
 //	@Failure		500	{object}	api.Error
 //	@Router			/assessment-results/stream/:stream [get]
 func (h *ResultsHandler) GetStreamResults(c echo.Context) error {
@@ -92,12 +95,13 @@ func (h *ResultsHandler) GetStreamResults(c echo.Context) error {
 
 // GetResult godoc
 //
-//	@Summary		Get a result
-//	@Description	Returns singular result
+//	@Summary		Fetch a single assessment result
 //	@Tags			Assessment Results
 //	@Accept			json
 //	@Produce		json
 //	@Success		200	{object}	handler.GenericDataResponse[domain.Result]
+//	@Failure		401	{object}	api.Error
+//	@Failure		404	{object}	api.Error
 //	@Failure		500	{object}	api.Error
 //	@Router			/assessment-results/:id [get]
 func (h *ResultsHandler) GetResult(c echo.Context) error {
@@ -119,12 +123,13 @@ func (h *ResultsHandler) GetResult(c echo.Context) error {
 
 // SearchResults godoc
 //
-//	@Summary		Search results using labels
-//	@Description	Returns singular result
+//	@Summary		Search assessment results using label selectors
+//	@Description	Returns a list of the latest result for each stream matching the specified label selector
 //	@Tags			Assessment Results
 //	@Accept			json
 //	@Produce		json
 //	@Success		200	{object}	handler.GenericDataListResponse[domain.Result]
+//	@Failure		401	{object}	api.Error
 //	@Failure		500	{object}	api.Error
 //	@Router			/assessment-results/search [POST]
 func (h *ResultsHandler) SearchResults(ctx echo.Context) error {
@@ -154,12 +159,13 @@ func (h *ResultsHandler) SearchResults(ctx echo.Context) error {
 
 // CreateResult godoc
 //
-//	@Summary		Create new result
-//	@Description	Creates a new result in the associated stream and labels
+//	@Summary		Create new assessment result
+//	@Description	Creates an assessment result in the specified stream and label mapping
 //	@Tags			Assessment Results
 //	@Accept			json
 //	@Produce		json
 //	@Success		200	{object}	handler.GenericDataListResponse[resultService.StreamRecords]
+//	@Failure		401	{object}	api.Error
 //	@Failure		500	{object}	api.Error
 //	@Router			/assessment-results [POST]
 func (h *ResultsHandler) CreateResult(ctx echo.Context) error {

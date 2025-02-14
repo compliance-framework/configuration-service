@@ -32,8 +32,9 @@ func (h *PlansHandler) Register(api *echo.Group) {
 // GetPlans godoc
 //
 //	@Tags		Assessment Plans
-//	@Summary	Fetch all plans
+//	@Summary	Fetch all assessment plans
 //	@Success	200	{object}	handler.GenericDataListResponse[domain.Plan]
+//	@Failure	401	{object}	api.Error
 //	@Failure	500	{object}	api.Error
 //	@Router		/assessment-plans [get]
 func (h *PlansHandler) GetPlans(c echo.Context) error {
@@ -49,11 +50,11 @@ func (h *PlansHandler) GetPlans(c echo.Context) error {
 // GetPlan godoc
 //
 //	@Tags		Assessment Plans
-//	@Summary	Fetch a single plan
+//	@Summary	Fetch a single assessment plan
 //	@Param		id	path		string	true	"Plan ID"
 //	@Success	200	{object}	handler.GenericDataResponse[PlanResponse]
 //	@Failure	401	{object}	api.Error
-//	@Failure	422	{object}	api.Error
+//	@Failure	404	{object}	api.Error
 //	@Failure	500	{object}	api.Error
 //	@Router		/assessment-plans/:id [get]
 func (h *PlansHandler) GetPlan(ctx echo.Context) error {
@@ -71,7 +72,7 @@ func (h *PlansHandler) GetPlan(ctx echo.Context) error {
 
 // CreatePlan godoc
 //
-//	@Summary	Create a new Assessment Plan
+//	@Summary	Create a new assessment plan
 //	@Tags		Assessment Plans
 //	@Param		plan	body		createPlanRequest	true	"Plan to add"
 //	@Success	201		{object}	handler.GenericDataResponse[PlanResponse]
