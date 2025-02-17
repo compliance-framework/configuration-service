@@ -22,7 +22,7 @@ func (r *resultClient) Create(streamId uuid.UUID, labels map[string]string, resu
 		Labels:   labels,
 		Result:   *result,
 	})
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/results", r.config.BaseURL), bytes.NewReader(reqBody))
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/assessment-results", r.config.BaseURL), bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, err
 	}
