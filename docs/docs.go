@@ -26,12 +26,18 @@ const docTemplate = `{
                 "tags": [
                     "Assessment Plans"
                 ],
-                "summary": "Fetch all plans",
+                "summary": "Fetch all assessment plans",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/handler.GenericDataListResponse-domain_Plan"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "500": {
@@ -46,7 +52,7 @@ const docTemplate = `{
                 "tags": [
                     "Assessment Plans"
                 ],
-                "summary": "Create a new Assessment Plan",
+                "summary": "Create a new assessment plan",
                 "parameters": [
                     {
                         "description": "Plan to add",
@@ -91,7 +97,7 @@ const docTemplate = `{
                 "tags": [
                     "Assessment Plans"
                 ],
-                "summary": "Fetch a single plan",
+                "summary": "Fetch a single assessment plan",
                 "parameters": [
                     {
                         "type": "string",
@@ -114,8 +120,8 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
-                    "422": {
-                        "description": "Unprocessable Entity",
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/api.Error"
                         }
@@ -131,7 +137,7 @@ const docTemplate = `{
         },
         "/assessment-results": {
             "post": {
-                "description": "Creates a new result in the associated stream and labels",
+                "description": "Creates an assessment result in the specified stream and label mapping",
                 "consumes": [
                     "application/json"
                 ],
@@ -141,12 +147,18 @@ const docTemplate = `{
                 "tags": [
                     "Assessment Results"
                 ],
-                "summary": "Create new result",
+                "summary": "Create new assessment result",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-service_StreamRecords"
+                            "$ref": "#/definitions/handler.GenericDataResponse-domain_Result"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "500": {
@@ -160,7 +172,6 @@ const docTemplate = `{
         },
         "/assessment-results/:id": {
             "get": {
-                "description": "Returns singular result",
                 "consumes": [
                     "application/json"
                 ],
@@ -170,12 +181,24 @@ const docTemplate = `{
                 "tags": [
                     "Assessment Results"
                 ],
-                "summary": "Get a result",
+                "summary": "Fetch a single assessment result",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/handler.GenericDataResponse-domain_Result"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "500": {
@@ -197,7 +220,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Assessment Result Observability"
+                    "Assessment Results Observability"
                 ],
                 "summary": "Get Compliance Over Time for Search query",
                 "responses": {
@@ -226,7 +249,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Assessment Result Observability"
+                    "Assessment Results Observability"
                 ],
                 "summary": "Get Compliance Over Time for stream",
                 "responses": {
@@ -247,7 +270,7 @@ const docTemplate = `{
         },
         "/assessment-results/plan/:plan": {
             "get": {
-                "description": "Returns data of all the latest results for a plan",
+                "description": "Fetches the latest result for each stream associated in an assessment plan",
                 "consumes": [
                     "application/json"
                 ],
@@ -257,12 +280,24 @@ const docTemplate = `{
                 "tags": [
                     "Assessment Results"
                 ],
-                "summary": "Gets a plan's results",
+                "summary": "Fetch all assessment results for an assessment plan",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/handler.GenericDataListResponse-domain_Result"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "500": {
@@ -276,7 +311,7 @@ const docTemplate = `{
         },
         "/assessment-results/search": {
             "post": {
-                "description": "Returns singular result",
+                "description": "Returns a list of the latest result for each stream matching the specified label selector",
                 "consumes": [
                     "application/json"
                 ],
@@ -286,12 +321,18 @@ const docTemplate = `{
                 "tags": [
                     "Assessment Results"
                 ],
-                "summary": "Search results using labels",
+                "summary": "Search assessment results using label selectors",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/handler.GenericDataListResponse-domain_Result"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "500": {
@@ -305,7 +346,6 @@ const docTemplate = `{
         },
         "/assessment-results/stream/:stream": {
             "get": {
-                "description": "Returns a list of all the results for a strea,data of all the latest results for a plan",
                 "consumes": [
                     "application/json"
                 ],
@@ -315,12 +355,24 @@ const docTemplate = `{
                 "tags": [
                     "Assessment Results"
                 ],
-                "summary": "Gets a plan's results",
+                "summary": "Fetch all assessment results for a result stream",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/handler.GenericDataListResponse-domain_Result"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "500": {

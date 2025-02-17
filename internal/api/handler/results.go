@@ -4,7 +4,7 @@ import (
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/converters/labelfilter"
 	"github.com/compliance-framework/configuration-service/internal/domain"
-	service2 "github.com/compliance-framework/configuration-service/internal/service"
+	"github.com/compliance-framework/configuration-service/internal/service"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
@@ -12,8 +12,8 @@ import (
 )
 
 type ResultsHandler struct {
-	resultService *service2.ResultsService
-	planService   *service2.PlansService
+	resultService *service.ResultsService
+	planService   *service.PlansService
 	sugar         *zap.SugaredLogger
 }
 
@@ -27,7 +27,7 @@ func (h *ResultsHandler) Register(api *echo.Group) {
 	api.POST("/compliance-by-stream", h.ComplianceOverTimeByStream)
 }
 
-func NewResultsHandler(l *zap.SugaredLogger, s *service2.ResultsService, planService *service2.PlansService) *ResultsHandler {
+func NewResultsHandler(l *zap.SugaredLogger, s *service.ResultsService, planService *service.PlansService) *ResultsHandler {
 	return &ResultsHandler{
 		sugar:         l,
 		resultService: s,
@@ -71,15 +71,15 @@ func (h *ResultsHandler) GetPlanResults(c echo.Context) error {
 
 // GetStreamResults godoc
 //
-//	@Summary		Fetch all assessment results for a result stream
-//	@Tags			Assessment Results
-//	@Accept			json
-//	@Produce		json
-//	@Success		200	{object}	handler.GenericDataListResponse[domain.Result]
-//	@Failure		401	{object}	api.Error
-//	@Failure		404	{object}	api.Error
-//	@Failure		500	{object}	api.Error
-//	@Router			/assessment-results/stream/:stream [get]
+//	@Summary	Fetch all assessment results for a result stream
+//	@Tags		Assessment Results
+//	@Accept		json
+//	@Produce	json
+//	@Success	200	{object}	handler.GenericDataListResponse[domain.Result]
+//	@Failure	401	{object}	api.Error
+//	@Failure	404	{object}	api.Error
+//	@Failure	500	{object}	api.Error
+//	@Router		/assessment-results/stream/:stream [get]
 func (h *ResultsHandler) GetStreamResults(c echo.Context) error {
 	streamId := uuid.MustParse(c.Param("stream"))
 	results, err := h.resultService.GetAllForStream(c.Request().Context(), streamId)
@@ -95,15 +95,15 @@ func (h *ResultsHandler) GetStreamResults(c echo.Context) error {
 
 // GetResult godoc
 //
-//	@Summary		Fetch a single assessment result
-//	@Tags			Assessment Results
-//	@Accept			json
-//	@Produce		json
-//	@Success		200	{object}	handler.GenericDataResponse[domain.Result]
-//	@Failure		401	{object}	api.Error
-//	@Failure		404	{object}	api.Error
-//	@Failure		500	{object}	api.Error
-//	@Router			/assessment-results/:id [get]
+//	@Summary	Fetch a single assessment result
+//	@Tags		Assessment Results
+//	@Accept		json
+//	@Produce	json
+//	@Success	200	{object}	handler.GenericDataResponse[domain.Result]
+//	@Failure	401	{object}	api.Error
+//	@Failure	404	{object}	api.Error
+//	@Failure	500	{object}	api.Error
+//	@Router		/assessment-results/:id [get]
 func (h *ResultsHandler) GetResult(c echo.Context) error {
 	resultId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -164,7 +164,7 @@ func (h *ResultsHandler) SearchResults(ctx echo.Context) error {
 //	@Tags			Assessment Results
 //	@Accept			json
 //	@Produce		json
-//	@Success		200	{object}	handler.GenericDataListResponse[resultService.StreamRecords]
+//	@Success		200	{object}	handler.GenericDataResponse[domain.Result]
 //	@Failure		401	{object}	api.Error
 //	@Failure		500	{object}	api.Error
 //	@Router			/assessment-results [POST]
@@ -193,7 +193,7 @@ func (h *ResultsHandler) CreateResult(ctx echo.Context) error {
 //	@Tags			Assessment Results Observability
 //	@Accept			json
 //	@Produce		json
-//	@Success		200	{object}	handler.GenericDataListResponse[resultService.StreamRecords]
+//	@Success		200	{object}	handler.GenericDataListResponse[service.StreamRecords]
 //	@Failure		500	{object}	api.Error
 //	@Router			/assessment-results/compliance-by-search [POST]
 func (h *ResultsHandler) ComplianceOverTimeBySearch(ctx echo.Context) error {
@@ -218,11 +218,11 @@ func (h *ResultsHandler) ComplianceOverTimeBySearch(ctx echo.Context) error {
 
 	// This ensures we don't get a null in the JSON response
 	if len(results) == 0 {
-		results = []*service2.StreamRecords{}
+		results = []*service.StreamRecords{}
 	}
 
 	// If everything went well, return a 201 status code with the ID of the created plan
-	return ctx.JSON(http.StatusOK, GenericDataListResponse[*service2.StreamRecords]{
+	return ctx.JSON(http.StatusOK, GenericDataListResponse[*service.StreamRecords]{
 		Data: results,
 	})
 }
@@ -234,7 +234,7 @@ func (h *ResultsHandler) ComplianceOverTimeBySearch(ctx echo.Context) error {
 //	@Tags			Assessment Results Observability
 //	@Accept			json
 //	@Produce		json
-//	@Success		200	{object}	handler.GenericDataListResponse[resultService.StreamRecords]
+//	@Success		200	{object}	handler.GenericDataListResponse[service.StreamRecords]
 //	@Failure		500	{object}	api.Error
 //	@Router			/assessment-results/compliance-by-stream [POST]
 func (h *ResultsHandler) ComplianceOverTimeByStream(ctx echo.Context) error {
@@ -256,10 +256,10 @@ func (h *ResultsHandler) ComplianceOverTimeByStream(ctx echo.Context) error {
 
 	// This ensures we don't get a null in the JSON response
 	if len(results) == 0 {
-		results = []*service2.StreamRecords{}
+		results = []*service.StreamRecords{}
 	}
 
-	return ctx.JSON(http.StatusOK, GenericDataListResponse[*service2.StreamRecords]{
+	return ctx.JSON(http.StatusOK, GenericDataListResponse[*service.StreamRecords]{
 		Data: results,
 	})
 }

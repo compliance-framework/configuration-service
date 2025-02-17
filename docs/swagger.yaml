@@ -1732,11 +1732,15 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/handler.GenericDataListResponse-domain_Plan'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.Error'
-      summary: Fetch all plans
+      summary: Fetch all assessment plans
       tags:
       - Assessment Plans
     post:
@@ -1764,7 +1768,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.Error'
-      summary: Create a new Assessment Plan
+      summary: Create a new assessment plan
       tags:
       - Assessment Plans
   /assessment-plans/:id:
@@ -1784,41 +1788,23 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/api.Error'
-        "422":
-          description: Unprocessable Entity
+        "404":
+          description: Not Found
           schema:
             $ref: '#/definitions/api.Error'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.Error'
-      summary: Fetch a single plan
+      summary: Fetch a single assessment plan
       tags:
       - Assessment Plans
   /assessment-results:
     post:
       consumes:
       - application/json
-      description: Creates a new result in the associated stream and labels
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.GenericDataListResponse-service_StreamRecords'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Create new result
-      tags:
-      - Assessment Results
-  /assessment-results/:id:
-    get:
-      consumes:
-      - application/json
-      description: Returns singular result
+      description: Creates an assessment result in the specified stream and label
+        mapping
       produces:
       - application/json
       responses:
@@ -1826,11 +1812,41 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/handler.GenericDataResponse-domain_Result'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.Error'
-      summary: Get a result
+      summary: Create new assessment result
+      tags:
+      - Assessment Results
+  /assessment-results/:id:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-domain_Result'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Fetch a single assessment result
       tags:
       - Assessment Results
   /assessment-results/compliance-by-search:
@@ -1852,7 +1868,7 @@ paths:
             $ref: '#/definitions/api.Error'
       summary: Get Compliance Over Time for Search query
       tags:
-      - Assessment Result Observability
+      - Assessment Results Observability
   /assessment-results/compliance-by-stream:
     post:
       consumes:
@@ -1871,12 +1887,13 @@ paths:
             $ref: '#/definitions/api.Error'
       summary: Get Compliance Over Time for stream
       tags:
-      - Assessment Result Observability
+      - Assessment Results Observability
   /assessment-results/plan/:plan:
     get:
       consumes:
       - application/json
-      description: Returns data of all the latest results for a plan
+      description: Fetches the latest result for each stream associated in an assessment
+        plan
       produces:
       - application/json
       responses:
@@ -1884,18 +1901,27 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/handler.GenericDataListResponse-domain_Result'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.Error'
-      summary: Gets a plan's results
+      summary: Fetch all assessment results for an assessment plan
       tags:
       - Assessment Results
   /assessment-results/search:
     post:
       consumes:
       - application/json
-      description: Returns singular result
+      description: Returns a list of the latest result for each stream matching the
+        specified label selector
       produces:
       - application/json
       responses:
@@ -1903,19 +1929,21 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/handler.GenericDataListResponse-domain_Result'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.Error'
-      summary: Search results using labels
+      summary: Search assessment results using label selectors
       tags:
       - Assessment Results
   /assessment-results/stream/:stream:
     get:
       consumes:
       - application/json
-      description: Returns a list of all the results for a strea,data of all the latest
-        results for a plan
       produces:
       - application/json
       responses:
@@ -1923,11 +1951,19 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/handler.GenericDataListResponse-domain_Result'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.Error'
-      summary: Gets a plan's results
+      summary: Fetch all assessment results for a result stream
       tags:
       - Assessment Results
 produces:
