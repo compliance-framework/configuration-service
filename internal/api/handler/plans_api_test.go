@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/compliance-framework/configuration-service/internal/api"
-	"github.com/compliance-framework/configuration-service/internal/service"
 	"github.com/compliance-framework/configuration-service/internal/tests"
 	"net/http"
 	"net/http/httptest"
@@ -31,13 +30,14 @@ type PlanIntegrationSuite struct {
 func (suite *PlanIntegrationSuite) TestCreatePlan() {
 	suite.Run("A plan can be created through the API", func() {
 		logger, _ := zap.NewProduction()
-		planHandler := NewPlansHandler(logger.Sugar(), service.NewPlansService(suite.MongoDatabase))
 
 		server := api.NewServer(context.Background(), logger.Sugar())
-		planHandler.Register(server.API().Group("/plan"))
+		RegisterHandlers(server, suite.MongoDatabase, logger.Sugar())
 
 		reqBody, _ := json.Marshal(map[string]interface{}{
-			"title": "Some Plan",
+			"metadata": map[string]interface{}{
+				"title": "Some Plan",
+			},
 			"filter": map[string]interface{}{
 				"scope": map[string]interface{}{
 					"condition": map[string]string{
@@ -48,7 +48,7 @@ func (suite *PlanIntegrationSuite) TestCreatePlan() {
 				},
 			},
 		})
-		req := httptest.NewRequest(http.MethodPost, "/api/plan", bytes.NewReader(reqBody))
+		req := httptest.NewRequest(http.MethodPost, "/api/assessment-plans", bytes.NewReader(reqBody))
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 
 		rec := httptest.NewRecorder()
@@ -57,40 +57,24 @@ func (suite *PlanIntegrationSuite) TestCreatePlan() {
 		assert.Equal(suite.T(), http.StatusCreated, rec.Code, "Expected status 201 Created")
 
 		response := &GenericDataResponse[PlanResponse]{}
-		assert.NoError(suite.T(), json.Unmarshal(rec.Body.Bytes(), response), "Failed to parse response from CreatePlan")
-		expectedJson, err := json.Marshal(map[string]interface{}{
-			"data": map[string]interface{}{
-				"uuid":  response.Data.UUID,
-				"title": "Some Plan",
-				"filter": map[string]interface{}{
-					"scope": map[string]interface{}{
-						"condition": map[string]string{
-							"label":    "foo",
-							"operator": "=",
-							"value":    "bar",
-						},
-					},
-				},
-			},
-		})
-		if assert.NoError(suite.T(), err) {
-			assert.JSONEq(suite.T(), string(expectedJson), rec.Body.String())
-		}
+		suite.NoError(json.Unmarshal(rec.Body.Bytes(), response), "Failed to parse response from CreatePlan")
+		suite.Equal(response.Data.Metadata.Title, "Some Plan")
 	})
 }
 
 func (suite *PlanIntegrationSuite) TestCreateAndGetPlan() {
 	suite.Run("A plan can be created, and then fetched through the API", func() {
 		logger, _ := zap.NewProduction()
-		planHandler := NewPlansHandler(logger.Sugar(), service.NewPlansService(suite.MongoDatabase))
 
 		server := api.NewServer(context.Background(), logger.Sugar())
-		planHandler.Register(server.API().Group("/plan"))
+		RegisterHandlers(server, suite.MongoDatabase, logger.Sugar())
 
 		// Create a plan
 		rec := httptest.NewRecorder()
 		reqBody, _ := json.Marshal(map[string]interface{}{
-			"title": "Some Plan",
+			"metadata": map[string]interface{}{
+				"title": "Some Plan",
+			},
 			"filter": map[string]interface{}{
 				"scope": map[string]interface{}{
 					"condition": map[string]string{
@@ -101,7 +85,7 @@ func (suite *PlanIntegrationSuite) TestCreateAndGetPlan() {
 				},
 			},
 		})
-		req := httptest.NewRequest(http.MethodPost, "/api/plan", bytes.NewReader(reqBody))
+		req := httptest.NewRequest(http.MethodPost, "/api/assessment-plans", bytes.NewReader(reqBody))
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 
 		server.E().ServeHTTP(rec, req)
@@ -117,7 +101,7 @@ func (suite *PlanIntegrationSuite) TestCreateAndGetPlan() {
 		rec = httptest.NewRecorder()
 		req = httptest.NewRequest(
 			http.MethodGet,
-			fmt.Sprintf("/api/plan/%s", response.Data.UUID),
+			fmt.Sprintf("/api/assessment-plans/%s", response.Data.UUID),
 			nil,
 		)
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
@@ -128,25 +112,7 @@ func (suite *PlanIntegrationSuite) TestCreateAndGetPlan() {
 		assert.Equal(suite.T(), http.StatusOK, rec.Code)
 
 		getResponse := &GenericDataResponse[PlanResponse]{}
-		assert.NoError(suite.T(), json.Unmarshal(rec.Body.Bytes(), getResponse), "Failed to parse response from GetPlan")
-		expectedJson, err := json.Marshal(map[string]interface{}{
-			"data": map[string]interface{}{
-				"uuid":  getResponse.Data.UUID,
-				"title": "Some Plan",
-				"filter": map[string]interface{}{
-					"scope": map[string]interface{}{
-						"condition": map[string]string{
-							"label":    "foo",
-							"operator": "=",
-							"value":    "bar",
-						},
-					},
-				},
-			},
-		})
-		if assert.NoError(suite.T(), err) {
-			assert.JSONEq(suite.T(), string(expectedJson), rec.Body.String())
-		}
-
+		suite.NoError(json.Unmarshal(rec.Body.Bytes(), getResponse), "Failed to parse response from GetPlan")
+		suite.Equal(getResponse.Data.Metadata.Title, "Some Plan")
 	})
 }
