@@ -216,7 +216,7 @@ func (s *ResultsService) getIntervalledCompliancePipeline(ctx context.Context, i
 											Value: bson.D{
 												{Key: "$regexMatch", Value: bson.D{
 													{Key: "input", Value: "$$finding.target.status.state"},
-													{Key: "regex", Value: "^open"},
+													{Key: "regex", Value: "^satisfied"},
 													{Key: "options", Value: "i"},
 												}},
 											},
@@ -239,7 +239,7 @@ func (s *ResultsService) getIntervalledCompliancePipeline(ctx context.Context, i
 									{Key: "cond", Value: bson.D{
 										{Key: "$regexMatch", Value: bson.D{
 											{Key: "input", Value: "$$finding.target.status.state"},
-											{Key: "regex", Value: "^open"},
+											{Key: "regex", Value: "^satisfied"},
 											{Key: "options", Value: "i"},
 										}},
 									}},
