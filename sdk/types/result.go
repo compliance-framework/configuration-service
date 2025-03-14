@@ -4,9 +4,9 @@ import (
 	"time"
 )
 
-// Result represents the grouping of things that will come into the API.
+// IncomingRequest represents the grouping of things that will come into the API and then saved.
 // It is not related to any OSCAL `result` object, but rather just a representation of the requests we'll receive.
-type Result struct {
+type IncomingRequest struct {
 	Findings     *[]Finding     `json:"findings,omitempty" yaml:"findings,omitempty"`
 	Observations *[]Observation `json:"observations,omitempty" yaml:"observations,omitempty"`
 }
@@ -46,6 +46,9 @@ type Finding struct {
 	Title       string `json:"title" yaml:"title"`
 	Description string `json:"description" yaml:"description"`
 	Remarks     string `json:"remarks,omitempty" yaml:"remarks,omitempty"`
+
+	// Labels represent the unique labels which can be used to filter for findings in the UI.
+	Labels map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	// Who is generating this finding
 	Origins *[]Origin `json:"origins,omitempty" yaml:"origins,omitempty"`
