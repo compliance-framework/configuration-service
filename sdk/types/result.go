@@ -4,10 +4,11 @@ import (
 	"time"
 )
 
+// Result represents the grouping of things that will come into the API.
+// It is not related to any OSCAL `result` object, but rather just a representation of the requests we'll receive.
 type Result struct {
 	Findings     *[]Finding     `json:"findings,omitempty" yaml:"findings,omitempty"`
 	Observations *[]Observation `json:"observations,omitempty" yaml:"observations,omitempty"`
-	Risks        *[]Risk        `json:"risks,omitempty" yaml:"risks,omitempty"`
 }
 
 // SharedComponentReference is a reference to a component definition which will be defined in CCF and administered
