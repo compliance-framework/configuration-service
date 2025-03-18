@@ -4,9 +4,9 @@ import (
 	"time"
 )
 
-// IncomingRequest represents the grouping of things that will come into the API and then saved.
+// ComplianceInformationRequest represents the grouping of things that will come into the API and then saved.
 // It is not related to any OSCAL `result` object, but rather just a representation of the requests we'll receive.
-type IncomingRequest struct {
+type ComplianceInformationRequest struct {
 	Findings     *[]Finding     `json:"findings,omitempty" yaml:"findings,omitempty"`
 	Observations *[]Observation `json:"observations,omitempty" yaml:"observations,omitempty"`
 }
@@ -42,6 +42,7 @@ type FindingStatus struct {
 
 type Finding struct {
 	// UUID needs to remain consistent when automation runs again, but unique for each subject
+	// This will become the previously referenced streamId for CCF
 	UUID        string `json:"uuid" yaml:"uuid"`
 	Title       string `json:"title" yaml:"title"`
 	Description string `json:"description" yaml:"description"`
