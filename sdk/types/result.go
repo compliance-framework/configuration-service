@@ -13,7 +13,7 @@ type IncomingRequest struct {
 
 // SharedComponentReference is a reference to a component definition which will be defined in CCF and administered
 // via the UI or through common components libraries.
-type SharedComponentReference struct {
+type ComponentReference struct {
 	// A reference for this component. Example: `common-components/mongodb` or `internal-components/logging-system`
 	Identifier string `json:"identifier" yaml:"identifier"`
 
@@ -55,7 +55,7 @@ type Finding struct {
 	// What are we making a judgement against
 	Subjects *[]SubjectReference `json:"subjects,omitempty" yaml:"subjects,omitempty"`
 	// Which components of the subject are being judged
-	Components *[]SharedComponentReference `json:"components,omitempty" yaml:"components,omitempty"`
+	Components *[]ComponentReference `json:"components,omitempty" yaml:"components,omitempty"`
 	// Which observations led to this judgment ?
 	RelatedObservations *[]RelatedObservation `json:"related-observations,omitempty" yaml:"related-observations,omitempty"`
 	// Which controls did we validate
@@ -90,7 +90,7 @@ type Observation struct {
 	// What steps did we take to make this observation
 	Activities *[]Activity `json:"activities,omitempty" yaml:"activities,omitempty"`
 	// Which components of the subject are being observed
-	Components *[]SharedComponentReference `json:"components,omitempty" yaml:"components,omitempty"`
+	Components *[]ComponentReference `json:"components,omitempty" yaml:"components,omitempty"`
 	// What exactly did we see
 	RelevantEvidence *[]RelevantEvidence `json:"relevant-evidence,omitempty" yaml:"relevant-evidence,omitempty"`
 }
@@ -116,7 +116,8 @@ type RiskReference struct {
 // "Execute policy engine"
 // "Build Observations, Findings and Risks from policy output"
 type Activity struct {
-	Title       string      `json:"title,omitempty" yaml:"title,omitempty"`
+	UUID        string      `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	Title       string      `json:"title" yaml:"title"`
 	Description string      `json:"description" yaml:"description"`
 	Remarks     string      `json:"remarks,omitempty" yaml:"remarks,omitempty"`
 	Steps       *[]Step     `json:"steps,omitempty" yaml:"steps,omitempty"`
@@ -129,7 +130,8 @@ type Activity struct {
 // "execute `sshd -T` to collect SSH configuration from host"
 // "convert command output to JSON representation"
 type Step struct {
-	Title       string      `json:"title,omitempty" yaml:"title,omitempty"`
+	UUID        string      `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	Title       string      `json:"title" yaml:"title"`
 	Description string      `json:"description" yaml:"description"`
 	Remarks     string      `json:"remarks,omitempty" yaml:"remarks,omitempty"`
 	Links       *[]Link     `json:"links,omitempty" yaml:"links,omitempty"`
@@ -175,6 +177,7 @@ type ThreatId struct {
 }
 
 type OriginActor struct {
+	UUID  string      `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 	Title string      `json:"title" yaml:"title"`
 	Type  string      `json:"type" yaml:"type"`
 	Links *[]Link     `json:"links,omitempty" yaml:"links,omitempty"`
