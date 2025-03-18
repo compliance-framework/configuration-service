@@ -11,7 +11,7 @@ type ComplianceInformationRequest struct {
 	Observations *[]Observation `json:"observations,omitempty" yaml:"observations,omitempty"`
 }
 
-// SharedComponentReference is a reference to a component definition which will be defined in CCF and administered
+// ComponentReference is a reference to a component definition which will be defined in CCF and administered
 // via the UI or through common components libraries.
 type ComponentReference struct {
 	// A reference for this component. Example: `common-components/mongodb` or `internal-components/logging-system`
