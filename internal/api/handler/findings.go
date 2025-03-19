@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/compliance-framework/configuration-service/internal/api"
+	"github.com/compliance-framework/configuration-service/internal/converters/labelfilter"
 	"github.com/compliance-framework/configuration-service/internal/service"
 	"github.com/compliance-framework/configuration-service/sdk"
 	"github.com/compliance-framework/configuration-service/sdk/types"
@@ -20,6 +21,9 @@ type FindingsHandler struct {
 
 func (h *FindingsHandler) Register(api *echo.Group) {
 	api.POST("/", h.Create)
+	api.POST("/search", h.Search)
+	api.GET("/:id", h.GetFinding)
+	api.GET("/history/:uuid", h.History)
 }
 
 func NewFindingsHandler(
@@ -36,10 +40,72 @@ func NewFindingsHandler(
 	}
 }
 
+// GetFinding godoc
+//
+//	@Summary		Get a single finding
+//	@Description	Fetches a finding based on its internal ID.
+//	@Tags			Findings
+//	@Produce		json
+//	@Param			id	path		string	true	"Finding ID"
+//	@Success		200	{object}	handler.GenericDataListResponse[service.Finding]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/findings/{id} [get]
+func (h *FindingsHandler) GetFinding(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	finding, err := h.findingService.FindOneById(ctx.Request().Context(), &id)
+	if err != nil {
+		// Optionally, check for not found error.
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Wrap the result in GenericDataResponse.
+	return ctx.JSON(http.StatusOK, GenericDataResponse[*service.Finding]{
+		Data: finding,
+	})
+}
+
+// History godoc
+//
+//	@Summary		Get finding history by stream UUID
+//	@Description	Fetches up to 200 findings (ordered by Collected descending) that share the same stream UUID.
+//	@Tags			Findings
+//	@Produce		json
+//	@Param			uuid	path		string	true	"Stream UUID"
+//	@Success		200	{object}	handler.GenericDataListResponse[service.Finding]
+//	@Failure		400	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/findings/history/{uuid} [get]
+func (h *FindingsHandler) History(ctx echo.Context) error {
+	uuidParam := ctx.Param("uuid")
+	streamUuid, err := uuid.Parse(uuidParam)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	history, err := h.findingService.FindByUuid(ctx.Request().Context(), streamUuid)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Wrap the list in GenericDataListResponse.
+	return ctx.JSON(http.StatusOK, GenericDataListResponse[*service.Finding]{
+		Data: history,
+	})
+}
+
 // Create godoc
 //
 //	@Summary		Create new findings
-//	@Description	Creates multiple findings in the CCF API, as well as their subject and component counterparts
+//	@Description	Creates multiple findings in the CCF API, as well as their subject and component counterparts.
+//	               The SDK finding objects are converted to internal representations, mapping subjects (via seeded UUIDs)
+//	               and components (by identifier) to their internal IDs.
 //	@Tags			Findings
 //	@Accept			json
 //	@Produce		json
@@ -48,7 +114,7 @@ func NewFindingsHandler(
 //	@Failure		500	{object}	api.Error
 //	@Router			/findings [post]
 func (h *FindingsHandler) Create(ctx echo.Context) error {
-	// Bind the incoming JSON payload into a slice of findings.
+	// Bind the incoming JSON payload into a slice of SDK findings.
 	var findings []*types.Finding
 	if err := ctx.Bind(&findings); err != nil {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
@@ -56,24 +122,16 @@ func (h *FindingsHandler) Create(ctx echo.Context) error {
 
 	// Process each finding.
 	for _, finding := range findings {
-		// First we need to create and map the subjects that were passed.
-		// For the moment we will simply seed a UUID with the subject attribute map, but this will alter
-		// change to only include some attributes to map across different subject attributes lists that reference
-		// the same subject
-		// Process the SDK subjects if provided.
+		// Process SDK subjects, generating a seeded UUID for each and using FindOrCreate.
 		subjectIds := make([]uuid.UUID, 0)
 		if finding.Subjects != nil {
 			var subjectIDs []uuid.UUID
-			// Iterate over each SDK subject reference.
 			for _, subject := range *finding.Subjects {
-				// Generate a seeded (consistent) UUID for the subject based on its attributes.
 				seededID, err := sdk.SeededUUID(subject.Attributes)
 				if err != nil {
 					return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 				}
-				// Use the SubjectService's FindOrCreate method.
 				createdSubject, err := h.subjectService.FindOrCreate(ctx.Request().Context(), &seededID, &service.Subject{
-					// The FindOrCreate method will ensure the ID is set using the seeded ID.
 					Type:       subject.Type,
 					Title:      subject.Title,
 					Remarks:    subject.Remarks,
@@ -84,25 +142,23 @@ func (h *FindingsHandler) Create(ctx echo.Context) error {
 				if err != nil {
 					return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 				}
-				// Append the subject's ID to the list.
 				subjectIDs = append(subjectIDs, *createdSubject.ID)
 			}
+			subjectIds = subjectIDs
 		}
 
-		// We also want to compile the OSCAL style observation ids to our local
+		// Compile related observation IDs.
 		observationIds := make([]uuid.UUID, 0)
 		for _, relatedObservation := range *finding.RelatedObservations {
 			observationIds = append(observationIds, relatedObservation.ObservationUuid)
 		}
 
-		// We also want to ensure the components are in the database.
-		// For not they will be placeholders, but eventually their information will be pulled in from
-		// the common components library
+		// Ensure components are in the database using the FindOrCreate method.
 		componentIds := make([]uuid.UUID, 0)
 		for _, componentReference := range *finding.Components {
 			component, err := h.componentService.FindOrCreate(ctx.Request().Context(), componentReference.Identifier, &service.Component{
 				Identifier: componentReference.Identifier,
-				Title:      componentReference.Identifier, // Using identifier for title for now. This will eventually be pulled from common components.
+				Title:      componentReference.Identifier, // Using identifier as title for now.
 			})
 			if err != nil {
 				return ctx.JSON(http.StatusBadRequest, api.NewError(err))
@@ -110,6 +166,7 @@ func (h *FindingsHandler) Create(ctx echo.Context) error {
 			componentIds = append(componentIds, *component.ID)
 		}
 
+		// Build the internal finding.
 		newFinding := &service.Finding{
 			ID:             &finding.ID,
 			UUID:           finding.UUID,
@@ -137,4 +194,35 @@ func (h *FindingsHandler) Create(ctx echo.Context) error {
 
 	// Return a 201 Created response with no content.
 	return ctx.NoContent(http.StatusCreated)
+}
+
+// Search godoc
+//
+//	@Summary		Search findings by labels
+//	@Description	Searches for findings using label filters.
+//	@Tags			Findings
+//	@Accept			json
+//	@Produce		json
+//	@Success		201	{object}	handler.GenericDataListResponse[service.Finding]
+//	@Failure		422	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/findings/search [post]
+func (h *FindingsHandler) Search(ctx echo.Context) error {
+	filter := &labelfilter.Filter{}
+	req := filteredSearchRequest{}
+
+	// Bind the incoming request to the filter.
+	if err := req.bind(ctx, filter); err != nil {
+		return ctx.JSON(http.StatusUnprocessableEntity, api.NewError(err))
+	}
+
+	results, err := h.findingService.SearchByLabels(ctx.Request().Context(), filter)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Wrap the search results in GenericDataListResponse.
+	return ctx.JSON(http.StatusCreated, GenericDataListResponse[*service.Finding]{
+		Data: results,
+	})
 }

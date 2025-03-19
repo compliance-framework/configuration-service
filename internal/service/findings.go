@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"github.com/compliance-framework/configuration-service/internal/converters/labelfilter"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"time"
 )
 
 type FindingService struct {
@@ -125,4 +127,221 @@ func (s *FindingService) FindByUuid(ctx context.Context, streamUuid uuid.UUID) (
 		return nil, err
 	}
 	return findings, nil
+}
+
+func (s *FindingService) SearchByLabels(ctx context.Context, filter *labelfilter.Filter) ([]*Finding, error) {
+	mongoFilter := labelfilter.MongoFromFilter(*filter)
+	pipeline := mongo.Pipeline{
+		// Match documents related to the specific plan
+		bson.D{{Key: "$match", Value: mongoFilter.GetQuery()}},
+		// Sort by StreamID and End descending to get the latest result first
+		{{Key: "$sort", Value: bson.D{
+			{Key: "uuid", Value: 1},       // Group by StreamID
+			{Key: "collected", Value: -1}, // Latest result first
+		}}},
+		// Group by StreamID, taking the first document (latest due to sorting)
+		{{Key: "$group", Value: bson.D{
+			{Key: "uuid", Value: "$uuid"}, // Group by streamId
+			{Key: "latest", Value: bson.D{
+				{Key: "$first", Value: "$$ROOT"}, // The latest result
+			}},
+		}}},
+	}
+	// Execute aggregation
+	cursor, err := s.collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	results := make([]*struct {
+		UUID    uuid.UUID `bson:"uuid"`
+		Finding Finding   `bson:"latest"`
+	}, 0)
+	err = cursor.All(ctx, &results)
+	if err != nil {
+		return nil, err
+	}
+
+	output := make([]*Finding, 0)
+	for _, result := range results {
+		output = append(output, &result.Finding)
+	}
+
+	return output, nil
+}
+
+func (s *FindingService) getIntervalledCompliancePipeline(ctx context.Context, interval time.Duration) []bson.D {
+	return []bson.D{
+		{
+			{Key: "$addFields", Value: bson.D{
+				{Key: "interval", Value: bson.D{
+					{Key: "$toDate", Value: bson.D{
+						{Key: "$subtract", Value: bson.A{
+							bson.D{{Key: "$toLong", Value: "$collected"}},
+							bson.D{{Key: "$mod", Value: bson.A{
+								bson.D{{Key: "$subtract", Value: bson.A{
+									bson.D{{Key: "$toLong", Value: "$collected"}},
+									bson.D{{Key: "$toLong", Value: time.Now()}},
+								}}},
+								interval.Milliseconds(),
+							}}},
+						}},
+					}},
+				}},
+			}},
+		},
+		// Step 3: Group stage
+		{
+			{Key: "$group", Value: bson.D{
+				{Key: "_id", Value: bson.D{
+					{Key: "uuid", Value: "$uuid"},
+					{Key: "interval", Value: "$interval"},
+				}},
+				{Key: "latestRecord", Value: bson.D{
+					{Key: "$last", Value: "$$ROOT"},
+				}},
+			}},
+		},
+		// Step 4: Project stage
+		{
+			{Key: "$project", Value: bson.D{
+				{Key: "_id", Value: 0}, // Exclude default _id
+				{Key: "uuid", Value: "$_id.uuid"},
+				{Key: "interval", Value: "$_id.interval"},
+				{Key: "title", Value: "$latestRecord.title"},
+				{Key: "findings", Value: bson.D{
+					{Key: "$size", Value: bson.D{
+						{Key: "$ifNull", Value: bson.A{"$latestRecord.findings", bson.A{}}},
+					}},
+				}},
+				bson.E{
+					Key: "findings_fail",
+					Value: bson.D{
+						{Key: "$size", Value: bson.D{
+							{Key: "$ifNull", Value: bson.A{
+								bson.D{{Key: "$filter", Value: bson.D{
+									{Key: "input", Value: "$latestRecord.findings"},
+									{Key: "as", Value: "finding"},
+									{Key: "cond", Value: bson.D{
+										{
+											Key: "$not",
+											Value: bson.D{
+												{Key: "$regexMatch", Value: bson.D{
+													{Key: "input", Value: "$$finding.target.status.state"},
+													{Key: "regex", Value: "^satisfied"},
+													{Key: "options", Value: "i"},
+												}},
+											},
+										},
+									}},
+								}}},
+								bson.A{},
+							}},
+						}},
+					},
+				},
+				bson.E{
+					Key: "findings_pass",
+					Value: bson.D{
+						{Key: "$size", Value: bson.D{
+							{Key: "$ifNull", Value: bson.A{
+								bson.D{{Key: "$filter", Value: bson.D{
+									{Key: "input", Value: "$latestRecord.findings"},
+									{Key: "as", Value: "finding"},
+									{Key: "cond", Value: bson.D{
+										{Key: "$regexMatch", Value: bson.D{
+											{Key: "input", Value: "$$finding.target.status.state"},
+											{Key: "regex", Value: "^satisfied"},
+											{Key: "options", Value: "i"},
+										}},
+									}},
+								}}},
+								bson.A{},
+							}},
+						}},
+					},
+				},
+				{Key: "observations", Value: bson.D{
+					{Key: "$size", Value: bson.D{
+						{Key: "$ifNull", Value: bson.A{"$latestRecord.observations", bson.A{}}},
+					}},
+				}},
+			}},
+		},
+		// Step 5: Sort stage
+		{
+			{Key: "$sort", Value: bson.D{
+				{Key: "uuid", Value: -1},
+				{Key: "interval", Value: -1},
+			}},
+		},
+
+		{
+			{Key: "$group", Value: bson.D{
+				{Key: "_id", Value: "$uuid"},
+				{Key: "records", Value: bson.D{
+					{Key: "$push", Value: "$$ROOT"},
+				}},
+			}},
+		},
+	}
+}
+
+func (s *FindingService) GetIntervalledComplianceReportForFilter(ctx context.Context, filter *labelfilter.Filter) ([]*StreamRecords, error) {
+	mongoFilter := labelfilter.MongoFromFilter(*filter)
+	intervalQuery := s.getIntervalledCompliancePipeline(ctx, 5*time.Minute)
+	pipeline := mongo.Pipeline{
+		bson.D{{Key: "$match", Value: mongoFilter.GetQuery()}},
+	}
+	pipeline = append(pipeline, intervalQuery...)
+
+	// Execute aggregation
+	cursor, err := s.collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var streamRecords []*StreamRecords
+	err = cursor.All(ctx, &streamRecords)
+	if err != nil {
+		return nil, err
+	}
+
+	// fill gaps in time jumps, and mark them as having zero observations and findings
+	for _, streamRecord := range streamRecords {
+		streamRecord.FillGaps(ctx, 5*time.Minute)
+	}
+
+	return streamRecords, nil
+}
+
+func (s *FindingService) GetIntervalledComplianceReportForStream(ctx context.Context, streamId uuid.UUID) ([]*StreamRecords, error) {
+	intervalQuery := s.getIntervalledCompliancePipeline(ctx, 5*time.Minute)
+	pipeline := mongo.Pipeline{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "uuid", Value: streamId},
+		}}},
+	}
+	pipeline = append(pipeline, intervalQuery...)
+
+	cursor, err := s.collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var streamRecords []*StreamRecords
+	err = cursor.All(ctx, &streamRecords)
+	if err != nil {
+		return nil, err
+	}
+
+	// fill gaps in time jumps, and mark them as having zero observations and findings
+	for _, streamRecord := range streamRecords {
+		streamRecord.FillGaps(ctx, 5*time.Minute)
+	}
+
+	return streamRecords, nil
 }
