@@ -53,11 +53,26 @@ definitions:
           $ref: '#/definitions/service.Finding'
         type: array
     type: object
+  handler.GenericDataListResponse-service_Observation:
+    properties:
+      data:
+        description: Items from the list response
+        items:
+          $ref: '#/definitions/service.Observation'
+        type: array
+    type: object
   handler.GenericDataResponse-handler_PlanResponse:
     properties:
       data:
         allOf:
         - $ref: '#/definitions/handler.PlanResponse'
+        description: Items from the list response
+    type: object
+  handler.GenericDataResponse-service_Observation:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/service.Observation'
         description: Items from the list response
     type: object
   handler.PlanResponse:
@@ -1178,6 +1193,88 @@ definitions:
           It represents the "stream" of the same finding being made over time.
         type: string
     type: object
+  service.Observation:
+    properties:
+      _id:
+        description: ID is the unique ID for this specific observation, and will be
+          used as the primary key in the database.
+        type: string
+      activities:
+        description: What steps did we take to make this observation
+        items:
+          $ref: '#/definitions/types.Activity'
+        type: array
+      collected:
+        type: string
+      components:
+        description: Which components of the subject are being observed
+        items:
+          type: string
+        type: array
+      description:
+        type: string
+      expires:
+        type: string
+      links:
+        items:
+          $ref: '#/definitions/types.Link'
+        type: array
+      methods:
+        items:
+          type: string
+        type: array
+      origins:
+        description: Who is generating this finding
+        items:
+          $ref: '#/definitions/types.Origin'
+        type: array
+      props:
+        items:
+          $ref: '#/definitions/types.Property'
+        type: array
+      relevant-evidence:
+        description: What exactly did we see
+        items:
+          $ref: '#/definitions/types.RelevantEvidence'
+        type: array
+      remarks:
+        type: string
+      subjects:
+        description: What are we observing
+        items:
+          type: string
+        type: array
+      title:
+        type: string
+      uuid:
+        description: |-
+          UUID needs to remain consistent when automation runs again, but unique for each subject.
+          It represents the "stream" of the same observation being made over time.
+        type: string
+    type: object
+  types.Activity:
+    properties:
+      description:
+        type: string
+      links:
+        items:
+          $ref: '#/definitions/types.Link'
+        type: array
+      props:
+        items:
+          $ref: '#/definitions/types.Property'
+        type: array
+      remarks:
+        type: string
+      steps:
+        items:
+          $ref: '#/definitions/types.Step'
+        type: array
+      title:
+        type: string
+      uuid:
+        type: string
+    type: object
   types.ControlReference:
     properties:
       class:
@@ -1262,6 +1359,23 @@ definitions:
       value:
         type: string
     type: object
+  types.RelevantEvidence:
+    properties:
+      description:
+        type: string
+      href:
+        type: string
+      links:
+        items:
+          $ref: '#/definitions/types.Link'
+        type: array
+      props:
+        items:
+          $ref: '#/definitions/types.Property'
+        type: array
+      remarks:
+        type: string
+    type: object
   types.RiskReference:
     properties:
       href:
@@ -1286,6 +1400,25 @@ definitions:
         items:
           $ref: '#/definitions/types.ThreatId'
         type: array
+    type: object
+  types.Step:
+    properties:
+      description:
+        type: string
+      links:
+        items:
+          $ref: '#/definitions/types.Link'
+        type: array
+      props:
+        items:
+          $ref: '#/definitions/types.Property'
+        type: array
+      remarks:
+        type: string
+      title:
+        type: string
+      uuid:
+        type: string
     type: object
   types.ThreatId:
     properties:
@@ -1484,6 +1617,87 @@ paths:
       summary: Search findings by labels
       tags:
       - Findings
+  /observations:
+    post:
+      consumes:
+      - application/json
+      description: Creates multiple observations in the CCF API, along with their
+        subject and component counterparts.
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Create new observations
+      tags:
+      - Observations
+  /observations/{id}:
+    get:
+      description: Fetches an observation based on its internal ID.
+      parameters:
+      - description: Observation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-service_Observation'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Get a single observation
+      tags:
+      - Observations
+  /observations/history/{uuid}:
+    get:
+      description: Fetches up to 200 observations (ordered by Collected descending)
+        that share the same stream UUID.
+      parameters:
+      - description: Stream UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-service_Observation'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Get observation history by stream UUID
+      tags:
+      - Observations
 produces:
 - application/json
 swagger: "2.0"

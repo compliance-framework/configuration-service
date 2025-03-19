@@ -283,6 +283,126 @@
                     }
                 }
             }
+        },
+        "/observations": {
+            "post": {
+                "description": "Creates multiple observations in the CCF API, along with their subject and component counterparts.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Observations"
+                ],
+                "summary": "Create new observations",
+                "responses": {
+                    "201": {
+                        "description": "Created"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/observations/history/{uuid}": {
+            "get": {
+                "description": "Fetches up to 200 observations (ordered by Collected descending) that share the same stream UUID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Observations"
+                ],
+                "summary": "Get observation history by stream UUID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Stream UUID",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataListResponse-service_Observation"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/observations/{id}": {
+            "get": {
+                "description": "Fetches an observation based on its internal ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Observations"
+                ],
+                "summary": "Get a single observation",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Observation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-service_Observation"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -363,6 +483,18 @@
                 }
             }
         },
+        "handler.GenericDataListResponse-service_Observation": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Items from the list response",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/service.Observation"
+                    }
+                }
+            }
+        },
         "handler.GenericDataResponse-handler_PlanResponse": {
             "type": "object",
             "properties": {
@@ -371,6 +503,19 @@
                     "allOf": [
                         {
                             "$ref": "#/definitions/handler.PlanResponse"
+                        }
+                    ]
+                }
+            }
+        },
+        "handler.GenericDataResponse-service_Observation": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Items from the list response",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/service.Observation"
                         }
                     ]
                 }
@@ -2071,6 +2216,122 @@
                 }
             }
         },
+        "service.Observation": {
+            "type": "object",
+            "properties": {
+                "_id": {
+                    "description": "ID is the unique ID for this specific observation, and will be used as the primary key in the database.",
+                    "type": "string"
+                },
+                "activities": {
+                    "description": "What steps did we take to make this observation",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.Activity"
+                    }
+                },
+                "collected": {
+                    "type": "string"
+                },
+                "components": {
+                    "description": "Which components of the subject are being observed",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "expires": {
+                    "type": "string"
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.Link"
+                    }
+                },
+                "methods": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "origins": {
+                    "description": "Who is generating this finding",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.Origin"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.Property"
+                    }
+                },
+                "relevant-evidence": {
+                    "description": "What exactly did we see",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.RelevantEvidence"
+                    }
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "subjects": {
+                    "description": "What are we observing",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "description": "UUID needs to remain consistent when automation runs again, but unique for each subject.\nIt represents the \"stream\" of the same observation being made over time.",
+                    "type": "string"
+                }
+            }
+        },
+        "types.Activity": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.Property"
+                    }
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "steps": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.Step"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
         "types.ControlReference": {
             "type": "object",
             "properties": {
@@ -2200,6 +2461,32 @@
                 }
             }
         },
+        "types.RelevantEvidence": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "href": {
+                    "type": "string"
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.Property"
+                    }
+                },
+                "remarks": {
+                    "type": "string"
+                }
+            }
+        },
         "types.RiskReference": {
             "type": "object",
             "properties": {
@@ -2227,6 +2514,35 @@
                     "items": {
                         "$ref": "#/definitions/types.ThreatId"
                     }
+                }
+            }
+        },
+        "types.Step": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.Property"
+                    }
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
                 }
             }
         },
