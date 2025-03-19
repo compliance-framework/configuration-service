@@ -78,9 +78,9 @@ func (h *FindingsHandler) GetFinding(ctx echo.Context) error {
 //	@Tags			Findings
 //	@Produce		json
 //	@Param			uuid	path		string	true	"Stream UUID"
-//	@Success		200	{object}	handler.GenericDataListResponse[service.Finding]
-//	@Failure		400	{object}	api.Error
-//	@Failure		500	{object}	api.Error
+//	@Success		200		{object}	handler.GenericDataListResponse[service.Finding]
+//	@Failure		400		{object}	api.Error
+//	@Failure		500		{object}	api.Error
 //	@Router			/findings/history/{uuid} [get]
 func (h *FindingsHandler) History(ctx echo.Context) error {
 	uuidParam := ctx.Param("uuid")
