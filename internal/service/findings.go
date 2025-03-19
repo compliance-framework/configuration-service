@@ -14,6 +14,61 @@ type FindingService struct {
 	collection *mongo.Collection
 }
 
+type IntervalledRecord struct {
+	Title        string    `json:"title" bson:"title"`
+	Interval     time.Time `json:"interval"`
+	Findings     uint      `json:"findings"`
+	FindingsPass uint      `json:"findings_pass" bson:"findings_pass"`
+	FindingsFail uint      `json:"findings_fail" bson:"findings_fail"`
+	Observations uint      `json:"observations"`
+	HasRecords   bool      `json:"hasRecords" bson:"hasRecords"`
+}
+
+type StreamRecords struct {
+	ID      uuid.UUID           `json:"_id" bson:"_id"`
+	Records []IntervalledRecord `json:"records" bson:"records"`
+}
+
+func (sr *StreamRecords) FillGaps(ctx context.Context, duration time.Duration) {
+	if len(sr.Records) == 0 {
+		return
+	}
+
+	earliestTime := sr.Records[0].Interval
+	latestTime := sr.Records[0].Interval
+	var times = map[time.Time]interface{}{}
+	for key, record := range sr.Records {
+		sr.Records[key].HasRecords = true
+		if record.Interval.Before(earliestTime) {
+			earliestTime = record.Interval
+		}
+		if record.Interval.After(latestTime) {
+			latestTime = record.Interval
+		}
+		times[record.Interval] = nil
+	}
+
+	fillRecord := sr.Records[0]
+	fillRecord.Observations = 0
+	fillRecord.Findings = 0
+	fillRecord.FindingsPass = 0
+	fillRecord.FindingsFail = 0
+	fillRecord.HasRecords = false
+
+	currentTime := earliestTime
+	for {
+		if _, ok := times[currentTime]; !ok {
+			fillRecord.Interval = currentTime
+			fillRecord.HasRecords = false
+			sr.Records = append(sr.Records, fillRecord)
+		}
+		currentTime = currentTime.Add(duration)
+		if currentTime.After(latestTime) {
+			break
+		}
+	}
+}
+
 // NewFindingService creates a new FindingService connected to the "findings" collection.
 func NewFindingService(db *mongo.Database) *FindingService {
 	return &FindingService{
