@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/google/uuid"
 	"time"
 )
 
@@ -43,7 +44,8 @@ type FindingStatus struct {
 type Finding struct {
 	// UUID needs to remain consistent when automation runs again, but unique for each subject
 	// This will become the previously referenced streamId for CCF
-	UUID        string    `json:"uuid" yaml:"uuid"`
+	UUID        uuid.UUID `json:"uuid" yaml:"uuid"`
+	ID          uuid.UUID `json:"id" yaml:"id"`
 	Title       string    `json:"title" yaml:"title"`
 	Collected   time.Time `json:"collected" yaml:"collected"`
 	Description string    `json:"description" yaml:"description"`
@@ -74,10 +76,11 @@ type Finding struct {
 
 type Observation struct {
 	// UUID needs to remain consistent when automation runs again, but unique for each subject
-	UUID        string `json:"uuid" yaml:"uuid"`
-	Title       string `json:"title,omitempty" yaml:"title,omitempty"`
-	Description string `json:"description" yaml:"description"`
-	Remarks     string `json:"remarks,omitempty" yaml:"remarks,omitempty"`
+	UUID        uuid.UUID `json:"uuid" yaml:"uuid"`
+	ID          uuid.UUID `json:"id" yaml:"id"`
+	Title       string    `json:"title,omitempty" yaml:"title,omitempty"`
+	Description string    `json:"description" yaml:"description"`
+	Remarks     string    `json:"remarks,omitempty" yaml:"remarks,omitempty"`
 
 	Collected time.Time   `json:"collected" yaml:"collected"`
 	Expires   time.Time   `json:"expires,omitempty" yaml:"expires,omitempty"`
@@ -118,10 +121,10 @@ type RiskReference struct {
 // "Execute policy engine"
 // "Build Observations, Findings and Risks from policy output"
 type Activity struct {
-	UUID        string      `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	UUID        *uuid.UUID  `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 	Title       string      `json:"title" yaml:"title"`
 	Description string      `json:"description" yaml:"description"`
-	Remarks     string      `json:"remarks,omitempty" yaml:"remarks,omitempty"`
+	Remarks     *string     `json:"remarks,omitempty" yaml:"remarks,omitempty"`
 	Steps       *[]Step     `json:"steps,omitempty" yaml:"steps,omitempty"`
 	Links       *[]Link     `json:"links,omitempty" yaml:"links,omitempty"`
 	Props       *[]Property `json:"props,omitempty" yaml:"props,omitempty"`
@@ -132,10 +135,10 @@ type Activity struct {
 // "execute `sshd -T` to collect SSH configuration from host"
 // "convert command output to JSON representation"
 type Step struct {
-	UUID        string      `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	UUID        *uuid.UUID  `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 	Title       string      `json:"title" yaml:"title"`
 	Description string      `json:"description" yaml:"description"`
-	Remarks     string      `json:"remarks,omitempty" yaml:"remarks,omitempty"`
+	Remarks     *string     `json:"remarks,omitempty" yaml:"remarks,omitempty"`
 	Links       *[]Link     `json:"links,omitempty" yaml:"links,omitempty"`
 	Props       *[]Property `json:"props,omitempty" yaml:"props,omitempty"`
 }
@@ -147,7 +150,7 @@ type Origin struct {
 }
 
 type RelatedObservation struct {
-	ObservationUuid string `json:"observation-uuid" yaml:"observation-uuid"`
+	ObservationUuid uuid.UUID `json:"observation-uuid" yaml:"observation-uuid"`
 }
 
 type RelevantEvidence struct {
@@ -174,7 +177,7 @@ type ThreatId struct {
 }
 
 type OriginActor struct {
-	UUID  string      `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	UUID  *uuid.UUID  `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 	Title string      `json:"title" yaml:"title"`
 	Type  string      `json:"type" yaml:"type"`
 	Links *[]Link     `json:"links,omitempty" yaml:"links,omitempty"`

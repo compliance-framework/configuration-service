@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
@@ -45,8 +46,8 @@ func (s *ComponentService) FindById(ctx context.Context, id *uuid.UUID) (*Compon
 	return &component, nil
 }
 
-// FindOneByIdentifier finds a component by its identifier string.
-func (s *ComponentService) FindOneByIdentifier(ctx context.Context, identifier string) (*Component, error) {
+// FindByIdentifier finds a component by its identifier string.
+func (s *ComponentService) FindByIdentifier(ctx context.Context, identifier string) (*Component, error) {
 	filter := bson.M{"identifier": identifier}
 	var component Component
 	err := s.collection.FindOne(ctx, filter).Decode(&component)
@@ -105,4 +106,21 @@ func (s *ComponentService) Delete(ctx context.Context, id *uuid.UUID, _ *Compone
 		return nil, err
 	}
 	return &deleted, nil
+}
+
+// FindOrCreate attempts to find a component by its Identifier.
+// If found, it returns the existing component. If not, it sets the Identifier on the provided
+// component, creates it, and then returns the new component.
+func (s *ComponentService) FindOrCreate(ctx context.Context, identifier string, component *Component) (*Component, error) {
+	found, err := s.FindByIdentifier(ctx, identifier)
+	if err == nil {
+		return found, nil
+	}
+	// Only proceed if the error is that no document was found.
+	if !errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, err
+	}
+
+	component.Identifier = identifier
+	return s.Create(ctx, component)
 }
