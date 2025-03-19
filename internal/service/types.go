@@ -71,7 +71,7 @@ type Finding struct {
 }
 
 type Subject struct {
-	ID         *uuid.UUID        `json:"_id" yaml:"_id"`
+	ID         *uuid.UUID        `json:"_id" yaml:"_id" bson:"_id"`
 	Type       string            `json:"type" yaml:"type"`
 	Title      string            `json:"title,omitempty" yaml:"title,omitempty"`
 	Remarks    string            `json:"remarks,omitempty" yaml:"remarks,omitempty"`
@@ -81,7 +81,7 @@ type Subject struct {
 }
 
 type Component struct {
-	ID *uuid.UUID `json:"_id" yaml:"_id"`
+	ID *uuid.UUID `json:"_id" yaml:"_id" bson:"_id"`
 
 	// A reference for this component. Example: `common-components/mongodb` or `internal-components/logging-system`
 	Identifier string `json:"identifier" yaml:"identifier"`

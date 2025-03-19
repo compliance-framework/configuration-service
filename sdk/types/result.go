@@ -83,7 +83,7 @@ type Observation struct {
 	Remarks     string    `json:"remarks,omitempty" yaml:"remarks,omitempty"`
 
 	Collected time.Time   `json:"collected" yaml:"collected"`
-	Expires   time.Time   `json:"expires,omitempty" yaml:"expires,omitempty"`
+	Expires   *time.Time  `json:"expires,omitempty" yaml:"expires,omitempty"`
 	Methods   *[]string   `json:"methods" yaml:"methods"`
 	Links     *[]Link     `json:"links,omitempty" yaml:"links,omitempty"`
 	Props     *[]Property `json:"props,omitempty" yaml:"props,omitempty"`

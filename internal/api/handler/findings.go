@@ -20,7 +20,7 @@ type FindingsHandler struct {
 }
 
 func (h *FindingsHandler) Register(api *echo.Group) {
-	api.POST("/", h.Create)
+	api.POST("", h.Create)
 	api.POST("/search", h.Search)
 	api.GET("/:id", h.GetFinding)
 	api.GET("/history/:uuid", h.History)
@@ -149,23 +149,31 @@ func (h *FindingsHandler) Create(ctx echo.Context) error {
 
 		// Compile related observation IDs.
 		observationIds := make([]uuid.UUID, 0)
-		for _, relatedObservation := range *finding.RelatedObservations {
-			observationIds = append(observationIds, relatedObservation.ObservationUuid)
+		if finding.RelatedObservations != nil {
+			for _, relatedObservation := range *finding.RelatedObservations {
+				observationIds = append(observationIds, relatedObservation.ObservationUuid)
+			}
 		}
 
 		// Ensure components are in the database using the FindOrCreate method.
 		componentIds := make([]uuid.UUID, 0)
-		for _, componentReference := range *finding.Components {
-			component, err := h.componentService.FindOrCreate(ctx.Request().Context(), componentReference.Identifier, &service.Component{
-				Identifier: componentReference.Identifier,
-				Title:      componentReference.Identifier, // Using identifier as title for now.
-			})
-			if err != nil {
-				return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+		if finding.Components != nil {
+			for _, componentReference := range *finding.Components {
+				component, err := h.componentService.FindOrCreate(ctx.Request().Context(), componentReference.Identifier, &service.Component{
+					Identifier: componentReference.Identifier,
+					Title:      componentReference.Identifier, // Using identifier as title for now.
+				})
+				if err != nil {
+					return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+				}
+				componentIds = append(componentIds, *component.ID)
 			}
-			componentIds = append(componentIds, *component.ID)
 		}
 
+		// If an empty ID is passed, generate one.
+		if finding.ID == uuid.Nil {
+			finding.ID = uuid.New()
+		}
 		// Build the internal finding.
 		newFinding := &service.Finding{
 			ID:             &finding.ID,

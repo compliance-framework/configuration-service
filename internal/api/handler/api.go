@@ -11,7 +11,7 @@ func RegisterHandlers(server *api.Server, database *mongo.Database, logger *zap.
 	plansService := service.NewPlansService(database)
 
 	findingService := service.NewFindingService(database)
-	//observationService := service.NewObservationService(database)
+	observationService := service.NewObservationService(database)
 	componentService := service.NewComponentService(database)
 	subjectService := service.NewSubjectService(database)
 
@@ -20,4 +20,7 @@ func RegisterHandlers(server *api.Server, database *mongo.Database, logger *zap.
 
 	findingHandler := NewFindingsHandler(logger, findingService, subjectService, componentService)
 	findingHandler.Register(server.API().Group("/findings"))
+
+	observationsHandler := NewObservationHandler(logger, observationService, subjectService, componentService)
+	observationsHandler.Register(server.API().Group("/observations"))
 }
