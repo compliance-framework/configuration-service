@@ -34,8 +34,8 @@ func (s *ComponentService) Create(ctx context.Context, component *Component) (*C
 	return component, nil
 }
 
-// FindOneById finds a component by its UUID.
-func (s *ComponentService) FindOneById(ctx context.Context, id *uuid.UUID) (*Component, error) {
+// FindById finds a component by its UUID.
+func (s *ComponentService) FindById(ctx context.Context, id *uuid.UUID) (*Component, error) {
 	filter := bson.M{"_id": id}
 	var component Component
 	err := s.collection.FindOne(ctx, filter).Decode(&component)

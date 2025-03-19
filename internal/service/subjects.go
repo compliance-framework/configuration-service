@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/pkg/errors"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
@@ -32,8 +33,8 @@ func (s *SubjectService) Create(ctx context.Context, subject *Subject) (*Subject
 	return subject, nil
 }
 
-// FindOneById retrieves a subject by its UUID.
-func (s *SubjectService) FindOneById(ctx context.Context, id *uuid.UUID) (*Subject, error) {
+// FindById retrieves a subject by its UUID.
+func (s *SubjectService) FindById(ctx context.Context, id *uuid.UUID) (*Subject, error) {
 	filter := bson.M{"_id": id}
 	var subject Subject
 	err := s.collection.FindOne(ctx, filter).Decode(&subject)
@@ -89,4 +90,21 @@ func (s *SubjectService) Delete(ctx context.Context, id *uuid.UUID, _ *Subject) 
 		return nil, err
 	}
 	return &deleted, nil
+}
+
+// FindOrCreate attempts to find a subject by its UUID.
+// If found, it returns the subject. If not, it uses the provided subject parameter,
+// assigns the given id (if necessary), creates the subject, and returns it.
+func (s *SubjectService) FindOrCreate(ctx context.Context, id *uuid.UUID, subject *Subject) (*Subject, error) {
+	found, err := s.FindById(ctx, id)
+	if err == nil {
+		return found, nil
+	}
+	// Only create if the subject was not found.
+	if !errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, err
+	}
+	// Ensure the subject has the given id.
+	subject.ID = id
+	return s.Create(ctx, subject)
 }

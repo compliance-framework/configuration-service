@@ -8,18 +8,18 @@ import (
 )
 
 type Observation struct {
-	// ID is the uniqeu ID for this specific observation, and will be used as the primary key in the database.
+	// ID is the unique ID for this specific observation, and will be used as the primary key in the database.
 	ID *uuid.UUID `json:"_id,omitempty" yaml:"_id,omitempty" bson:"_id,omitempty"`
 
 	// UUID needs to remain consistent when automation runs again, but unique for each subject.
 	// It represents the "stream" of the same observation being made over time.
 	UUID        uuid.UUID `json:"uuid" yaml:"uuid"`
-	Title       string    `json:"title,omitempty" yaml:"title,omitempty"`
+	Title       *string   `json:"title,omitempty" yaml:"title,omitempty"`
 	Description string    `json:"description" yaml:"description"`
-	Remarks     string    `json:"remarks,omitempty" yaml:"remarks,omitempty"`
+	Remarks     *string   `json:"remarks,omitempty" yaml:"remarks,omitempty"`
 
 	Collected time.Time         `json:"collected" yaml:"collected"`
-	Expires   time.Time         `json:"expires,omitempty" yaml:"expires,omitempty"`
+	Expires   *time.Time        `json:"expires,omitempty" yaml:"expires,omitempty"`
 	Methods   *[]string         `json:"methods" yaml:"methods"`
 	Links     *[]types.Link     `json:"links,omitempty" yaml:"links,omitempty"`
 	Props     *[]types.Property `json:"props,omitempty" yaml:"props,omitempty"`
@@ -27,13 +27,13 @@ type Observation struct {
 	// Who is generating this finding
 	Origins *[]types.Origin `json:"origins,omitempty" yaml:"origins,omitempty"`
 	// What are we observing
-	SubjectIDs []uuid.UUID `json:"subjects,omitempty" yaml:"subjects,omitempty"`
+	SubjectIDs *[]uuid.UUID `json:"subjects,omitempty" yaml:"subjects,omitempty"`
 	// What steps did we take to make this observation
 	Activities *[]types.Activity `json:"activities,omitempty" yaml:"activities,omitempty"`
 	// Which components of the subject are being observed
-	Components *[]ComponentReference `json:"components,omitempty" yaml:"components,omitempty"`
+	ComponentIDs *[]uuid.UUID `json:"components,omitempty" yaml:"components,omitempty"`
 	// What exactly did we see
-	RelevantEvidence *[]RelevantEvidence `json:"relevant-evidence,omitempty" yaml:"relevant-evidence,omitempty"`
+	RelevantEvidence *[]types.RelevantEvidence `json:"relevant-evidence,omitempty" yaml:"relevant-evidence,omitempty"`
 }
 
 type Subject struct {
@@ -66,6 +66,7 @@ type Component struct {
 
 	// Status represents the current status of the component
 	// "under-development"|"operational"|"disposition"|"other"
+	// For the moment we are using the OSCAL types, as we don't know what to do with these yet.
 	Status           *[]oscalTypes_1_1_3.SystemComponentStatus `json:"status,omitempty" yaml:"status,omitempty"`
 	Protocols        *[]oscalTypes_1_1_3.Protocol              `json:"protocols,omitempty" yaml:"protocols,omitempty"`
 	ResponsibleRoles *[]oscalTypes_1_1_3.ResponsibleRole       `json:"responsible-role,omitempty" yaml:"responsible-role,omitempty"`
