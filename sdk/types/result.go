@@ -149,11 +149,6 @@ type RelatedObservation struct {
 	ObservationUuid string `json:"observation-uuid" yaml:"observation-uuid"`
 }
 
-type AssociatedRisk struct {
-	// Identifier is a common name for a risk, such as `common-risks/brute-force` or `internal/pii-exposure`
-	Identifier string `json:"identifier" yaml:"identifier"`
-}
-
 type RelevantEvidence struct {
 	Description string      `json:"description" yaml:"description"`
 	Remarks     string      `json:"remarks,omitempty" yaml:"remarks,omitempty"`
