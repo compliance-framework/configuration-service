@@ -36,6 +36,40 @@ type Observation struct {
 	RelevantEvidence *[]types.RelevantEvidence `json:"relevant-evidence,omitempty" yaml:"relevant-evidence,omitempty"`
 }
 
+type Finding struct {
+	// ID is the unique ID for this specific observation, and will be used as the primary key in the database.
+	ID *uuid.UUID `json:"_id,omitempty" yaml:"_id,omitempty" bson:"_id,omitempty"`
+
+	// UUID needs to remain consistent when automation runs again, but unique for each subject.
+	// It represents the "stream" of the same finding being made over time.
+	UUID        uuid.UUID `json:"uuid" yaml:"uuid"`
+	Title       string    `json:"title" yaml:"title"`
+	Description string    `json:"description" yaml:"description"`
+	Collected   time.Time `json:"collected" yaml:"collected"`
+	Remarks     *string   `json:"remarks,omitempty" yaml:"remarks,omitempty"`
+
+	// Labels represent the unique labels which can be used to filter for findings in the UI.
+	Labels map[string]string `json:"labels" yaml:"labels"`
+
+	// Who is generating this finding
+	Origins *[]types.Origin `json:"origins,omitempty" yaml:"origins,omitempty"`
+	// What are we making a judgement against
+	SubjectIDs *[]uuid.UUID `json:"subjects,omitempty" yaml:"subjects,omitempty"`
+	// Which components of the subject are being judged
+	ComponentIDs *[]uuid.UUID `json:"components,omitempty" yaml:"components,omitempty"`
+	// Which observations led to this judgment ?
+	ObservationIDs *[]uuid.UUID `json:"observations,omitempty" yaml:"observations,omitempty"`
+	// Which controls did we validate
+	Controls *[]types.ControlReference `json:"controls,omitempty" yaml:"controls,omitempty"`
+	// Which risks are associated with what we've tested
+	Risks *[]types.RiskReference `json:"risks,omitempty" yaml:"risks,omitempty"`
+	// What is our conclusion drawn for this finding. satisfied | not-satisfied
+	Status types.FindingStatus `json:"status" yaml:"status"`
+
+	Links *[]types.Link     `json:"links,omitempty" yaml:"links,omitempty"`
+	Props *[]types.Property `json:"props,omitempty" yaml:"props,omitempty"`
+}
+
 type Subject struct {
 	ID         *uuid.UUID        `json:"_id" yaml:"_id"`
 	Type       string            `json:"type" yaml:"type"`

@@ -43,10 +43,11 @@ type FindingStatus struct {
 type Finding struct {
 	// UUID needs to remain consistent when automation runs again, but unique for each subject
 	// This will become the previously referenced streamId for CCF
-	UUID        string `json:"uuid" yaml:"uuid"`
-	Title       string `json:"title" yaml:"title"`
-	Description string `json:"description" yaml:"description"`
-	Remarks     string `json:"remarks,omitempty" yaml:"remarks,omitempty"`
+	UUID        string    `json:"uuid" yaml:"uuid"`
+	Title       string    `json:"title" yaml:"title"`
+	Collected   time.Time `json:"collected" yaml:"collected"`
+	Description string    `json:"description" yaml:"description"`
+	Remarks     string    `json:"remarks,omitempty" yaml:"remarks,omitempty"`
 
 	// Labels represent the unique labels which can be used to filter for findings in the UI.
 	Labels map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
