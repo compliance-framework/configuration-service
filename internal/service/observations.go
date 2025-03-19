@@ -94,7 +94,7 @@ func (s *ObservationService) Delete(ctx context.Context, id *uuid.UUID, _ *Obser
 // FindLatest returns the observation with the specified UUID that has the latest Collected field.
 func (s *ObservationService) FindLatest(ctx context.Context, uuidParam uuid.UUID) (*Observation, error) {
 	filter := bson.M{"uuid": uuidParam}
-	opts := options.FindOne().SetSort(bson.D{{"collected", -1}})
+	opts := options.FindOne().SetSort(bson.D{{Key: "collected", Value: -1}})
 	var observation Observation
 	err := s.collection.FindOne(ctx, filter, opts).Decode(&observation)
 	if err != nil {
@@ -106,7 +106,7 @@ func (s *ObservationService) FindLatest(ctx context.Context, uuidParam uuid.UUID
 // FindByUuid returns all observations with the specified UUID ordered by the Collected field in descending order.
 func (s *ObservationService) FindByUuid(ctx context.Context, uuidParam uuid.UUID) ([]*Observation, error) {
 	filter := bson.M{"uuid": uuidParam}
-	opts := options.Find().SetSort(bson.D{{"collected", -1}}).SetLimit(200)
+	opts := options.Find().SetSort(bson.D{{Key: "collected", Value: -1}}).SetLimit(200)
 	cursor, err := s.collection.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, err
