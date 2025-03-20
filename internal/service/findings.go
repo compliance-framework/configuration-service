@@ -196,7 +196,7 @@ func (s *FindingService) SearchByLabels(ctx context.Context, filter *labelfilter
 		}}},
 		// Group by StreamID, taking the first document (latest due to sorting)
 		{{Key: "$group", Value: bson.D{
-			{Key: "uuid", Value: "$uuid"}, // Group by streamId
+			{Key: "_id", Value: "$uuid"}, // Group by streamId
 			{Key: "latest", Value: bson.D{
 				{Key: "$first", Value: "$$ROOT"}, // The latest result
 			}},
@@ -210,7 +210,7 @@ func (s *FindingService) SearchByLabels(ctx context.Context, filter *labelfilter
 	defer cursor.Close(ctx)
 
 	results := make([]*struct {
-		UUID    uuid.UUID `bson:"uuid"`
+		UUID    uuid.UUID `bson:"_id"`
 		Finding Finding   `bson:"latest"`
 	}, 0)
 	err = cursor.All(ctx, &results)
