@@ -236,6 +236,18 @@ func (h *FindingsHandler) Search(ctx echo.Context) error {
 	})
 }
 
+// ComplianceBySearch godoc
+//
+//	@Summary		Get intervalled compliance report by search
+//	@Description	Fetches an intervalled compliance report for findings that match the provided label filter. The report groups findings status over time and returns a list of compliance report groups.
+//	@Tags			Findings
+//	@Accept			json
+//	@Produce		json
+//	@Param			filter	body		labelfilter.Filter	true	"Label filter criteria"
+//	@Success		201		{object}	handler.GenericDataListResponse[service.StatusOverTimeGroup]
+//	@Failure		422		{object}	api.Error
+//	@Failure		500		{object}	api.Error
+//	@Router			/findings/compliance [post]
 func (h *FindingsHandler) ComplianceBySearch(ctx echo.Context) error {
 	filter := &labelfilter.Filter{}
 	req := filteredSearchRequest{}

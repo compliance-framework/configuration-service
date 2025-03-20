@@ -167,6 +167,52 @@ const docTemplate = `{
                 }
             }
         },
+        "/findings/compliance": {
+            "post": {
+                "description": "Fetches an intervalled compliance report for findings that match the provided label filter. The report groups findings status over time and returns a list of compliance report groups.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Findings"
+                ],
+                "summary": "Get intervalled compliance report by search",
+                "parameters": [
+                    {
+                        "description": "Label filter criteria",
+                        "name": "filter",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/labelfilter.Filter"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataListResponse-service_StatusOverTimeGroup"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/findings/history/{uuid}": {
             "get": {
                 "description": "Fetches up to 200 findings (ordered by Collected descending) that share the same stream UUID.",
@@ -497,6 +543,18 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/service.Observation"
+                    }
+                }
+            }
+        },
+        "handler.GenericDataListResponse-service_StatusOverTimeGroup": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Items from the list response",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/service.StatusOverTimeGroup"
                     }
                 }
             }
@@ -2299,6 +2357,31 @@ const docTemplate = `{
                 },
                 "uuid": {
                     "description": "UUID needs to remain consistent when automation runs again, but unique for each subject.\nIt represents the \"stream\" of the same observation being made over time.",
+                    "type": "string"
+                }
+            }
+        },
+        "service.StatusOverTimeGroup": {
+            "type": "object",
+            "properties": {
+                "interval": {
+                    "type": "string"
+                },
+                "statuses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/service.StatusOverTimeRecord"
+                    }
+                }
+            }
+        },
+        "service.StatusOverTimeRecord": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "status": {
                     "type": "string"
                 }
             }
