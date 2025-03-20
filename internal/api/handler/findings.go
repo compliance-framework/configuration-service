@@ -24,6 +24,7 @@ func (h *FindingsHandler) Register(api *echo.Group) {
 	api.POST("/search", h.Search)
 	api.GET("/:id", h.GetFinding)
 	api.GET("/history/:uuid", h.History)
+	api.POST("/compliance-by-search", h.ComplianceBySearch)
 }
 
 func NewFindingsHandler(
@@ -231,6 +232,26 @@ func (h *FindingsHandler) Search(ctx echo.Context) error {
 
 	// Wrap the search results in GenericDataListResponse.
 	return ctx.JSON(http.StatusCreated, GenericDataListResponse[*service.Finding]{
+		Data: results,
+	})
+}
+
+func (h *FindingsHandler) ComplianceBySearch(ctx echo.Context) error {
+	filter := &labelfilter.Filter{}
+	req := filteredSearchRequest{}
+
+	// Bind the incoming request to the filter.
+	if err := req.bind(ctx, filter); err != nil {
+		return ctx.JSON(http.StatusUnprocessableEntity, api.NewError(err))
+	}
+
+	results, err := h.findingService.GetIntervalledComplianceReportForFilter(ctx.Request().Context(), filter)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Wrap the search results in GenericDataListResponse.
+	return ctx.JSON(http.StatusCreated, GenericDataListResponse[service.StatusOverTimeGroup]{
 		Data: results,
 	})
 }

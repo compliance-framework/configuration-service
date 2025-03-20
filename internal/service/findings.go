@@ -226,6 +226,103 @@ func (s *FindingService) SearchByLabels(ctx context.Context, filter *labelfilter
 	return output, nil
 }
 
+// StatusOverTimeRecord represents a record for a specific interval.
+type StatusOverTimeRecord struct {
+	Count  int    `bson:"count" json:"count"`
+	Status string `bson:"status" json:"status"`
+}
+
+// StatusOverTimeGroup groups all interval records by a finding stream UUID.
+type StatusOverTimeGroup struct {
+	Interval time.Time              `bson:"interval" json:"interval"`
+	Statuses []StatusOverTimeRecord `bson:"statuses" json:"statuses"`
+}
+
+// StatusOverTime aggregates the status of findings over time based on the given interval.
+// It groups documents by their stream UUID and a computed "interval" (rounded based on the collected timestamp),
+// then selects the latest finding in each group. Finally, it groups the intervals by UUID.
+func (s *FindingService) StatusOverTime(ctx context.Context, interval time.Duration) []bson.D {
+	return []bson.D{
+		// Step 1: Add an "interval" field computed from "collected" timestamp.
+		{{
+			Key: "$addFields", Value: bson.D{
+				{Key: "interval", Value: bson.D{
+					{Key: "$toDate", Value: bson.D{
+						{Key: "$subtract", Value: bson.A{
+							bson.D{{Key: "$toLong", Value: "$collected"}},
+							bson.D{{Key: "$mod", Value: bson.A{
+								bson.D{{Key: "$subtract", Value: bson.A{
+									bson.D{{Key: "$toLong", Value: "$collected"}},
+									bson.D{{Key: "$toLong", Value: time.Now()}},
+								}}},
+								interval.Milliseconds(),
+							}}},
+						}},
+					}},
+				}},
+			},
+		}},
+		// Step 2: Group by stream UUID and computed interval, taking the last record in each group.
+		{{
+			Key: "$group", Value: bson.D{
+				{Key: "_id", Value: bson.D{
+					{Key: "uuid", Value: "$uuid"},
+					{Key: "interval", Value: "$interval"},
+				}},
+				{Key: "latestRecord", Value: bson.D{
+					{Key: "$last", Value: "$$ROOT"},
+				}},
+			},
+		}},
+		// Step 3: Project the desired fields.
+		{{
+			Key: "$project", Value: bson.D{
+				{Key: "_id", Value: 0},
+				{Key: "uuid", Value: "$_id.uuid"},
+				{Key: "interval", Value: "$_id.interval"},
+				{Key: "title", Value: "$latestRecord.title"},
+				{Key: "status", Value: "$latestRecord.status.state"},
+			},
+		}},
+		{{
+			Key: "$group", Value: bson.D{
+				{Key: "_id", Value: bson.D{
+					{Key: "interval", Value: "$interval"},
+					{Key: "status", Value: "$status"},
+				}},
+				{Key: "count", Value: bson.D{
+					{Key: "$sum", Value: 1},
+				}},
+			},
+		}},
+		{{
+			Key: "$group", Value: bson.D{
+				{Key: "_id", Value: "$_id.interval"},
+				{Key: "statuses", Value: bson.D{
+					{Key: "$push", Value: bson.D{
+						{Key: "status", Value: "$_id.status"},
+						{Key: "count", Value: "$count"},
+					}},
+				}},
+			},
+		}},
+		{{
+			Key: "$project", Value: bson.D{
+				{Key: "_id", Value: 0},
+				{Key: "interval", Value: "$_id"},
+				{Key: "statuses", Value: 1},
+			},
+		}},
+		// Step 4: Sort by UUID and interval (descending).
+		{{
+			Key: "$sort", Value: bson.D{
+				{Key: "interval", Value: 1},
+			},
+		}},
+	}
+
+}
+
 func (s *FindingService) getIntervalledCompliancePipeline(ctx context.Context, interval time.Duration) []bson.D {
 	return []bson.D{
 		{
@@ -343,33 +440,26 @@ func (s *FindingService) getIntervalledCompliancePipeline(ctx context.Context, i
 	}
 }
 
-func (s *FindingService) GetIntervalledComplianceReportForFilter(ctx context.Context, filter *labelfilter.Filter) ([]*StreamRecords, error) {
+func (s *FindingService) GetIntervalledComplianceReportForFilter(ctx context.Context, filter *labelfilter.Filter) ([]StatusOverTimeGroup, error) {
 	mongoFilter := labelfilter.MongoFromFilter(*filter)
-	intervalQuery := s.getIntervalledCompliancePipeline(ctx, 5*time.Minute)
+	intervalQuery := s.StatusOverTime(ctx, 5*time.Minute)
 	pipeline := mongo.Pipeline{
 		bson.D{{Key: "$match", Value: mongoFilter.GetQuery()}},
 	}
 	pipeline = append(pipeline, intervalQuery...)
 
-	// Execute aggregation
 	cursor, err := s.collection.Aggregate(ctx, pipeline)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(ctx)
 
-	var streamRecords []*StreamRecords
-	err = cursor.All(ctx, &streamRecords)
-	if err != nil {
+	var results []StatusOverTimeGroup
+	if err := cursor.All(ctx, &results); err != nil {
 		return nil, err
 	}
 
-	// fill gaps in time jumps, and mark them as having zero observations and findings
-	for _, streamRecord := range streamRecords {
-		streamRecord.FillGaps(ctx, 5*time.Minute)
-	}
-
-	return streamRecords, nil
+	return results, nil
 }
 
 func (s *FindingService) GetIntervalledComplianceReportForStream(ctx context.Context, streamId uuid.UUID) ([]*StreamRecords, error) {
