@@ -5,13 +5,6 @@ import (
 	"time"
 )
 
-// ComplianceInformationRequest represents the grouping of things that will come into the API and then saved.
-// It is not related to any OSCAL `result` object, but rather just a representation of the requests we'll receive.
-type ComplianceInformationRequest struct {
-	Findings     *[]Finding     `json:"findings,omitempty" yaml:"findings,omitempty"`
-	Observations *[]Observation `json:"observations,omitempty" yaml:"observations,omitempty"`
-}
-
 // ComponentReference is a reference to a component definition which will be defined in CCF and administered
 // via the UI or through common components libraries.
 type ComponentReference struct {
