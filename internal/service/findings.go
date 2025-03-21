@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"sort"
 	"time"
 )
 
@@ -238,6 +239,46 @@ type StatusOverTimeGroup struct {
 	Statuses []StatusOverTimeRecord `bson:"statuses" json:"statuses"`
 }
 
+func FillStatusOverTimeGroupGaps(ctx context.Context, statusses []StatusOverTimeGroup, duration time.Duration) []StatusOverTimeGroup {
+	if len(statusses) == 0 {
+		return statusses
+	}
+
+	earliestTime := statusses[0].Interval
+	latestTime := statusses[0].Interval
+	var times = map[time.Time]interface{}{}
+	for _, record := range statusses {
+		if record.Interval.Before(earliestTime) {
+			earliestTime = record.Interval
+		}
+		if record.Interval.After(latestTime) {
+			latestTime = record.Interval
+		}
+		times[record.Interval] = nil
+	}
+
+	fillRecord := statusses[0]
+	fillRecord.Statuses = []StatusOverTimeRecord{}
+
+	currentTime := earliestTime
+	for {
+		if _, ok := times[currentTime]; !ok {
+			fillRecord.Interval = currentTime
+			statusses = append(statusses, fillRecord)
+		}
+		currentTime = currentTime.Add(duration)
+		if currentTime.After(latestTime) {
+			break
+		}
+	}
+
+	sort.Slice(statusses, func(i, j int) bool {
+		return statusses[i].Interval.Before(statusses[j].Interval)
+	})
+
+	return statusses
+}
+
 // StatusOverTime aggregates the status of findings over time based on the given interval.
 // It groups documents by their stream UUID and a computed "interval" (rounded based on the collected timestamp),
 // then selects the latest finding in each group. Finally, it groups the intervals by UUID.
@@ -441,8 +482,10 @@ func (s *FindingService) getIntervalledCompliancePipeline(ctx context.Context, i
 }
 
 func (s *FindingService) GetIntervalledComplianceReportForFilter(ctx context.Context, filter *labelfilter.Filter) ([]StatusOverTimeGroup, error) {
+	interval := 5 * time.Minute
+
 	mongoFilter := labelfilter.MongoFromFilter(*filter)
-	intervalQuery := s.StatusOverTime(ctx, 5*time.Minute)
+	intervalQuery := s.StatusOverTime(ctx, interval)
 	pipeline := mongo.Pipeline{
 		bson.D{{Key: "$match", Value: mongoFilter.GetQuery()}},
 	}
@@ -459,11 +502,14 @@ func (s *FindingService) GetIntervalledComplianceReportForFilter(ctx context.Con
 		return nil, err
 	}
 
+	results = FillStatusOverTimeGroupGaps(ctx, results, interval)
+
 	return results, nil
 }
 
 func (s *FindingService) GetIntervalledComplianceReportForStream(ctx context.Context, streamId uuid.UUID) ([]*StreamRecords, error) {
-	intervalQuery := s.getIntervalledCompliancePipeline(ctx, 5*time.Minute)
+	interval := 5 * time.Minute
+	intervalQuery := s.getIntervalledCompliancePipeline(ctx, interval)
 	pipeline := mongo.Pipeline{
 		bson.D{{Key: "$match", Value: bson.D{
 			{Key: "uuid", Value: streamId},
@@ -485,7 +531,7 @@ func (s *FindingService) GetIntervalledComplianceReportForStream(ctx context.Con
 
 	// fill gaps in time jumps, and mark them as having zero observations and findings
 	for _, streamRecord := range streamRecords {
-		streamRecord.FillGaps(ctx, 5*time.Minute)
+		streamRecord.FillGaps(ctx, interval)
 	}
 
 	return streamRecords, nil
