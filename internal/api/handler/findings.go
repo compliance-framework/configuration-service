@@ -248,7 +248,7 @@ func (h *FindingsHandler) Search(ctx echo.Context) error {
 //	@Success		201		{object}	handler.GenericDataListResponse[service.StatusOverTimeGroup]
 //	@Failure		422		{object}	api.Error
 //	@Failure		500		{object}	api.Error
-//	@Router			/findings/compliance [post]
+//	@Router			/findings/compliance-by-search [post]
 func (h *FindingsHandler) ComplianceBySearch(ctx echo.Context) error {
 	filter := &labelfilter.Filter{}
 	req := filteredSearchRequest{}
@@ -280,7 +280,7 @@ func (h *FindingsHandler) ComplianceBySearch(ctx echo.Context) error {
 //	@Success		201		{object}	handler.GenericDataListResponse[service.StatusOverTimeGroup]
 //	@Failure		422		{object}	api.Error
 //	@Failure		500		{object}	api.Error
-//	@Router			/findings/compliance [post]
+//	@Router			/compliance-by-uuid/{uuid} [get]
 func (h *FindingsHandler) ComplianceByUUID(ctx echo.Context) error {
 	uuidParam := ctx.Param("uuid")
 	findingUUID, err := uuid.Parse(uuidParam)
