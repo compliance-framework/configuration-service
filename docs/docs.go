@@ -169,7 +169,7 @@ const docTemplate = `{
         },
         "/findings/compliance": {
             "post": {
-                "description": "Fetches an intervalled compliance report for findings that match the provided label filter. The report groups findings status over time and returns a list of compliance report groups.",
+                "description": "Fetches an intervalled compliance report for findings that match the provided uuid. The report groups findings status over time and returns a list of compliance report groups.",
                 "consumes": [
                     "application/json"
                 ],
@@ -179,18 +179,7 @@ const docTemplate = `{
                 "tags": [
                     "Findings"
                 ],
-                "summary": "Get intervalled compliance report by search",
-                "parameters": [
-                    {
-                        "description": "Label filter criteria",
-                        "name": "filter",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/labelfilter.Filter"
-                        }
-                    }
-                ],
+                "summary": "Get intervalled compliance report by finding uuid",
                 "responses": {
                     "201": {
                         "description": "Created",
