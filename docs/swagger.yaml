@@ -1537,6 +1537,31 @@ paths:
       summary: Fetch a single assessment plan
       tags:
       - Assessment Plans
+  /compliance-by-uuid/{uuid}:
+    get:
+      consumes:
+      - application/json
+      description: Fetches an intervalled compliance report for findings that match
+        the provided uuid. The report groups findings status over time and returns
+        a list of compliance report groups.
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-service_StatusOverTimeGroup'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Get intervalled compliance report by finding uuid
+      tags:
+      - Findings
   /findings:
     post:
       consumes:
@@ -1590,13 +1615,20 @@ paths:
       summary: Get a single finding
       tags:
       - Findings
-  /findings/compliance:
+  /findings/compliance-by-search:
     post:
       consumes:
       - application/json
       description: Fetches an intervalled compliance report for findings that match
-        the provided uuid. The report groups findings status over time and returns
-        a list of compliance report groups.
+        the provided label filter. The report groups findings status over time and
+        returns a list of compliance report groups.
+      parameters:
+      - description: Label filter criteria
+        in: body
+        name: filter
+        required: true
+        schema:
+          $ref: '#/definitions/labelfilter.Filter'
       produces:
       - application/json
       responses:
@@ -1612,7 +1644,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.Error'
-      summary: Get intervalled compliance report by finding uuid
+      summary: Get intervalled compliance report by search
       tags:
       - Findings
   /findings/history/{uuid}:
