@@ -7,9 +7,6 @@ import (
 	"time"
 )
 
-// Component represents your struct. Ensure this is imported or defined appropriately.
-// type Component struct { ... }
-
 type HeartbeatService struct {
 	collection *mongo.Collection
 }
