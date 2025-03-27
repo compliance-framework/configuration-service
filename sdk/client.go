@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 type Config struct {
@@ -36,7 +37,9 @@ func NewClient(client *http.Client, config *Config) *Client {
 }
 
 func (c *Client) NewRequest(ctx context.Context, method string, path string, reader io.Reader) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, method, fmt.Sprintf("%s/%s", c.config.BaseURL, path), reader)
+	path = strings.TrimPrefix(path, "/")
+	url := strings.TrimSuffix(c.config.BaseURL, "/")
+	req, err := http.NewRequestWithContext(ctx, method, fmt.Sprintf("%s/%s", url, path), reader)
 	if err != nil {
 		return nil, err
 	}

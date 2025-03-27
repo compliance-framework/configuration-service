@@ -22,13 +22,16 @@ func NewHeartbeatService(db *mongo.Database) *HeartbeatService {
 
 type Heartbeat struct {
 	Id      *uuid.UUID `bson:"_id,omitempty" json:"_id"`
-	Uuid    *uuid.UUID `bson:"uuid,omitempty" json:"uuid,omitempty"`
-	Created time.Time  `bson:"created" json:"created"`
+	Uuid    uuid.UUID  `bson:"uuid" json:"uuid"`
+	Created *time.Time `bson:"created" json:"created,omitempty"`
 }
 
 // Create inserts a new component. It assigns a new UUID if the ID is nil.
 func (s *HeartbeatService) Create(ctx context.Context, heartbeat *Heartbeat) (*Heartbeat, error) {
-	heartbeat.Created = time.Now()
+	if heartbeat.Created == nil {
+		created := time.Now()
+		heartbeat.Created = &created
+	}
 	_, err := s.collection.InsertOne(ctx, heartbeat)
 	if err != nil {
 		return nil, err
