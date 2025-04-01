@@ -240,8 +240,8 @@ func (h *FindingsHandler) Search(ctx echo.Context) error {
 
 // SearchBySubject godoc
 //
-//	@Summary		Search findings by labels
-//	@Description	Searches for findings using label filters.
+//	@Summary		Search findings grouped by subject
+//	@Description	Searches for findings, and groups them by subject
 //	@Tags			Findings
 //	@Accept			json
 //	@Produce		json
