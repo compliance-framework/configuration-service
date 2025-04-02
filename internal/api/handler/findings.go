@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/converters/labelfilter"
 	"github.com/compliance-framework/configuration-service/internal/service"
@@ -9,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 type FindingsHandler struct {
@@ -23,6 +24,7 @@ func (h *FindingsHandler) Register(api *echo.Group) {
 	api.POST("", h.Create)
 	api.POST("/search", h.Search)
 	api.POST("/search-by-subject", h.SearchBySubject)
+	api.POST("/search-by-component", h.SearchByComponents)
 	api.POST("/compliance-by-search", h.ComplianceBySearch)
 	api.GET("/compliance-by-uuid/:uuid", h.ComplianceByUUID)
 	api.GET("/history/:uuid", h.History)
@@ -250,6 +252,37 @@ func (h *FindingsHandler) Search(ctx echo.Context) error {
 //	@Failure		500	{object}	api.Error
 //	@Router			/findings/search-by-subject [post]
 func (h *FindingsHandler) SearchBySubject(ctx echo.Context) error {
+	filter := &labelfilter.Filter{}
+	req := filteredSearchRequest{}
+
+	// Bind the incoming request to the filter.
+	if err := req.bind(ctx, filter); err != nil {
+		return ctx.JSON(http.StatusUnprocessableEntity, api.NewError(err))
+	}
+
+	results, err := h.findingService.SearchBySubjects(ctx.Request().Context(), filter)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Wrap the search results in GenericDataListResponse.
+	return ctx.JSON(http.StatusCreated, GenericDataListResponse[*service.FindingsBySubject]{
+		Data: results,
+	})
+}
+
+// SearchByComponent godoc
+//
+//	@Summary		Search findings grouped by component
+//	@Description	Searches for findings, and groups them by component
+//	@Tags			Findings
+//	@Accept			json
+//	@Produce		json
+//	@Success		201	{object}	handler.GenericDataListResponse[service.FindingsBySubject]
+//	@Failure		422	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/findings/search-by-subject [post]
+func (h *FindingsHandler) SearchByComponents(ctx echo.Context) error {
 	filter := &labelfilter.Filter{}
 	req := filteredSearchRequest{}
 

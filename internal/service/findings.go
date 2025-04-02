@@ -2,13 +2,14 @@ package service
 
 import (
 	"context"
+	"sort"
+	"time"
+
 	"github.com/compliance-framework/configuration-service/internal/converters/labelfilter"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"sort"
-	"time"
 )
 
 type FindingService struct {
@@ -218,6 +219,60 @@ func (s *FindingService) SearchBySubjects(ctx context.Context, filter *labelfilt
 	defer cursor.Close(ctx)
 
 	results := make([]*FindingsBySubject, 0)
+	err = cursor.All(ctx, &results)
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+type FindingsByComponent struct {
+	ComponentID uuid.UUID `bson:"_id" json:"component"`
+	Findings    []Finding `bson:"findings" json:"findings"`
+}
+
+func (s *FindingService) SearchByComponents(ctx context.Context, filter *labelfilter.Filter) ([]*FindingsByComponent, error) {
+	//mongoFilter := labelfilter.MongoFromFilter(*filter)
+	pipeline := mongo.Pipeline{
+		// Match documents related to the specific plan
+		//bson.D{{Key: "$match", Value: mongoFilter.GetQuery()}},
+		// Sort by StreamID and End descending to get the latest result first
+		{{
+			Key: "$addFields", Value: bson.D{
+				{Key: "componentId", Value: "$componentids"},
+			},
+		}},
+		{{Key: "$unwind", Value: "$componentId"}},
+
+		{{
+			Key: "$group", Value: bson.D{
+				{Key: "_id", Value: bson.D{
+					{Key: "componentId", Value: "$componentId"},
+					{Key: "uuid", Value: "$uuid"},
+				}},
+				{Key: "document", Value: bson.D{
+					{Key: "$last", Value: "$$ROOT"},
+				}},
+			},
+		}},
+		{{
+			Key: "$group", Value: bson.D{
+				{Key: "_id", Value: "$_id.componentId"},
+				{Key: "findings", Value: bson.D{
+					{Key: "$push", Value: "$document"},
+				}},
+			},
+		}},
+	}
+	// Execute aggregation
+	cursor, err := s.collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	results := make([]*FindingsByComponent, 0)
 	err = cursor.All(ctx, &results)
 	if err != nil {
 		return nil, err
