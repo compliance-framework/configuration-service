@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
 	"io"
@@ -93,16 +92,12 @@ func (h *CatalogHandler) List(c echo.Context) error {
 //	@Tags			Catalogs
 //	@Accept			json
 //	@Produce		json
-//	@Param			catalog	body		createCatalogRequest	true	"Catalog to add"
-//	@Success		201			{object}	GenericDataResponse[service.Catalog]
-//	@Failure		400			{object}	api.Error
-//	@Failure		422			{object}	api.Error
-//	@Failure		500			{object}	api.Error
+//	@Success		201	{object}	GenericDataResponse[service.Catalog]
+//	@Failure		400	{object}	api.Error
+//	@Failure		422	{object}	api.Error
+//	@Failure		500	{object}	api.Error
 //	@Router			/catalogs [post]
 func (h *CatalogHandler) Create(ctx echo.Context) error {
-	// Initialize a new catalog object.
-	//p := &service.Catalog{}
-
 	file, err := ctx.FormFile("file")
 	if err != nil {
 		return err
@@ -114,12 +109,10 @@ func (h *CatalogHandler) Create(ctx echo.Context) error {
 	defer src.Close()
 
 	buf := bytes.NewBuffer(nil)
-	length, err := io.Copy(buf, src)
+	_, err = io.Copy(buf, src)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
-
-	fmt.Println(length)
 
 	//var data []byte
 	//_, err = src.Read(data)
@@ -137,9 +130,6 @@ func (h *CatalogHandler) Create(ctx echo.Context) error {
 
 	catalog := data.Catalog
 	// Now we loop and create our internal catalog
-	fmt.Println(catalog.Metadata.Title)
-	fmt.Println(catalog.UUID)
-	fmt.Println(catalog)
 
 	id := uuid.MustParse(catalog.UUID)
 	// First the catalog

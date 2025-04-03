@@ -332,16 +332,16 @@ func (h *FindingsHandler) ComplianceBySearch(ctx echo.Context) error {
 
 // InstantComplianceByControlID godoc
 //
-//	@Summary		Get intervalled compliance report by search
-//	@Description	Fetches an intervalled compliance report for findings that match the provided label filter. The report groups findings status over time and returns a list of compliance report groups.
-//	@Tags			Findings
-//	@Accept			json
-//	@Produce		json
-//	@Param			filter	body		labelfilter.Filter	true	"Label filter criteria"
-//	@Success		201		{object}	handler.GenericDataListResponse[service.StatusOverTimeGroup]
-//	@Failure		422		{object}	api.Error
-//	@Failure		500		{object}	api.Error
-//	@Router			/findings/compliance-by-search [post]
+//	@Summary	Get compliance report by controlID
+//	@Tags		Findings
+//	@Accept		json
+//	@Produce	json
+//	@Param		class	path		string	true	"Label filter criteria"
+//	@Param		id		path		string	true	"Label filter criteria"
+//	@Success	201		{object}	handler.GenericDataListResponse[service.StatusOverTimeRecord]
+//	@Failure	422		{object}	api.Error
+//	@Failure	500		{object}	api.Error
+//	@Router		/findings/instant-compliance-by-control/{class}/{id} [get]
 func (h *FindingsHandler) InstantComplianceByControlID(ctx echo.Context) error {
 	class := ctx.Param("class")
 	id := ctx.Param("id")

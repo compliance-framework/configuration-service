@@ -32,16 +32,16 @@ func (h *CatalogGroupHandler) Register(api *echo.Group) {
 
 // Get godoc
 //
-//	@Summary		Get a dashboard
-//	@Description	Retrieves a single dashboard by its unique ID.
-//	@Tags			Dashboards
+//	@Summary		Get catalog groups for a catalog parent
+//	@Description	Retrieves catalog groups that belong to a catalog, identified by its unique catalog ID.
+//	@Tags			CatalogGroups
 //	@Produce		json
-//	@Param			id	path		string	true	"Dashboard ID"
-//	@Success		200	{object}	GenericDataResponse[service.Dashboard]
+//	@Param			id	path		string	true	"Catalog ID"
+//	@Success		200	{object}	GenericDataListResponse[service.CatalogGroup]
 //	@Failure		400	{object}	api.Error
 //	@Failure		404	{object}	api.Error
 //	@Failure		500	{object}	api.Error
-//	@Router			/groups/{id} [get]
+//	@Router			/groups/catalog/{id} [get]
 func (h *CatalogGroupHandler) Get(ctx echo.Context) error {
 	groups, err := h.service.FindFor(ctx.Request().Context(), service.CatalogItemParentIdentifier{
 		ID:    ctx.Param("id"),
@@ -57,18 +57,19 @@ func (h *CatalogGroupHandler) Get(ctx echo.Context) error {
 	})
 }
 
-// Get godoc
+// GetForGroup godoc
 //
-//	@Summary		Get a dashboard
-//	@Description	Retrieves a single dashboard by its unique ID.
-//	@Tags			Dashboards
+//	@Summary		Get catalog groups for a group parent
+//	@Description	Retrieves catalog groups that belong to a parent group, identified by its class and ID.
+//	@Tags			CatalogGroups
 //	@Produce		json
-//	@Param			id	path		string	true	"Dashboard ID"
-//	@Success		200	{object}	GenericDataResponse[service.Dashboard]
-//	@Failure		400	{object}	api.Error
-//	@Failure		404	{object}	api.Error
-//	@Failure		500	{object}	api.Error
-//	@Router			/groups/{id} [get]
+//	@Param			class	path		string	true	"Parent group class"
+//	@Param			id		path		string	true	"Parent group ID"
+//	@Success		200		{object}	GenericDataListResponse[service.CatalogGroup]
+//	@Failure		400		{object}	api.Error
+//	@Failure		404		{object}	api.Error
+//	@Failure		500		{object}	api.Error
+//	@Router			/groups/children/{class}/{id} [get]
 func (h *CatalogGroupHandler) GetForGroup(ctx echo.Context) error {
 	groups, err := h.service.FindFor(ctx.Request().Context(), service.CatalogItemParentIdentifier{
 		ID:    ctx.Param("id"),
@@ -86,14 +87,17 @@ func (h *CatalogGroupHandler) GetForGroup(ctx echo.Context) error {
 
 // List godoc
 //
-//	@Summary		List dashboards
-//	@Description	Retrieves all dashboards.
-//	@Tags			Dashboards
+//	@Summary		List catalog groups by parent
+//	@Description	Retrieves catalog groups based on the provided parent identifier query parameters (id, class, type).
+//	@Tags			CatalogGroups
 //	@Produce		json
-//	@Success		200	{object}	GenericDataListResponse[service.Dashboard]
-//	@Failure		400	{object}	api.Error
-//	@Failure		500	{object}	api.Error
-//	@Router			/dashboard [get]
+//	@Param			id		query		string	true	"Parent identifier ID"
+//	@Param			class	query		string	true	"Parent identifier class"
+//	@Param			type	query		string	true	"Parent identifier type (catalog, group, etc.)"
+//	@Success		200		{object}	GenericDataListResponse[service.CatalogGroup]
+//	@Failure		400		{object}	api.Error
+//	@Failure		500		{object}	api.Error
+//	@Router			/groups [get]
 func (h *CatalogGroupHandler) List(c echo.Context) error {
 	results, err := h.service.FindFor(c.Request().Context(), service.CatalogItemParentIdentifier{
 		ID:    c.Param("id"),
