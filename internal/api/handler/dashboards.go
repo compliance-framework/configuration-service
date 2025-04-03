@@ -1,15 +1,22 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/service"
 	"github.com/google/uuid"
-	"net/http"
-
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 )
 
+// DashboardHandler handles CRUD operations for dashboards.
+type DashboardHandler struct {
+	service *service.DashboardService
+	sugar   *zap.SugaredLogger
+}
+
+// NewDashboardHandler creates a new DashboardHandler.
 func NewDashboardHandler(l *zap.SugaredLogger, s *service.DashboardService) *DashboardHandler {
 	return &DashboardHandler{
 		sugar:   l,
@@ -17,11 +24,7 @@ func NewDashboardHandler(l *zap.SugaredLogger, s *service.DashboardService) *Das
 	}
 }
 
-type DashboardHandler struct {
-	service *service.DashboardService
-	sugar   *zap.SugaredLogger
-}
-
+// Register registers the dashboard endpoints.
 func (h *DashboardHandler) Register(api *echo.Group) {
 	api.GET("", h.List)
 	api.GET("/:id", h.Get)
@@ -30,14 +33,16 @@ func (h *DashboardHandler) Register(api *echo.Group) {
 
 // Get godoc
 //
-//	@Tags		Assessment Plans
-//	@Summary	Fetch a single assessment plan
-//	@Param		id	path		string	true	"Plan ID"
-//	@Success	200	{object}	handler.GenericDataResponse[service.Dashboard]
-//	@Failure	401	{object}	api.Error
-//	@Failure	404	{object}	api.Error
-//	@Failure	500	{object}	api.Error
-//	@Router		/dashboard/:id [get]
+//	@Summary		Get a dashboard
+//	@Description	Retrieves a single dashboard by its unique ID.
+//	@Tags			Dashboards
+//	@Produce		json
+//	@Param			id	path		string	true	"Dashboard ID"
+//	@Success		200	{object}	GenericDataResponse[service.Dashboard]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/dashboard/{id} [get]
 func (h *DashboardHandler) Get(ctx echo.Context) error {
 	dashboard, err := h.service.Get(ctx.Request().Context(), uuid.MustParse(ctx.Param("id")))
 	if err != nil {
@@ -53,12 +58,14 @@ func (h *DashboardHandler) Get(ctx echo.Context) error {
 
 // List godoc
 //
-//	@Tags		Assessment Plans
-//	@Summary	Fetch all assessment plans
-//	@Success	200	{object}	handler.GenericDataListResponse[service.Dashboard]
-//	@Failure	401	{object}	api.Error
-//	@Failure	500	{object}	api.Error
-//	@Router		/dashboard [get]
+//	@Summary		List dashboards
+//	@Description	Retrieves all dashboards.
+//	@Tags			Dashboards
+//	@Produce		json
+//	@Success		200	{object}	GenericDataListResponse[service.Dashboard]
+//	@Failure		400	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/dashboard [get]
 func (h *DashboardHandler) List(c echo.Context) error {
 	results, err := h.service.List(c.Request().Context())
 	if err != nil {
@@ -71,35 +78,36 @@ func (h *DashboardHandler) List(c echo.Context) error {
 
 // Create godoc
 //
-//	@Summary	Create a new assessment plan
-//	@Tags		Assessment Plans
-//	@Param		plan	body		createPlanRequest	true	"Plan to add"
-//	@Success	201		{object}	handler.GenericDataResponse[service.Dashboard]
-//	@Failure	401		{object}	api.Error
-//	@Failure	422		{object}	api.Error
-//	@Failure	500		{object}	api.Error
-//	@Router		/dashboard [post]
+//	@Summary		Create a new dashboard
+//	@Description	Creates a new dashboard.
+//	@Tags			Dashboards
+//	@Accept			json
+//	@Produce		json
+//	@Param			dashboard	body		createDashboardRequest	true	"Dashboard to add"
+//	@Success		201			{object}	GenericDataResponse[service.Dashboard]
+//	@Failure		400			{object}	api.Error
+//	@Failure		422			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Router			/dashboard [post]
 func (h *DashboardHandler) Create(ctx echo.Context) error {
-	// Initialize a new plan object
+	// Initialize a new dashboard object.
 	p := &service.Dashboard{}
 
-	// Initialize a new createPlanRequest object
+	// Initialize a new createDashboardRequest object.
 	req := createDashboardRequest{}
 
-	// Bind the incoming request to the plan object
-	// If there's an error, return a 422 status code with the error message
+	// Bind the incoming request to the dashboard object.
 	if err := req.bind(ctx, p); err != nil {
 		return ctx.JSON(http.StatusUnprocessableEntity, api.NewError(err))
 	}
 
-	// Attempt to create the plan in the resultService
-	// If there's an error, return a 500 status code with the error message
+	// Attempt to create the dashboard.
 	_, err := h.service.Create(ctx.Request().Context(), p)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	// If everything went well, return a 201 status code with the ID of the created plan
+	// Return the created dashboard wrapped in a GenericDataResponse.
 	return ctx.JSON(http.StatusCreated, GenericDataResponse[service.Dashboard]{
 		Data: *p,
 	})
