@@ -36,55 +36,55 @@ func NewCatalogHandler(l *zap.SugaredLogger, s *service.CatalogService, g *servi
 
 // Register registers the Catalog endpoints.
 func (h *CatalogHandler) Register(api *echo.Group) {
-	//api.GET("", h.List)
-	//api.GET("/:id", h.Get)
+	api.GET("", h.List)
+	api.GET("/:id", h.Get)
 	api.POST("", h.Create)
 }
 
-//// Get godoc
-////
-////	@Summary		Get a Catalog
-////	@Description	Retrieves a single Catalog by its unique ID.
-////	@Tags			Catalogs
-////	@Produce		json
-////	@Param			id	path		string	true	"Catalog ID"
-////	@Success		200	{object}	GenericDataResponse[service.Catalog]
-////	@Failure		400	{object}	api.Error
-////	@Failure		404	{object}	api.Error
-////	@Failure		500	{object}	api.Error
-////	@Router			/catalogs/{id} [get]
-//func (h *CatalogHandler) Get(ctx echo.Context) error {
-//	catalog, err := h.service.Get(ctx.Request().Context(), ctx.Param("id"))
-//	if err != nil {
-//		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-//	} else if catalog == nil {
-//		return ctx.JSON(http.StatusNotFound, api.NotFound())
-//	}
+// Get godoc
 //
-//	return ctx.JSON(http.StatusOK, GenericDataResponse[service.Catalog]{
-//		Data: *catalog,
-//	})
-//}
+//	@Summary		Get a Catalog
+//	@Description	Retrieves a single Catalog by its unique ID.
+//	@Tags			Catalogs
+//	@Produce		json
+//	@Param			id	path		string	true	"Catalog ID"
+//	@Success		200	{object}	GenericDataResponse[service.Catalog]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/catalogs/{id} [get]
+func (h *CatalogHandler) Get(ctx echo.Context) error {
+	catalog, err := h.service.Get(ctx.Request().Context(), uuid.MustParse(ctx.Param("id")))
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	} else if catalog == nil {
+		return ctx.JSON(http.StatusNotFound, api.NotFound())
+	}
+
+	return ctx.JSON(http.StatusOK, GenericDataResponse[service.Catalog]{
+		Data: *catalog,
+	})
+}
+
+// List godoc
 //
-//// List godoc
-////
-////	@Summary		List catalogs
-////	@Description	Retrieves all catalogs.
-////	@Tags			Catalogs
-////	@Produce		json
-////	@Success		200	{object}	GenericDataListResponse[service.Catalog]
-////	@Failure		400	{object}	api.Error
-////	@Failure		500	{object}	api.Error
-////	@Router			/catalogs [get]
-//func (h *CatalogHandler) List(c echo.Context) error {
-//	results, err := h.service.List(c.Request().Context())
-//	if err != nil {
-//		return c.JSON(http.StatusInternalServerError, api.NewError(err))
-//	}
-//	return c.JSON(http.StatusOK, GenericDataListResponse[service.Catalog]{
-//		Data: *results,
-//	})
-//}
+//	@Summary		List catalogs
+//	@Description	Retrieves all catalogs.
+//	@Tags			Catalogs
+//	@Produce		json
+//	@Success		200	{object}	GenericDataListResponse[service.Catalog]
+//	@Failure		400	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/catalogs [get]
+func (h *CatalogHandler) List(c echo.Context) error {
+	results, err := h.service.List(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	return c.JSON(http.StatusOK, GenericDataListResponse[*service.Catalog]{
+		Data: results,
+	})
+}
 
 // Create godoc
 //

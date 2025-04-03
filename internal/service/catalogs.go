@@ -34,7 +34,21 @@ func (s *CatalogService) Create(ctx context.Context, catalog *Catalog) (*Catalog
 }
 
 // Get retrieves a catalog by its ID.
-func (s *CatalogService) Get(ctx context.Context, id *uuid.UUID) (*Catalog, error) {
+func (s *CatalogService) List(ctx context.Context) ([]*Catalog, error) {
+	cursor, err := s.collection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	var catalogs []*Catalog
+	if err = cursor.All(ctx, &catalogs); err != nil {
+		return nil, err
+	}
+	return catalogs, nil
+}
+
+// Get retrieves a catalog by its ID.
+func (s *CatalogService) Get(ctx context.Context, id uuid.UUID) (*Catalog, error) {
 	filter := bson.M{"_id": id}
 	var catalog Catalog
 	err := s.collection.FindOne(ctx, filter).Decode(&catalog)
@@ -45,7 +59,7 @@ func (s *CatalogService) Get(ctx context.Context, id *uuid.UUID) (*Catalog, erro
 }
 
 func (s *CatalogService) FindOrCreate(ctx context.Context, catalog *Catalog) (*Catalog, error) {
-	found, err := s.Get(ctx, catalog.UUID)
+	found, err := s.Get(ctx, *catalog.UUID)
 	if err == nil {
 		return found, nil
 	}
