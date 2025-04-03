@@ -25,8 +25,9 @@ func NewCatalogGroupHandler(l *zap.SugaredLogger, s *service.CatalogGroupService
 
 // Register registers the dashboard endpoints.
 func (h *CatalogGroupHandler) Register(api *echo.Group) {
-	api.GET("/:class/:id", h.Get)
-	api.GET("/:type/:class/:id", h.List)
+	api.GET("/catalog/:id", h.Get)
+	api.GET("/children/:class/:id", h.GetForGroup)
+	//api.GET("/:type/:class/:id", h.List)
 }
 
 // Get godoc
@@ -40,17 +41,46 @@ func (h *CatalogGroupHandler) Register(api *echo.Group) {
 //	@Failure		400	{object}	api.Error
 //	@Failure		404	{object}	api.Error
 //	@Failure		500	{object}	api.Error
-//	@Router			/dashboard/{id} [get]
+//	@Router			/groups/{id} [get]
 func (h *CatalogGroupHandler) Get(ctx echo.Context) error {
-	control, err := h.service.Get(ctx.Request().Context(), ctx.Param("class"), ctx.Param("id"))
+	groups, err := h.service.FindFor(ctx.Request().Context(), service.CatalogItemParentIdentifier{
+		ID:    ctx.Param("id"),
+		Class: "",
+		Type:  service.CatalogItemParentTypeCatalog,
+	})
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-	} else if control == nil {
-		return ctx.JSON(http.StatusNotFound, api.NotFound())
 	}
 
-	return ctx.JSON(http.StatusOK, GenericDataResponse[service.CatalogGroup]{
-		Data: *control,
+	return ctx.JSON(http.StatusOK, GenericDataListResponse[service.CatalogGroup]{
+		Data: groups,
+	})
+}
+
+// Get godoc
+//
+//	@Summary		Get a dashboard
+//	@Description	Retrieves a single dashboard by its unique ID.
+//	@Tags			Dashboards
+//	@Produce		json
+//	@Param			id	path		string	true	"Dashboard ID"
+//	@Success		200	{object}	GenericDataResponse[service.Dashboard]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/groups/{id} [get]
+func (h *CatalogGroupHandler) GetForGroup(ctx echo.Context) error {
+	groups, err := h.service.FindFor(ctx.Request().Context(), service.CatalogItemParentIdentifier{
+		ID:    ctx.Param("id"),
+		Class: ctx.Param("class"),
+		Type:  service.CatalogItemParentTypeGroup,
+	})
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, GenericDataListResponse[service.CatalogGroup]{
+		Data: groups,
 	})
 }
 

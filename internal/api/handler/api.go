@@ -35,4 +35,10 @@ func RegisterHandlers(server *api.Server, database *mongo.Database, logger *zap.
 
 	catalogHandler := NewCatalogHandler(logger, catalogService, groupService, controlService)
 	catalogHandler.Register(server.API().Group("/catalogs"))
+
+	groupsHandler := NewCatalogGroupHandler(logger, groupService)
+	groupsHandler.Register(server.API().Group("/groups"))
+
+	controlsHandler := NewCatalogControlHandler(logger, controlService)
+	controlsHandler.Register(server.API().Group("/controls"))
 }
