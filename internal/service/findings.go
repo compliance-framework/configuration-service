@@ -2,13 +2,14 @@ package service
 
 import (
 	"context"
+	"sort"
+	"time"
+
 	"github.com/compliance-framework/configuration-service/internal/converters/labelfilter"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"sort"
-	"time"
 )
 
 type FindingService struct {
@@ -170,6 +171,90 @@ func (s *FindingService) SearchByLabels(ctx context.Context, filter *labelfilter
 	}
 
 	return output, nil
+}
+
+type FindingsGroupedByControl struct {
+	ControlId string    `json:"controlid" bson:"_id"`
+	Findings  []Finding `json:"findings" bson:"findings"`
+}
+
+func (s *FindingService) SearchByControlClass(ctx context.Context, class string) ([]FindingsGroupedByControl, error) {
+	pipeline := mongo.Pipeline{
+		{{
+			Key: "$addFields", Value: bson.D{
+				{Key: "controlList", Value: "$controls"},
+			},
+		}},
+		{{Key: "$unwind", Value: bson.D{
+			{Key: "path", Value: "$controlList"},
+			{Key: "preserveNullAndEmptyArrays", Value: true},
+		}}},
+		{{
+			Key: "$group", Value: bson.D{
+				{Key: "_id", Value: bson.D{
+					{Key: "controlId", Value: "$controlList.controlid"},
+					{Key: "uuid", Value: "$uuid"}, // stream
+				}},
+				{Key: "document", Value: bson.D{ // will take last finding for stream
+					{Key: "$last", Value: "$$ROOT"},
+				}},
+			},
+		}},
+		{{
+			Key: "$group", Value: bson.D{
+				{Key: "_id", Value: "$_id.controlId"},
+				{Key: "findings", Value: bson.D{{Key: "$push", Value: "$document"}}},
+			},
+		}},
+		{{Key: "$sort", Value: bson.D{{Key: "controlid", Value: 1}}}},
+	}
+
+	cursor, err := s.collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var results []FindingsGroupedByControl
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (s *FindingService) ListControlClasses(ctx context.Context) ([]string, error) {
+	cursor, err := s.collection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	uniqueClasses := make(map[string]struct{})
+
+	for cursor.Next(ctx) {
+		var finding Finding
+		if err := cursor.Decode(&finding); err != nil {
+			return nil, err
+		}
+
+		if finding.Controls != nil {
+			for _, control := range *finding.Controls {
+				uniqueClasses[control.Class] = struct{}{}
+			}
+		}
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	classList := make([]string, 0, len(uniqueClasses))
+	for class := range uniqueClasses {
+		classList = append(classList, class)
+	}
+
+	return classList, nil
 }
 
 type FindingsBySubject struct {
