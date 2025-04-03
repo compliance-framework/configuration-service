@@ -14,6 +14,9 @@ func RegisterHandlers(server *api.Server, database *mongo.Database, logger *zap.
 	componentService := service.NewComponentService(database)
 	subjectService := service.NewSubjectService(database)
 	heartbeatService := service.NewHeartbeatService(database)
+	catalogService := service.NewCatalogService(database)
+	controlService := service.NewCatalogControlService(database)
+	groupService := service.NewCatalogGroupService(database)
 
 	dashboardHandler := NewDashboardHandler(logger, dashboardService)
 	dashboardHandler.Register(server.API().Group("/dashboards"))
@@ -29,4 +32,7 @@ func RegisterHandlers(server *api.Server, database *mongo.Database, logger *zap.
 
 	heartbeatHandler := NewHeartbeatHandler(logger, heartbeatService)
 	heartbeatHandler.Register(server.API().Group("/heartbeat"))
+
+	catalogHandler := NewCatalogHandler(logger, catalogService, groupService, controlService)
+	catalogHandler.Register(server.API().Group("/catalogs"))
 }
