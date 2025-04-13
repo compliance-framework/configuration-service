@@ -143,13 +143,14 @@ func (h *CatalogHandler) Create(ctx echo.Context) error {
 	}
 
 	parent := service.CatalogItemParentIdentifier{
-		ID:   internalCatalog.UUID.String(),
-		Type: service.CatalogItemParentTypeCatalog,
+		ID:        internalCatalog.UUID.String(),
+		Type:      service.CatalogItemParentTypeCatalog,
+		CatalogId: *internalCatalog.UUID,
 	}
 
 	if catalog.Groups != nil {
 		for _, g := range *catalog.Groups {
-			err = h.handleGroup(ctx.Request().Context(), g, parent)
+			err = h.handleGroupCreate(ctx.Request().Context(), g, parent)
 			if err != nil {
 				return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 			}
@@ -158,7 +159,7 @@ func (h *CatalogHandler) Create(ctx echo.Context) error {
 
 	if catalog.Controls != nil {
 		for _, c := range *catalog.Controls {
-			err = h.handleControl(ctx.Request().Context(), c, parent)
+			err = h.handleControlCreate(ctx.Request().Context(), c, parent)
 			if err != nil {
 				return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 			}
@@ -171,7 +172,7 @@ func (h *CatalogHandler) Create(ctx echo.Context) error {
 	})
 }
 
-func (h *CatalogHandler) handleGroup(ctx context.Context, group oscaltypes113.Group, parent service.CatalogItemParentIdentifier) error {
+func (h *CatalogHandler) handleGroupCreate(ctx context.Context, group oscaltypes113.Group, parent service.CatalogItemParentIdentifier) error {
 	internalGroup := service.CatalogGroup{
 		ID:     group.ID,
 		Title:  group.Title,
@@ -187,14 +188,15 @@ func (h *CatalogHandler) handleGroup(ctx context.Context, group oscaltypes113.Gr
 	}
 
 	childParent := service.CatalogItemParentIdentifier{
-		ID:    internalGroup.ID,
-		Class: internalGroup.Class,
-		Type:  service.CatalogItemParentTypeGroup,
+		ID:        internalGroup.ID,
+		Class:     internalGroup.Class,
+		Type:      service.CatalogItemParentTypeGroup,
+		CatalogId: parent.CatalogId,
 	}
 
 	if group.Groups != nil {
 		for _, g := range *group.Groups {
-			err = h.handleGroup(ctx, g, childParent)
+			err = h.handleGroupCreate(ctx, g, childParent)
 			if err != nil {
 				return err
 			}
@@ -203,7 +205,7 @@ func (h *CatalogHandler) handleGroup(ctx context.Context, group oscaltypes113.Gr
 
 	if group.Controls != nil {
 		for _, c := range *group.Controls {
-			err = h.handleControl(ctx, c, childParent)
+			err = h.handleControlCreate(ctx, c, childParent)
 			if err != nil {
 				return err
 			}
@@ -213,7 +215,7 @@ func (h *CatalogHandler) handleGroup(ctx context.Context, group oscaltypes113.Gr
 	return nil
 }
 
-func (h *CatalogHandler) handleControl(ctx context.Context, control oscaltypes113.Control, parent service.CatalogItemParentIdentifier) error {
+func (h *CatalogHandler) handleControlCreate(ctx context.Context, control oscaltypes113.Control, parent service.CatalogItemParentIdentifier) error {
 	internalControl := service.CatalogControl{
 		ID:     control.ID,
 		Title:  control.Title,
@@ -229,14 +231,15 @@ func (h *CatalogHandler) handleControl(ctx context.Context, control oscaltypes11
 	}
 
 	childParent := service.CatalogItemParentIdentifier{
-		ID:    internalControl.ID,
-		Class: internalControl.Class,
-		Type:  service.CatalogItemParentTypeControl,
+		ID:        internalControl.ID,
+		Class:     internalControl.Class,
+		Type:      service.CatalogItemParentTypeControl,
+		CatalogId: parent.CatalogId,
 	}
 
 	if control.Controls != nil {
 		for _, g := range *control.Controls {
-			err = h.handleControl(ctx, g, childParent)
+			err = h.handleControlCreate(ctx, g, childParent)
 			if err != nil {
 				return err
 			}
