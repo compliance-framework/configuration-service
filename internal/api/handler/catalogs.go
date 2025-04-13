@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/compliance-framework/configuration-service/internal"
 	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
 	"io"
@@ -143,7 +144,7 @@ func (h *CatalogHandler) Create(ctx echo.Context) error {
 	}
 
 	parent := service.CatalogItemParentIdentifier{
-		ID:        internalCatalog.UUID.String(),
+		ID:        internal.Pointer(internalCatalog.UUID.String()),
 		Type:      service.CatalogItemParentTypeCatalog,
 		CatalogId: *internalCatalog.UUID,
 	}
@@ -188,8 +189,8 @@ func (h *CatalogHandler) handleGroupCreate(ctx context.Context, group oscaltypes
 	}
 
 	childParent := service.CatalogItemParentIdentifier{
-		ID:        internalGroup.ID,
-		Class:     internalGroup.Class,
+		ID:        &internalGroup.ID,
+		Class:     &internalGroup.Class,
 		Type:      service.CatalogItemParentTypeGroup,
 		CatalogId: parent.CatalogId,
 	}
@@ -231,8 +232,8 @@ func (h *CatalogHandler) handleControlCreate(ctx context.Context, control oscalt
 	}
 
 	childParent := service.CatalogItemParentIdentifier{
-		ID:        internalControl.ID,
-		Class:     internalControl.Class,
+		ID:        &internalControl.ID,
+		Class:     &internalControl.Class,
 		Type:      service.CatalogItemParentTypeControl,
 		CatalogId: parent.CatalogId,
 	}
