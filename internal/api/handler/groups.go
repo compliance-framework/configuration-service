@@ -39,10 +39,10 @@ func (h *CatalogGroupHandler) Register(api *echo.Group) {
 //	@Tags			CatalogGroups
 //	@Produce		json
 //	@Param			catalog	path		string	true	"Catalog ID"
-//	@Success		200	{object}	GenericDataListResponse[service.CatalogGroup]
-//	@Failure		400	{object}	api.Error
-//	@Failure		404	{object}	api.Error
-//	@Failure		500	{object}	api.Error
+//	@Success		200		{object}	GenericDataListResponse[service.CatalogGroup]
+//	@Failure		400		{object}	api.Error
+//	@Failure		404		{object}	api.Error
+//	@Failure		500		{object}	api.Error
 //	@Router			/groups/catalog/{catalog} [get]
 func (h *CatalogGroupHandler) Get(ctx echo.Context) error {
 	groups, err := h.service.FindFor(ctx.Request().Context(), service.CatalogItemParentIdentifier{
