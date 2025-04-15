@@ -12,7 +12,7 @@ type Catalog struct {
 	Params     []Parameter `json:"params"`
 	Controls   []Control   `json:"controls"`
 	Groups     []Group     `json:"groups"`
-	BackMatter BackMatter  `json:"backMatter"`
+	BackMatter BackMatter  `json:"back-matter"`
 	/**
 	"required": [
 		"uuid",
@@ -78,7 +78,7 @@ type Control struct {
 	Parts    []Part      `json:"parts"`
 	Props    Props       `json:"props"`
 	Links    Links       `json:"links"`
-	Controls []Control   `json:"controls"`
+	Controls []Control   `json:"controls"` // -> Control
 
 	/**
 	"required": [
