@@ -2,17 +2,19 @@ package relational
 
 import (
 	"database/sql"
+	oscalTypes_1_1_3 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
+	"gorm.io/datatypes"
 	"time"
 )
 
 type Catalog struct {
-	ID         uuid.UUID   `json:"id"`
-	Metadata   Metadata    `json:"metadata"`
-	Params     []Parameter `json:"params"`
-	Controls   []Control   `json:"controls"`
-	Groups     []Group     `json:"groups"`
-	BackMatter BackMatter  `json:"back-matter"`
+	UUIDModel
+	Metadata   CatalogMetadata                `json:"metadata"`
+	Params     datatypes.JSONSlice[Parameter] `json:"params"`
+	Controls   []Control                      `json:"controls"`
+	Groups     []Group                        `json:"groups"`
+	BackMatter BackMatter                     `json:"back-matter"`
 	/**
 	"required": [
 		"uuid",
@@ -21,22 +23,24 @@ type Catalog struct {
 	*/
 }
 
-type Metadata struct {
-	Title              string             `json:"title"`
-	Published          time.Time          `json:"published"`
-	LastModified       time.Time          `json:"last-modified"`
-	Version            string             `json:"version"`
-	OscalVersion       string             `json:"oscal-version"`
-	Revisions          []Revision         `json:"revisions"`    // -> Revision
-	DocumentIDs        []DocumentID       `json:"document-ids"` // -> DocumentID
-	Props              Props              `json:"props"`
-	Links              Links              `json:"links"`
-	Roles              []Role             `json:"roles"`               // -> Role
-	Locations          []Location         `json:"locations"`           // -> Location
-	Parties            []Party            `json:"parties"`             // -> Party
-	ResponsibleParties []ResponsibleParty `json:"responsible-parties"` // -> ResponsibleParty
-	Actions            []Action           `json:"actions"`             // -> Action
-	Remarks            string             `json:"remarks"`
+type CatalogMetadata struct {
+	UUIDModel
+	Title              string                          `json:"title"`
+	Published          sql.NullTime                    `json:"published"`
+	LastModified       time.Time                       `json:"last-modified"`
+	Version            string                          `json:"version"`
+	OscalVersion       string                          `json:"oscal-version"`
+	DocumentIDs        datatypes.JSONSlice[DocumentID] `json:"document-ids"` // -> DocumentID
+	Props              datatypes.JSONSlice[Prop]       `json:"props"`
+	Links              datatypes.JSONSlice[Link]       `json:"links"`
+	Revisions          []Revision                      `json:"revisions"` // -> Revision
+	Roles              []Role                          `gorm:"many2many:catalog_roles;"`
+	Locations          []Location                      `gorm:"many2many:catalog_locations;"`
+	Parties            []Party                         `gorm:"many2many:catalog_parties;"`
+	ResponsibleParties []ResponsibleParty              `gorm:"many2many:catalog_responsible_parties;"`
+	Actions            []Action                        `json:"actions"` // -> Action
+	Remarks            string                          `json:"remarks"`
+	CatalogID          uuid.UUID
 
 	/**
 	"required": [
@@ -48,123 +52,92 @@ type Metadata struct {
 	*/
 }
 
-type BackMatter struct {
-	Resources []BackMatterResource `json:"resources"`
-}
-
 type Group struct {
-	ID       string      `json:"id"`
-	Class    string      `json:"class"`
-	Title    string      `json:"title"`
-	Params   []Parameter `json:"params"`
-	Parts    []Party     `json:"parts"`
-	Props    Props       `json:"props"`
-	Links    Links       `json:"links"`
-	Groups   []Group     `json:"groups"`
-	Controls []Control   `json:"controls"`
+	ID     string                         `json:"id" gorm:"primary_key"` // required
+	Class  string                         `json:"class"`
+	Title  string                         `json:"title"` // required
+	Params datatypes.JSONSlice[Parameter] `json:"params"`
+	Parts  datatypes.JSONSlice[Part]      `json:"parts"`
+	Props  datatypes.JSONSlice[Prop]      `json:"props"`
+	Links  datatypes.JSONSlice[Link]      `json:"links"`
 
-	/**
-	"required": [
-		"title"
-	],
-	*/
+	CatalogID  uuid.UUID
+	ParentID   *string
+	ParentType *string
+
+	Groups   []Group   `json:"groups" gorm:"polymorphic:Parent;"`
+	Controls []Control `json:"controls" gorm:"polymorphic:Parent;"`
 }
 
 type Control struct {
-	ID       string      `json:"id"`
-	Class    string      `json:"class"`
-	Title    string      `json:"title"`
-	Params   []Parameter `json:"params"`
-	Parts    []Part      `json:"parts"`
-	Props    Props       `json:"props"`
-	Links    Links       `json:"links"`
-	Controls []Control   `json:"controls"` // -> Control
+	ID     string                         `json:"id" gorm:"primary_key"` // required
+	Title  string                         `json:"title"`                 // required
+	Class  *string                        `json:"class"`
+	Params datatypes.JSONSlice[Parameter] `json:"params"`
+	Parts  datatypes.JSONSlice[Part]      `json:"parts"`
+	Props  datatypes.JSONSlice[Prop]      `json:"props"`
+	Links  datatypes.JSONSlice[Link]      `json:"links"`
 
-	/**
-	"required": [
-		"id",
-		"title"
-	],
-	*/
+	CatalogID  uuid.UUID
+	ParentID   *string
+	ParentType *string
+
+	Controls []Control `json:"controls" gorm:"polymorphic:Parent;"`
 }
 
 type Citation struct {
-	Text  string `json:"text"`
+	Text  string `json:"text"` // required
 	Props Props  `json:"props"`
 	Links Links  `json:"links"`
-
-	/**
-	"required": [
-	  "text"
-	],
-	*/
 }
 
 type HashAlgorithm string
 
 const (
-	HashAlgorithmSHA_224  = "SHA-224"
-	HashAlgorithmSHA_256  = "SHA-256"
-	HashAlgorithmSHA_384  = "SHA-384"
-	HashAlgorithmSHA_512  = "SHA-512"
-	HashAlgorithmSHA3_224 = "SHA3-224"
-	HashAlgorithmSHA3_256 = "SHA3-256"
-	HashAlgorithmSHA3_384 = "SHA3-384"
-	HashAlgorithmSHA3_512 = "SHA3-512"
+	HashAlgorithmSHA_224  HashAlgorithm = "SHA-224"
+	HashAlgorithmSHA_256  HashAlgorithm = "SHA-256"
+	HashAlgorithmSHA_384  HashAlgorithm = "SHA-384"
+	HashAlgorithmSHA_512  HashAlgorithm = "SHA-512"
+	HashAlgorithmSHA3_224 HashAlgorithm = "SHA3-224"
+	HashAlgorithmSHA3_256 HashAlgorithm = "SHA3-256"
+	HashAlgorithmSHA3_384 HashAlgorithm = "SHA3-384"
+	HashAlgorithmSHA3_512 HashAlgorithm = "SHA3-512"
 )
 
 type Hash struct {
-	Algorithm HashAlgorithm `json:"algorithm"`
-	Value     string        `json:"value"`
-
-	/**
-	"required": [
-		"value",
-		"algorithm"
-	],
-	*/
+	Algorithm HashAlgorithm `json:"algorithm"` // required
+	Value     string        `json:"value"`     // required
 }
 
 type RLink struct {
-	Href      string `json:"href"`
+	Href      string `json:"href"` // required
 	MediaType string `json:"media-type"`
 	Hashes    []Hash `json:"hashes"`
-
-	/**
-	"required": [
-		"href"
-	],
-	*/
 }
 
 type Base64 struct {
 	Filename  string `json:"filename"`
 	MediaType string `json:"media-type"`
-	Value     string `json:"value"`
+	Value     string `json:"value"` // required
+}
 
-	/**
-	"required": [
-	  "value"
-	],
-	*/
+type BackMatter struct {
+	UUIDModel
+	CatalogID uuid.UUID
+	Resources []BackMatterResource `json:"resources"`
 }
 
 type BackMatterResource struct {
-	ID          uuid.UUID    `json:"id"`
-	Title       string       `json:"title"`
-	Description string       `json:"description"`
-	Props       Props        `json:"props"`
-	DocumentIDs []DocumentID `json:"document-ids"`
-	Citations   Citation     `json:"citation"`
-	RLinks      []RLink      `json:"rlinks"`
-	Base64      Base64       `json:"base64"`
-	Remarks     string       `json:"remarks"`
-
-	/**
-	"required": [
-		"uuid"
-	],
-	*/
+	UUIDModel                                    // required
+	BackMatterID uuid.UUID                       `json:"back-matter-id"`
+	Title        *string                         `json:"title"`
+	Description  *string                         `json:"description"`
+	Props        datatypes.JSONSlice[Prop]       `json:"props"`
+	DocumentIDs  datatypes.JSONSlice[DocumentID] `json:"document-ids"`
+	Citations    datatypes.JSONType[Citation]    `json:"citation"`
+	RLinks       datatypes.JSONSlice[RLink]      `json:"rlinks"`
+	Base64       datatypes.JSONType[Base64]      `json:"base64"`
+	Remarks      *string                         `json:"remarks"`
 }
 
 type DocumentIDScheme string
@@ -174,6 +147,11 @@ const DocumentIDSchemeDoi DocumentIDScheme = "http://www.doi.org/"
 type DocumentID struct {
 	Scheme     DocumentIDScheme `json:"scheme"`
 	Identifier string           `json:"identifier"`
+}
+
+func (d *DocumentID) FromOscal(id oscalTypes_1_1_3.DocumentId) {
+	d.Scheme = DocumentIDScheme(id.Scheme)
+	d.Identifier = id.Identifier
 }
 
 type AddressType string
@@ -229,19 +207,20 @@ type PartyExternalID struct {
 }
 
 type Party struct {
-	Uuid                  uuid.UUID         `json:"uuid"`
-	Type                  PartyType         `json:"type"`
-	Name                  string            `json:"name"`
-	ShortName             string            `json:"short-name"`
-	ExternalIds           []PartyExternalID `json:"external-ids"`
-	Props                 Props             `json:"props"`
-	Links                 Links             `json:"links"`
-	EmailAddresses        []string          `json:"email-addresses"`
-	TelephoneNumbers      []TelephoneNumber `json:"telephone-numbers"`
-	Addresses             []Address         `json:"addresses"`
-	LocationUuids         []uuid.UUID       `json:"location-uuids"`          // -> Location
-	MemberOfOrganizations []uuid.UUID       `json:"member-of-organizations"` // -> Party
-	Remarks               string            `json:"remarks"`
+	UUIDModel
+	CatalogMetadataID     uuid.UUID
+	Type                  PartyType                            `json:"type"`
+	Name                  *string                              `json:"name"`
+	ShortName             *string                              `json:"short-name"`
+	ExternalIds           datatypes.JSONSlice[PartyExternalID] `json:"external-ids"`
+	Props                 datatypes.JSONSlice[Prop]            `json:"props"`
+	Links                 datatypes.JSONSlice[Link]            `json:"links"`
+	EmailAddresses        datatypes.JSONSlice[string]          `json:"email-addresses"`
+	TelephoneNumbers      datatypes.JSONSlice[TelephoneNumber] `json:"telephone-numbers"`
+	Addresses             datatypes.JSONSlice[Address]         `json:"addresses"`
+	Locations             []Location                           `json:"locations" gorm:"many2many:party_locations;"`
+	MemberOfOrganizations []Party                              `json:"member-of-organizations" gorm:"many2many:party_member_of_organisations;"` // -> Party
+	Remarks               *string                              `json:"remarks"`
 
 	/**
 	"required": [
@@ -252,49 +231,40 @@ type Party struct {
 }
 
 type ResponsibleParty struct {
-	RoleID     string      `json:"role-id"`     // -> Role
-	PartyUuids []uuid.UUID `json:"party-uuids"` // -> Party
-	Props      Props       `json:"props"`
-	Links      Links       `json:"links"`
-	Remarks    string      `json:"remarks"`
+	UUIDModel
+	CatalogMetadataID uuid.UUID
+	Props             datatypes.JSONSlice[Prop] `json:"props"`
+	Links             datatypes.JSONSlice[Link] `json:"links"`
+	Remarks           string                    `json:"remarks"`
 
-	/**
-	"required": [
-		"role-id",
-		"party-uuids"
-	],
-	*/
+	RoleID  string `json:"role-id"` // required
+	Role    Role
+	Parties []Party `gorm:"many2many:responsible_party_parties;"`
 }
 
 type Action struct {
-	Uuid               uuid.UUID          `json:"uuid"`
-	Date               time.Time          `json:"date"`
-	Type               string             `json:"type"`
-	System             string             `json:"system"`
-	Props              Props              `json:"props"`
-	Links              Links              `json:"links"`
-	ResponsibleParties []ResponsibleParty `json:"responsible-parties"`
-	Remarks            string             `json:"remarks"`
-
-	/**
-	"required": [
-		"uuid",
-		"type",
-		"system"
-	],
-	*/
+	UUIDModel
+	CatalogMetadataID  uuid.UUID                 // required
+	Date               sql.NullTime              `json:"date"`
+	Type               string                    `json:"type"`   // required
+	System             string                    `json:"system"` // required
+	Props              datatypes.JSONSlice[Prop] `json:"props"`
+	Links              datatypes.JSONSlice[Link] `json:"links"`
+	ResponsibleParties []ResponsibleParty        `gorm:"many2many:action_responsible_party;"`
+	Remarks            string                    `json:"remarks"`
 }
 
 type Location struct {
-	ID               uuid.UUID         `json:"id"`
-	Title            string            `json:"title"`
-	Address          Address           `json:"address"`
-	EmailAddresses   []string          `json:"email-addresses"`
-	TelephoneNumbers []TelephoneNumber `json:"telephone-numbers"`
-	Urls             []string          `json:"urls"`
-	Props            Props             `json:"props"`
-	Links            Links             `json:"links"`
-	Remarks          string            `json:"remarks"`
+	UUIDModel
+	CatalogMetadataID uuid.UUID
+	Title             *string                               `json:"title"`
+	Address           datatypes.JSONType[Address]           `json:"address"`
+	EmailAddresses    datatypes.JSONType[[]string]          `json:"email-addresses"`
+	TelephoneNumbers  datatypes.JSONType[[]TelephoneNumber] `json:"telephone-numbers"`
+	Urls              datatypes.JSONType[[]string]          `json:"urls"`
+	Props             datatypes.JSONType[[]Prop]            `json:"props"`
+	Links             datatypes.JSONType[[]Link]            `json:"links"`
+	Remarks           *string                               `json:"remarks"`
 	/**
 	"required": [
 		"uuid"
@@ -303,39 +273,41 @@ type Location struct {
 }
 
 type Role struct {
-	ID          string  `json:"id"`
-	Title       string  `json:"title"`
-	ShortName   *string `json:"short-name"`
-	Description *string `json:"description"`
-	Props       Props   `json:"props"`
-	Links       Links   `json:"links"`
-	Remarks     *string `json:"remarks"`
-
-	/**
-	"required": [
-	  "id",
-	  "title"
-	],
-	*/
+	ID                string `json:"id" gorm:"primary_key;"`
+	CatalogMetadataID uuid.UUID
+	Title             string                    `json:"title"`
+	ShortName         *string                   `json:"short-name"`
+	Description       *string                   `json:"description"`
+	Props             datatypes.JSONSlice[Prop] `json:"props"`
+	Links             datatypes.JSONSlice[Link] `json:"links"`
+	Remarks           *string                   `json:"remarks"`
 }
 
 type Revision struct {
 	// Only version is required
-	ID           uuid.UUID    `json:"id" gorm:"primary_key;type:uuid;default:uuid_generate_v4()"`
-	Title        *string      `json:"title"`
-	Published    sql.NullTime `json:"published"`
-	LastModified sql.NullTime `json:"last-modified"`
-	Version      string       `json:"version"`
-	OscalVersion *string      `json:"oscal-version"`
-	Props        Props        `json:"props"`
-	Links        Links        `json:"links"`
-	Remarks      *string      `json:"remarks"`
+	UUIDModel
+	CatalogMetadataID uuid.UUID
+	Title             *string                   `json:"title"`
+	Published         sql.NullTime              `json:"published"`
+	LastModified      sql.NullTime              `json:"last-modified"`
+	Version           string                    `json:"version"` // required
+	OscalVersion      *string                   `json:"oscal-version"`
+	Props             datatypes.JSONSlice[Prop] `json:"props"`
+	Links             datatypes.JSONSlice[Link] `json:"links"`
+	Remarks           *string                   `json:"remarks"`
+}
 
-	/**
-	"required": [
-	  "version"
-	],
-	*/
+func (d *Revision) FromOscal(rev oscalTypes_1_1_3.RevisionHistoryEntry) {
+	if rev.Published != nil {
+		d.Published = sql.NullTime{Time: *rev.Published}
+	}
+	if rev.LastModified != nil {
+		d.LastModified = sql.NullTime{Time: *rev.LastModified}
+	}
+	d.Version = rev.Version
+	d.OscalVersion = &rev.OscalVersion
+	d.Title = &rev.Title
+	d.Remarks = &rev.Remarks
 }
 
 type Parameter struct {
