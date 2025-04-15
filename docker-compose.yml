@@ -4,7 +4,8 @@ services:
   configuration-service:
     build: 
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
+      target: local
     ports:
       - "8080:8080"
     depends_on:
