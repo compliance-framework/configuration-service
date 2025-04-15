@@ -6,6 +6,21 @@ import (
 	"time"
 )
 
+type Catalog struct {
+	ID         uuid.UUID   `json:"id"`
+	Metadata   Metadata    `json:"metadata"`
+	Params     []Parameter `json:"params"`
+	Controls   []Control   `json:"controls"`
+	Groups     []Group     `json:"groups"`
+	BackMatter BackMatter  `json:"backMatter"`
+	/**
+	"required": [
+		"uuid",
+		"metadata"
+	],
+	*/
+}
+
 type Metadata struct {
 	Title              string             `json:"title"`
 	Published          time.Time          `json:"published"`
@@ -29,6 +44,125 @@ type Metadata struct {
 		"last-modified",
 		"version",
 		"oscal-version"
+	],
+	*/
+}
+
+type BackMatter struct {
+	Resources []BackMatterResource `json:"resources"`
+}
+
+type Group struct {
+	ID       string      `json:"id"`
+	Class    string      `json:"class"`
+	Title    string      `json:"title"`
+	Params   []Parameter `json:"params"`
+	Parts    []Party     `json:"parts"`
+	Props    Props       `json:"props"`
+	Links    Links       `json:"links"`
+	Groups   []Group     `json:"groups"`
+	Controls []Control   `json:"controls"`
+
+	/**
+	"required": [
+		"title"
+	],
+	*/
+}
+
+type Control struct {
+	ID       string      `json:"id"`
+	Class    string      `json:"class"`
+	Title    string      `json:"title"`
+	Params   []Parameter `json:"params"`
+	Parts    []Part      `json:"parts"`
+	Props    Props       `json:"props"`
+	Links    Links       `json:"links"`
+	Controls []Control   `json:"controls"`
+
+	/**
+	"required": [
+		"id",
+		"title"
+	],
+	*/
+}
+
+type Citation struct {
+	Text  string `json:"text"`
+	Props Props  `json:"props"`
+	Links Links  `json:"links"`
+
+	/**
+	"required": [
+	  "text"
+	],
+	*/
+}
+
+type HashAlgorithm string
+
+const (
+	HashAlgorithmSHA_224  = "SHA-224"
+	HashAlgorithmSHA_256  = "SHA-256"
+	HashAlgorithmSHA_384  = "SHA-384"
+	HashAlgorithmSHA_512  = "SHA-512"
+	HashAlgorithmSHA3_224 = "SHA3-224"
+	HashAlgorithmSHA3_256 = "SHA3-256"
+	HashAlgorithmSHA3_384 = "SHA3-384"
+	HashAlgorithmSHA3_512 = "SHA3-512"
+)
+
+type Hash struct {
+	Algorithm HashAlgorithm `json:"algorithm"`
+	Value     string        `json:"value"`
+
+	/**
+	"required": [
+		"value",
+		"algorithm"
+	],
+	*/
+}
+
+type RLink struct {
+	Href      string `json:"href"`
+	MediaType string `json:"media-type"`
+	Hashes    []Hash `json:"hashes"`
+
+	/**
+	"required": [
+		"href"
+	],
+	*/
+}
+
+type Base64 struct {
+	Filename  string `json:"filename"`
+	MediaType string `json:"media-type"`
+	Value     string `json:"value"`
+
+	/**
+	"required": [
+	  "value"
+	],
+	*/
+}
+
+type BackMatterResource struct {
+	ID          uuid.UUID    `json:"id"`
+	Title       string       `json:"title"`
+	Description string       `json:"description"`
+	Props       Props        `json:"props"`
+	DocumentIDs []DocumentID `json:"document-ids"`
+	Citations   Citation     `json:"citation"`
+	RLinks      []RLink      `json:"rlinks"`
+	Base64      Base64       `json:"base64"`
+	Remarks     string       `json:"remarks"`
+
+	/**
+	"required": [
+		"uuid"
 	],
 	*/
 }
@@ -200,6 +334,82 @@ type Revision struct {
 	/**
 	"required": [
 	  "version"
+	],
+	*/
+}
+
+type Parameter struct {
+	ID          string                `json:"id"`
+	Class       string                `json:"class"`
+	Props       Props                 `json:"props"`
+	Links       Links                 `json:"links"`
+	Label       string                `json:"label"`
+	Usage       string                `json:"usage"`
+	Constraints []ParameterConstraint `json:"constraints"`
+	Guidelines  []ParameterGuideline  `json:"guidelines"`
+	Values      []string              `json:"values"`
+	Select      ParameterSelection    `json:"select"`
+	Remarks     string                `json:"remarks"`
+
+	/**
+	"required": [
+		"id"
+	],
+	*/
+}
+
+type ParameterSelectionCount string
+
+const (
+	ParameterSelectionCountOne       ParameterSelectionCount = "one"
+	ParameterSelectionCountOneOrMore ParameterSelectionCount = "one-or-more"
+)
+
+type ParameterSelection struct {
+	HowMany ParameterSelectionCount `json:"how-many"`
+	Choice  []string                `json:"choice"`
+}
+
+type ParameterGuideline struct {
+	Prose string `json:"prose"`
+
+	/**
+	"required": [
+		"prose"
+	],
+	*/
+}
+
+type ParameterConstraint struct {
+	Description string                    `json:"description"`
+	Tests       []ParameterConstraintTest `json:"tests"`
+}
+
+type ParameterConstraintTest struct {
+	Expression string `json:"expression"`
+	Remarks    string `json:"remarks"`
+
+	/**
+	"required": [
+		"expression"
+	],
+	*/
+}
+
+type Part struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	NS    string `json:"ns"`
+	Class string `json:"class"`
+	Title string `json:"title"`
+	Prose string `json:"prose"`
+	Props Props  `json:"props"`
+	Links Links  `json:"links"`
+	Parts []Part `json:"parts"` // -> Part
+
+	/**
+	"required": [
+		"name"
 	],
 	*/
 }
