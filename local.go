@@ -166,7 +166,7 @@ func CatalogMetadataFromOscal(metadata *oscaltypes113.Metadata) relational.Catal
 		Revisions:          ConvertList(metadata.Revisions, RevisionFromOscal),
 		Roles:              ConvertList(metadata.Roles, RoleFromOscal),
 		Locations:          nil,
-		Parties:            nil,
+		Parties:            ConvertList(metadata.Parties, PartyFromOscal),
 		ResponsibleParties: nil,
 		Actions:            nil,
 		Remarks:            metadata.Remarks,
@@ -203,7 +203,7 @@ func ComponentDefinitionMetadataFromOscal(metadata *oscaltypes113.Metadata) rela
 		//Revisions:          ConvertList(metadata.Revisions, RevisionFromOscal),
 		Roles:              ConvertList(metadata.Roles, RoleFromOscal),
 		Locations:          nil,
-		Parties:            nil,
+		Parties:            ConvertList(metadata.Parties, PartyFromOscal),
 		ResponsibleParties: nil,
 		//Actions:            nil,
 		Remarks: metadata.Remarks,
@@ -298,4 +298,62 @@ func PropFromOscal(property oscaltypes113.Property) relational.Prop {
 	prop := relational.Prop{}
 	prop.UnmarshalOscal(property)
 	return prop
+}
+
+// incomplete
+func PartyFromOscal(p oscaltypes113.Party) relational.Party {
+	var email_addresses *[]string
+	party_uuid := uuid.MustParse(p.UUID)
+
+	if p.EmailAddresses != nil {
+		email_addresses = p.EmailAddresses
+	} else {
+		email_addresses = &[]string{}
+	}
+
+	return relational.Party{
+		UUIDModel: relational.UUIDModel{
+			ID: &party_uuid,
+		},
+		Type:           relational.PartyType(p.Type),
+		Name:           &p.Name,
+		ShortName:      &p.ShortName,
+		Props:          ConvertList(p.Props, PropFromOscal),
+		Links:          ConvertList(p.Links, LinkFromOscal),
+		EmailAddresses: *email_addresses,
+		TelephoneNumbers: ConvertList(p.TelephoneNumbers, func(tn oscaltypes113.TelephoneNumber) relational.TelephoneNumber {
+			tn_type := relational.TelephoneNumberType(tn.Type)
+			return relational.TelephoneNumber{
+				Number: tn.Number,
+				Type:   &tn_type,
+			}
+		}),
+
+		// TODO: manage support for if `location-uuids` is set
+		// as spec is choice of addresses OR location-uuids
+		Addresses: ConvertList(p.Addresses, func(a oscaltypes113.Address) relational.Address {
+			addr_type := relational.AddressType(a.Type)
+			return relational.Address{
+				Type:       addr_type,
+				AddrLines:  *a.AddrLines,
+				City:       a.City,
+				State:      a.State,
+				PostalCode: a.PostalCode,
+				Country:    a.Country,
+			}
+		}),
+
+		ExternalIds: ConvertList(p.ExternalIds, func(e oscaltypes113.PartyExternalIdentifier) relational.PartyExternalID {
+			party_scheme := relational.PartyExternalIDScheme(e.Scheme)
+			return relational.PartyExternalID{
+				ID:     e.ID,
+				Scheme: party_scheme,
+			}
+		}),
+
+		// Locations -> many-2-many relationship (Location)
+		// Members of Organizations -> many-2-many relationship (Party)
+
+		Remarks: &p.Remarks,
+	}
 }
