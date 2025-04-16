@@ -12,7 +12,7 @@ type ComponentDefinition struct {
 	Metadata ComponentDefinitionMetadata `json:"metadata" gorm:"foreignKey:ComponentDefintionID"`
 }
 
-// `ComponentDefinitionMetadata` belongs to `ComponentDefinitionID` is the foriegn key
+// `ComponentDefinitionMetadata` belongs to `ComponentDefinition`, `ComponentDefinitionID` is the foriegn key
 type ComponentDefinitionMetadata struct {
 	UUIDModel
 	ComponentDefintionID uuid.UUID
