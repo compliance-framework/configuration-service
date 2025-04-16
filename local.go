@@ -4,13 +4,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"os"
+
 	"github.com/compliance-framework/configuration-service/internal/service/relational"
 	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"os"
 )
 
 func main() {
@@ -33,6 +34,8 @@ func main() {
 		&relational.CatalogMetadata{},
 		&relational.Catalog{},
 		"catalog_roles",
+		&relational.ComponentDefinitionMetadata{},
+		&relational.ComponentDefinition{},
 	)
 	if err != nil {
 		panic(err)
@@ -52,15 +55,25 @@ func main() {
 		&relational.Action{},
 		&relational.CatalogMetadata{},
 		&relational.Catalog{},
+		&relational.ComponentDefinitionMetadata{},
+		&relational.ComponentDefinition{},
 	)
 	if err != nil {
 		panic(err)
 	}
 
-	jsonFile, err := os.Open("testdata/sp800_53_catalog.json")
-	// if we os.Open returns an error then handle it
+	err = LoadCatalogDataFromJSON(db, "testdata/sp800_53_catalog.json")
 	if err != nil {
 		fmt.Println(err)
+		panic(err)
+	}
+}
+
+func LoadCatalogDataFromJSON(db *gorm.DB, jsonPath string) error {
+	jsonFile, err := os.Open(jsonPath)
+	// if we os.Open returns an error then handle it
+	if err != nil {
+		return err
 	}
 	fmt.Println("Successfully Opened Catalog")
 	// defer the closing of our jsonFile so that we can parse it later on
@@ -71,7 +84,7 @@ func main() {
 	}{}
 	err = json.NewDecoder(jsonFile).Decode(input)
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 
 	// First, the catalog
@@ -84,6 +97,8 @@ func main() {
 		},
 		Metadata: metadata,
 	})
+
+	return nil
 }
 
 // incomplete
