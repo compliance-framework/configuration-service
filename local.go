@@ -67,6 +67,41 @@ func main() {
 		fmt.Println(err)
 		panic(err)
 	}
+
+	err = LoadComponentDefinitionDataFromJSON(db, "testdata/sp800_53_component_definition_sample.json")
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+}
+
+func LoadComponentDefinitionDataFromJSON(db *gorm.DB, jsonPath string) error {
+	jsonFile, err := os.Open(jsonPath)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Successfully Opened Component Definition")
+	defer jsonFile.Close()
+	input := &struct {
+		ComponentDefinition *oscaltypes113.ComponentDefinition `json:"component-definition"`
+	}{}
+
+	err = json.NewDecoder(jsonFile).Decode(input)
+	if err != nil {
+		return err
+	}
+
+	cdId := uuid.MustParse(input.ComponentDefinition.UUID)
+	metadata := ComponentDefinitionMetadataFromOscal(&input.ComponentDefinition.Metadata)
+
+	db.Create(&relational.ComponentDefinition{
+		UUIDModel: relational.UUIDModel{
+			ID: &cdId,
+		},
+		Metadata: metadata,
+	})
+
+	return nil
 }
 
 func LoadCatalogDataFromJSON(db *gorm.DB, jsonPath string) error {
@@ -135,6 +170,43 @@ func CatalogMetadataFromOscal(metadata *oscaltypes113.Metadata) relational.Catal
 		ResponsibleParties: nil,
 		Actions:            nil,
 		Remarks:            metadata.Remarks,
+	}
+}
+
+// incomplete
+func ComponentDefinitionMetadataFromOscal(metadata *oscaltypes113.Metadata) relational.ComponentDefinitionMetadata {
+	published := sql.NullTime{}
+	if metadata.Published != nil {
+		published = sql.NullTime{
+			Time: *metadata.Published,
+		}
+	}
+	return relational.ComponentDefinitionMetadata{
+		Title:        metadata.Title,
+		Published:    published,
+		LastModified: metadata.LastModified,
+		Version:      metadata.Version,
+		OscalVersion: metadata.OscalVersion,
+		DocumentIDs: func() datatypes.JSONSlice[relational.DocumentID] {
+			list := make([]relational.DocumentID, 0)
+			if metadata.DocumentIds != nil {
+				for _, document := range *metadata.DocumentIds {
+					doc := &relational.DocumentID{}
+					doc.FromOscal(document)
+					list = append(list, *doc)
+				}
+			}
+			return datatypes.NewJSONSlice[relational.DocumentID](list)
+		}(),
+		Props: ConvertList(metadata.Props, PropFromOscal),
+		Links: ConvertList(metadata.Links, LinkFromOscal),
+		//Revisions:          ConvertList(metadata.Revisions, RevisionFromOscal),
+		Roles:              ConvertList(metadata.Roles, RoleFromOscal),
+		Locations:          nil,
+		Parties:            nil,
+		ResponsibleParties: nil,
+		//Actions:            nil,
+		Remarks: metadata.Remarks,
 	}
 }
 
