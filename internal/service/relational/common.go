@@ -7,10 +7,18 @@ import (
 )
 
 type Prop oscaltypes113.Property
-type Props []*Prop
+
+func (p *Prop) UnmarshalOscal(data oscaltypes113.Property) *Prop {
+	*p = Prop(data)
+	return p
+}
 
 type Link oscaltypes113.Link
-type Links []*Link
+
+func (l *Link) UnmarshalOscal(data oscaltypes113.Link) *Link {
+	*l = Link(data)
+	return l
+}
 
 type UUIDModel struct {
 	ID *uuid.UUID `json:"id" gorm:"type:uuid;primary_key;"`

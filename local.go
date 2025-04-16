@@ -19,6 +19,25 @@ func main() {
 		panic("failed to connect database")
 	}
 
+	err = db.Migrator().DropTable(
+		&relational.Location{},
+		&relational.Party{},
+		&relational.BackMatterResource{},
+		&relational.BackMatter{},
+		&relational.Role{},
+		&relational.Revision{},
+		&relational.Control{},
+		&relational.Group{},
+		&relational.ResponsibleParty{},
+		&relational.Action{},
+		&relational.CatalogMetadata{},
+		&relational.Catalog{},
+		"catalog_roles",
+	)
+	if err != nil {
+		panic(err)
+	}
+
 	// Migrate the schema
 	err = db.AutoMigrate(
 		&relational.Location{},
@@ -55,20 +74,36 @@ func main() {
 		fmt.Println(err)
 	}
 
-	catalog := input.Catalog
-
 	// First, the catalog
-	catalogId := uuid.MustParse(catalog.UUID)
-	metadata := relational.CatalogMetadata{
-		Title:        catalog.Metadata.Title,
-		Published:    sql.NullTime{},
-		LastModified: catalog.Metadata.LastModified,
-		Version:      catalog.Metadata.Version,
-		OscalVersion: catalog.Metadata.OscalVersion,
+	catalogId := uuid.MustParse(input.Catalog.UUID)
+	metadata := CatalogMetadataFromOscal(&input.Catalog.Metadata)
+
+	db.Create(&relational.Catalog{
+		UUIDModel: relational.UUIDModel{
+			ID: &catalogId,
+		},
+		Metadata: metadata,
+	})
+}
+
+// incomplete
+func CatalogMetadataFromOscal(metadata *oscaltypes113.Metadata) relational.CatalogMetadata {
+	published := sql.NullTime{}
+	if metadata.Published != nil {
+		published = sql.NullTime{
+			Time: *metadata.Published,
+		}
+	}
+	return relational.CatalogMetadata{
+		Title:        metadata.Title,
+		Published:    published,
+		LastModified: metadata.LastModified,
+		Version:      metadata.Version,
+		OscalVersion: metadata.OscalVersion,
 		DocumentIDs: func() datatypes.JSONSlice[relational.DocumentID] {
 			list := make([]relational.DocumentID, 0)
-			if catalog.Metadata.DocumentIds != nil {
-				for _, document := range *catalog.Metadata.DocumentIds {
+			if metadata.DocumentIds != nil {
+				for _, document := range *metadata.DocumentIds {
 					doc := &relational.DocumentID{}
 					doc.FromOscal(document)
 					list = append(list, *doc)
@@ -76,21 +111,104 @@ func main() {
 			}
 			return datatypes.NewJSONSlice[relational.DocumentID](list)
 		}(),
-		Revisions: func() []relational.Revision {
-			list := make([]relational.Revision, 0)
-			for _, revision := range *catalog.Metadata.Revisions {
-				doc := &relational.Revision{}
-				doc.FromOscal(revision)
-				list = append(list, *doc)
-			}
-			return list
-		}(),
-		Remarks: catalog.Metadata.Remarks,
+		Props:              ConvertList(metadata.Props, PropFromOscal),
+		Links:              ConvertList(metadata.Links, LinkFromOscal),
+		Revisions:          ConvertList(metadata.Revisions, RevisionFromOscal),
+		Roles:              ConvertList(metadata.Roles, RoleFromOscal),
+		Locations:          nil,
+		Parties:            nil,
+		ResponsibleParties: nil,
+		Actions:            nil,
+		Remarks:            metadata.Remarks,
 	}
-	db.Create(&relational.Catalog{
-		UUIDModel: relational.UUIDModel{
-			ID: &catalogId,
+}
+
+func CatalogParameterFromOscal(parameter oscaltypes113.Parameter) relational.Parameter {
+	return relational.Parameter{
+		ID:          parameter.ID,
+		Class:       parameter.Class,
+		Props:       ConvertList(parameter.Props, PropFromOscal),
+		Links:       ConvertList(parameter.Links, LinkFromOscal),
+		Label:       parameter.Label,
+		Usage:       parameter.Usage,
+		Constraints: ConvertList(parameter.Constraints, ParameterConstraintFromOscal),
+		Guidelines:  ConvertList(parameter.Guidelines, ParameterGuidelineFromOscal),
+		Values:      *parameter.Values,
+		Select: relational.ParameterSelection{
+			HowMany: relational.ParameterSelectionCount(parameter.Select.HowMany),
+			Choice:  *parameter.Select.Choice,
 		},
-		Metadata: metadata,
-	})
+		Remarks: parameter.Remarks,
+	}
+}
+
+func ConvertList[in any, out any](list *[]in, mutate func(in) out) []out {
+	if list == nil {
+		return nil
+	}
+	output := make([]out, 0)
+	for _, i := range *list {
+		output = append(output, mutate(i))
+	}
+	return output
+}
+
+func RoleFromOscal(r oscaltypes113.Role) relational.Role {
+	return relational.Role{
+		ID:          r.ID,
+		Title:       r.Title,
+		ShortName:   &r.ShortName,
+		Description: &r.Description,
+		Props:       ConvertList(r.Props, PropFromOscal),
+		Links:       ConvertList(r.Links, LinkFromOscal),
+		Remarks:     &r.Remarks,
+	}
+}
+
+func RevisionFromOscal(r oscaltypes113.RevisionHistoryEntry) relational.Revision {
+	published := sql.NullTime{}
+	if r.Published != nil {
+		published = sql.NullTime{Time: *r.Published}
+	}
+	lastModified := sql.NullTime{}
+	if r.LastModified != nil {
+		lastModified = sql.NullTime{Time: *r.LastModified}
+	}
+	return relational.Revision{
+		Title:        &r.Title,
+		Published:    published,
+		LastModified: lastModified,
+		Version:      r.Version,
+		OscalVersion: &r.OscalVersion,
+		Props:        ConvertList(r.Props, PropFromOscal),
+		Links:        ConvertList(r.Links, LinkFromOscal),
+		Remarks:      &r.Remarks,
+	}
+}
+
+func ParameterGuidelineFromOscal(c oscaltypes113.ParameterGuideline) relational.ParameterGuideline {
+	return relational.ParameterGuideline(c)
+}
+
+func ParameterConstraintFromOscal(c oscaltypes113.ParameterConstraint) relational.ParameterConstraint {
+	return relational.ParameterConstraint{
+		Description: c.Description,
+		Tests:       ConvertList(c.Tests, ConstraintTestFromOscal),
+	}
+}
+
+func ConstraintTestFromOscal(ct oscaltypes113.ConstraintTest) relational.ParameterConstraintTest {
+	return relational.ParameterConstraintTest(ct)
+}
+
+func LinkFromOscal(olink oscaltypes113.Link) relational.Link {
+	link := relational.Link{}
+	link.UnmarshalOscal(olink)
+	return link
+}
+
+func PropFromOscal(property oscaltypes113.Property) relational.Prop {
+	prop := relational.Prop{}
+	prop.UnmarshalOscal(property)
+	return prop
 }

@@ -87,8 +87,8 @@ type Control struct {
 
 type Citation struct {
 	Text  string `json:"text"` // required
-	Props Props  `json:"props"`
-	Links Links  `json:"links"`
+	Props []Prop `json:"props"`
+	Links []Link `json:"links"`
 }
 
 type HashAlgorithm string
@@ -273,14 +273,13 @@ type Location struct {
 }
 
 type Role struct {
-	ID                string `json:"id" gorm:"primary_key;"`
-	CatalogMetadataID uuid.UUID
-	Title             string                    `json:"title"`
-	ShortName         *string                   `json:"short-name"`
-	Description       *string                   `json:"description"`
-	Props             datatypes.JSONSlice[Prop] `json:"props"`
-	Links             datatypes.JSONSlice[Link] `json:"links"`
-	Remarks           *string                   `json:"remarks"`
+	ID          string                    `json:"id" gorm:"primary_key;"`
+	Title       string                    `json:"title"`
+	ShortName   *string                   `json:"short-name"`
+	Description *string                   `json:"description"`
+	Props       datatypes.JSONSlice[Prop] `json:"props"`
+	Links       datatypes.JSONSlice[Link] `json:"links"`
+	Remarks     *string                   `json:"remarks"`
 }
 
 type Revision struct {
@@ -313,8 +312,8 @@ func (d *Revision) FromOscal(rev oscalTypes_1_1_3.RevisionHistoryEntry) {
 type Parameter struct {
 	ID          string                `json:"id"`
 	Class       string                `json:"class"`
-	Props       Props                 `json:"props"`
-	Links       Links                 `json:"links"`
+	Props       []Prop                `json:"props"`
+	Links       []Link                `json:"links"`
 	Label       string                `json:"label"`
 	Usage       string                `json:"usage"`
 	Constraints []ParameterConstraint `json:"constraints"`
@@ -375,8 +374,8 @@ type Part struct {
 	Class string `json:"class"`
 	Title string `json:"title"`
 	Prose string `json:"prose"`
-	Props Props  `json:"props"`
-	Links Links  `json:"links"`
+	Props []Prop `json:"props"`
+	Links []Link `json:"links"`
 	Parts []Part `json:"parts"` // -> Part
 
 	/**
