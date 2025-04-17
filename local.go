@@ -33,8 +33,12 @@ func main() {
 		&relational.Action{},
 		&relational.Metadata{},
 		&relational.Catalog{},
-		"catalog_roles",
 		&relational.ComponentDefinition{},
+		"metadata_responsible_parties",
+		"party_locations",
+		"party_member_of_organisations",
+		"responsible_party_parties",
+		"action_responsible_parties",
 	)
 	if err != nil {
 		panic(err)
@@ -123,15 +127,25 @@ func LoadCatalogDataFromJSON(db *gorm.DB, jsonPath string) error {
 
 	// First, the catalog
 	catalogId := uuid.MustParse(input.Catalog.UUID)
-
-	metadata := &relational.Metadata{}
-	metadata.UnmarshalOscal(input.Catalog.Metadata)
-	db.Create(&relational.Catalog{
+	catalog := &relational.Catalog{
 		UUIDModel: relational.UUIDModel{
 			ID: &catalogId,
 		},
-		Metadata: *metadata,
-	})
+	}
+	out := db.Create(catalog)
+	if out.Error != nil {
+		return out.Error
+	}
+
+	// Next, the Metadata
+	metadata := &relational.Metadata{}
+	metadata.UnmarshalOscal(input.Catalog.Metadata)
+	out = db.Create(metadata)
+	if out.Error != nil {
+		return out.Error
+	}
+
+	db.Model(catalog).Association("Metadata").Replace(metadata)
 
 	return nil
 }

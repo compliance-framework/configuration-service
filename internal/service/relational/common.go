@@ -25,6 +25,11 @@ func (l *Link) UnmarshalOscal(data oscaltypes113.Link) *Link {
 
 type Metadata struct {
 	UUIDModel
+
+	// Metadata is shared across many resources, and so it mapped using a polymorphic relationship
+	ParentID   *string
+	ParentType *string
+
 	Title              string                          `json:"title"`
 	Published          sql.NullTime                    `json:"published"`
 	LastModified       time.Time                       `json:"last-modified"`
@@ -33,17 +38,13 @@ type Metadata struct {
 	DocumentIDs        datatypes.JSONSlice[DocumentID] `json:"document-ids"` // -> DocumentID
 	Props              datatypes.JSONSlice[Prop]       `json:"props"`
 	Links              datatypes.JSONSlice[Link]       `json:"links"`
-	Revisions          []Revision                      `json:"revisions" gorm:"polymorphic:Parent;"`
-	Roles              []Role                          `gorm:"many2many:metadata_roles;"`
-	Locations          []Location                      `gorm:"many2many:metadata_locations;"`
-	Parties            []Party                         `gorm:"many2many:metadata_parties;"`
-	ResponsibleParties []ResponsibleParty              `gorm:"many2many:metadata_responsible_parties;"`
-	Actions            []Action                        `json:"actions"` // -> Action
+	ResponsibleParties []ResponsibleParty              `gorm:"many2many:metadata_responsible_parties;"` // Morph
+	Revisions          []Revision                      `json:"revisions"`
+	Roles              []Role                          `json:"roles"`
+	Locations          []Location                      `json:"locations"`
+	Parties            []Party                         `json:"parties"`
+	Actions            []Action                        `json:"actions"` // -> Action // Direct
 	Remarks            string                          `json:"remarks"`
-
-	// Metadata is shared across many resources, and so it mapped using a polymorphic relationship
-	ParentID   *string
-	ParentType *string
 
 	/**
 	"required": [
@@ -176,9 +177,9 @@ func (d *DocumentID) FromOscal(id oscaltypes113.DocumentId) {
 
 type BackMatter struct {
 	UUIDModel
-	Resources  []BackMatterResource `json:"resources"`
 	ParentID   *string
 	ParentType *string
+	Resources  []BackMatterResource `json:"resources"`
 }
 
 type BackMatterResource struct {
@@ -197,6 +198,10 @@ type BackMatterResource struct {
 type Revision struct {
 	// Only version is required
 	UUIDModel
+
+	// Revision only exist on a metadata object. We'll link them straight there with a BelongsTo relationship
+	MetadataID uuid.UUID `json:"metadata-id"`
+
 	Title        *string                   `json:"title"`
 	Published    sql.NullTime              `json:"published"`
 	LastModified sql.NullTime              `json:"last-modified"`
@@ -205,8 +210,6 @@ type Revision struct {
 	Props        datatypes.JSONSlice[Prop] `json:"props"`
 	Links        datatypes.JSONSlice[Link] `json:"links"`
 	Remarks      *string                   `json:"remarks"`
-	ParentID     *uuid.UUID
-	ParentType   *string
 }
 
 func (r *Revision) UnmarshalOscal(entry oscaltypes113.RevisionHistoryEntry) *Revision {
@@ -235,7 +238,11 @@ func (r *Revision) UnmarshalOscal(entry oscaltypes113.RevisionHistoryEntry) *Rev
 }
 
 type Role struct {
-	ID          string                    `json:"id" gorm:"primary_key;"`
+	ID string `json:"id" gorm:"primary_key;"`
+
+	// Roles only exist on a metadata object. We'll link them straight there with a BelongsTo relationship
+	MetadataID uuid.UUID `json:"metadata-id"`
+
 	Title       string                    `json:"title"`
 	ShortName   *string                   `json:"short-name"`
 	Description *string                   `json:"description"`
@@ -346,7 +353,10 @@ func (p *PartyExternalID) UnmarshalOscal(oid oscaltypes113.PartyExternalIdentifi
 
 type Party struct {
 	UUIDModel
-	MetadataID            uuid.UUID
+
+	// Parties only exist on a metadata object. We'll link them straight there with a BelongsTo relationship
+	MetadataID uuid.UUID `json:"metadata-id"`
+
 	Type                  PartyType                            `json:"type"`
 	Name                  *string                              `json:"name"`
 	ShortName             *string                              `json:"short-name"`
@@ -411,10 +421,9 @@ func (p *Party) UnmarshalOscal(oparty oscaltypes113.Party) *Party {
 
 type ResponsibleParty struct {
 	UUIDModel
-	MetadataID uuid.UUID
-	Props      datatypes.JSONSlice[Prop] `json:"props"`
-	Links      datatypes.JSONSlice[Link] `json:"links"`
-	Remarks    string                    `json:"remarks"`
+	Props   datatypes.JSONSlice[Prop] `json:"props"`
+	Links   datatypes.JSONSlice[Link] `json:"links"`
+	Remarks string                    `json:"remarks"`
 
 	RoleID  string `json:"role-id"` // required
 	Role    Role
@@ -450,13 +459,16 @@ func (r *ResponsibleParty) UnmarshalOscal(or oscaltypes113.ResponsibleParty) *Re
 
 type Action struct {
 	UUIDModel
-	MetadataID         uuid.UUID                 // required
+
+	// Actions only exist on a metadata object. We'll link them straight there with a BelongsTo relationship
+	MetadataID uuid.UUID `json:"metadata-id"`
+
 	Date               sql.NullTime              `json:"date"`
 	Type               string                    `json:"type"`   // required
 	System             string                    `json:"system"` // required
 	Props              datatypes.JSONSlice[Prop] `json:"props"`
 	Links              datatypes.JSONSlice[Link] `json:"links"`
-	ResponsibleParties []ResponsibleParty        `gorm:"many2many:action_responsible_party;"`
+	ResponsibleParties []ResponsibleParty        `gorm:"many2many:action_responsible_parties;"`
 	Remarks            string                    `json:"remarks"`
 }
 
@@ -500,7 +512,10 @@ func (a *Action) UnmarshalOscal(action oscaltypes113.Action) *Action {
 
 type Location struct {
 	UUIDModel
-	MetadataID       uuid.UUID
+
+	// Locations only exist on a metadata object. We'll link them straight there with a BelongsTo relationship
+	MetadataID uuid.UUID `json:"metadata-id"`
+
 	Title            *string                              `json:"title"`
 	Address          datatypes.JSONType[Address]          `json:"address"`
 	EmailAddresses   datatypes.JSONSlice[string]          `json:"email-addresses"`
