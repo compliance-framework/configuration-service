@@ -31,10 +31,9 @@ func main() {
 		&relational.Group{},
 		&relational.ResponsibleParty{},
 		&relational.Action{},
-		&relational.CatalogMetadata{},
+		&relational.Metadata{},
 		&relational.Catalog{},
 		"catalog_roles",
-		&relational.ComponentDefinitionMetadata{},
 		&relational.ComponentDefinition{},
 	)
 	if err != nil {
@@ -53,9 +52,8 @@ func main() {
 		&relational.Group{},
 		&relational.ResponsibleParty{},
 		&relational.Action{},
-		&relational.CatalogMetadata{},
+		&relational.Metadata{},
 		&relational.Catalog{},
-		&relational.ComponentDefinitionMetadata{},
 		&relational.ComponentDefinition{},
 	)
 	if err != nil {
@@ -92,13 +90,14 @@ func LoadComponentDefinitionDataFromJSON(db *gorm.DB, jsonPath string) error {
 	}
 
 	cdId := uuid.MustParse(input.ComponentDefinition.UUID)
-	metadata := ComponentDefinitionMetadataFromOscal(&input.ComponentDefinition.Metadata)
+	metadata := &relational.Metadata{}
+	metadata.UnmarshalOscal(input.ComponentDefinition.Metadata)
 
 	db.Create(&relational.ComponentDefinition{
 		UUIDModel: relational.UUIDModel{
 			ID: &cdId,
 		},
-		Metadata: metadata,
+		Metadata: *metadata,
 	})
 
 	return nil
@@ -124,27 +123,28 @@ func LoadCatalogDataFromJSON(db *gorm.DB, jsonPath string) error {
 
 	// First, the catalog
 	catalogId := uuid.MustParse(input.Catalog.UUID)
-	metadata := CatalogMetadataFromOscal(&input.Catalog.Metadata)
 
+	metadata := &relational.Metadata{}
+	metadata.UnmarshalOscal(input.Catalog.Metadata)
 	db.Create(&relational.Catalog{
 		UUIDModel: relational.UUIDModel{
 			ID: &catalogId,
 		},
-		Metadata: metadata,
+		Metadata: *metadata,
 	})
 
 	return nil
 }
 
 // incomplete
-func CatalogMetadataFromOscal(metadata *oscaltypes113.Metadata) relational.CatalogMetadata {
+func MetadataFromOscal(metadata *oscaltypes113.Metadata) relational.Metadata {
 	published := sql.NullTime{}
 	if metadata.Published != nil {
 		published = sql.NullTime{
 			Time: *metadata.Published,
 		}
 	}
-	return relational.CatalogMetadata{
+	return relational.Metadata{
 		Title:        metadata.Title,
 		Published:    published,
 		LastModified: metadata.LastModified,
@@ -170,62 +170,6 @@ func CatalogMetadataFromOscal(metadata *oscaltypes113.Metadata) relational.Catal
 		ResponsibleParties: nil,
 		Actions:            nil,
 		Remarks:            metadata.Remarks,
-	}
-}
-
-// incomplete
-func ComponentDefinitionMetadataFromOscal(metadata *oscaltypes113.Metadata) relational.ComponentDefinitionMetadata {
-	published := sql.NullTime{}
-	if metadata.Published != nil {
-		published = sql.NullTime{
-			Time: *metadata.Published,
-		}
-	}
-	return relational.ComponentDefinitionMetadata{
-		Title:        metadata.Title,
-		Published:    published,
-		LastModified: metadata.LastModified,
-		Version:      metadata.Version,
-		OscalVersion: metadata.OscalVersion,
-		DocumentIDs: func() datatypes.JSONSlice[relational.DocumentID] {
-			list := make([]relational.DocumentID, 0)
-			if metadata.DocumentIds != nil {
-				for _, document := range *metadata.DocumentIds {
-					doc := &relational.DocumentID{}
-					doc.FromOscal(document)
-					list = append(list, *doc)
-				}
-			}
-			return datatypes.NewJSONSlice[relational.DocumentID](list)
-		}(),
-		Props: ConvertList(metadata.Props, PropFromOscal),
-		Links: ConvertList(metadata.Links, LinkFromOscal),
-		//Revisions:          ConvertList(metadata.Revisions, RevisionFromOscal),
-		Roles:              ConvertList(metadata.Roles, RoleFromOscal),
-		Locations:          nil,
-		Parties:            ConvertList(metadata.Parties, PartyFromOscal),
-		ResponsibleParties: nil,
-		//Actions:            nil,
-		Remarks: metadata.Remarks,
-	}
-}
-
-func CatalogParameterFromOscal(parameter oscaltypes113.Parameter) relational.Parameter {
-	return relational.Parameter{
-		ID:          parameter.ID,
-		Class:       parameter.Class,
-		Props:       ConvertList(parameter.Props, PropFromOscal),
-		Links:       ConvertList(parameter.Links, LinkFromOscal),
-		Label:       parameter.Label,
-		Usage:       parameter.Usage,
-		Constraints: ConvertList(parameter.Constraints, ParameterConstraintFromOscal),
-		Guidelines:  ConvertList(parameter.Guidelines, ParameterGuidelineFromOscal),
-		Values:      *parameter.Values,
-		Select: relational.ParameterSelection{
-			HowMany: relational.ParameterSelectionCount(parameter.Select.HowMany),
-			Choice:  *parameter.Select.Choice,
-		},
-		Remarks: parameter.Remarks,
 	}
 }
 
