@@ -1,15 +1,12 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/compliance-framework/configuration-service/internal/service/relational"
 	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
-	"github.com/google/uuid"
-	"gorm.io/datatypes"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -93,16 +90,13 @@ func LoadComponentDefinitionDataFromJSON(db *gorm.DB, jsonPath string) error {
 		return err
 	}
 
-	cdId := uuid.MustParse(input.ComponentDefinition.UUID)
-	metadata := &relational.Metadata{}
-	metadata.UnmarshalOscal(input.ComponentDefinition.Metadata)
-
-	db.Create(&relational.ComponentDefinition{
-		UUIDModel: relational.UUIDModel{
-			ID: &cdId,
-		},
-		Metadata: *metadata,
-	})
+	// First, the catalog
+	def := &relational.ComponentDefinition{}
+	def.UnmarshalOscal(*input.ComponentDefinition)
+	out := db.Create(def)
+	if out.Error != nil {
+		return out.Error
+	}
 
 	return nil
 }
@@ -126,192 +120,12 @@ func LoadCatalogDataFromJSON(db *gorm.DB, jsonPath string) error {
 	}
 
 	// First, the catalog
-	catalogId := uuid.MustParse(input.Catalog.UUID)
-	catalog := &relational.Catalog{
-		UUIDModel: relational.UUIDModel{
-			ID: &catalogId,
-		},
-	}
+	catalog := &relational.Catalog{}
+	catalog.UnmarshalOscal(*input.Catalog)
 	out := db.Create(catalog)
 	if out.Error != nil {
 		return out.Error
 	}
 
-	// Next, the Metadata
-	metadata := &relational.Metadata{}
-	metadata.UnmarshalOscal(input.Catalog.Metadata)
-	out = db.Create(metadata)
-	if out.Error != nil {
-		return out.Error
-	}
-
-	db.Model(catalog).Association("Metadata").Replace(metadata)
-
 	return nil
-}
-
-// incomplete
-func MetadataFromOscal(metadata *oscaltypes113.Metadata) relational.Metadata {
-	published := sql.NullTime{}
-	if metadata.Published != nil {
-		published = sql.NullTime{
-			Time: *metadata.Published,
-		}
-	}
-	return relational.Metadata{
-		Title:        metadata.Title,
-		Published:    published,
-		LastModified: metadata.LastModified,
-		Version:      metadata.Version,
-		OscalVersion: metadata.OscalVersion,
-		DocumentIDs: func() datatypes.JSONSlice[relational.DocumentID] {
-			list := make([]relational.DocumentID, 0)
-			if metadata.DocumentIds != nil {
-				for _, document := range *metadata.DocumentIds {
-					doc := &relational.DocumentID{}
-					doc.FromOscal(document)
-					list = append(list, *doc)
-				}
-			}
-			return datatypes.NewJSONSlice[relational.DocumentID](list)
-		}(),
-		Props:              ConvertList(metadata.Props, PropFromOscal),
-		Links:              ConvertList(metadata.Links, LinkFromOscal),
-		Revisions:          ConvertList(metadata.Revisions, RevisionFromOscal),
-		Roles:              ConvertList(metadata.Roles, RoleFromOscal),
-		Locations:          nil,
-		Parties:            ConvertList(metadata.Parties, PartyFromOscal),
-		ResponsibleParties: nil,
-		Actions:            nil,
-		Remarks:            metadata.Remarks,
-	}
-}
-
-func ConvertList[in any, out any](list *[]in, mutate func(in) out) []out {
-	if list == nil {
-		return nil
-	}
-	output := make([]out, 0)
-	for _, i := range *list {
-		output = append(output, mutate(i))
-	}
-	return output
-}
-
-func RoleFromOscal(r oscaltypes113.Role) relational.Role {
-	return relational.Role{
-		ID:          r.ID,
-		Title:       r.Title,
-		ShortName:   &r.ShortName,
-		Description: &r.Description,
-		Props:       ConvertList(r.Props, PropFromOscal),
-		Links:       ConvertList(r.Links, LinkFromOscal),
-		Remarks:     &r.Remarks,
-	}
-}
-
-func RevisionFromOscal(r oscaltypes113.RevisionHistoryEntry) relational.Revision {
-	published := sql.NullTime{}
-	if r.Published != nil {
-		published = sql.NullTime{Time: *r.Published}
-	}
-	lastModified := sql.NullTime{}
-	if r.LastModified != nil {
-		lastModified = sql.NullTime{Time: *r.LastModified}
-	}
-	return relational.Revision{
-		Title:        &r.Title,
-		Published:    published,
-		LastModified: lastModified,
-		Version:      r.Version,
-		OscalVersion: &r.OscalVersion,
-		Props:        ConvertList(r.Props, PropFromOscal),
-		Links:        ConvertList(r.Links, LinkFromOscal),
-		Remarks:      &r.Remarks,
-	}
-}
-
-func ParameterGuidelineFromOscal(c oscaltypes113.ParameterGuideline) relational.ParameterGuideline {
-	return relational.ParameterGuideline(c)
-}
-
-func ParameterConstraintFromOscal(c oscaltypes113.ParameterConstraint) relational.ParameterConstraint {
-	return relational.ParameterConstraint{
-		Description: c.Description,
-		Tests:       ConvertList(c.Tests, ConstraintTestFromOscal),
-	}
-}
-
-func ConstraintTestFromOscal(ct oscaltypes113.ConstraintTest) relational.ParameterConstraintTest {
-	return relational.ParameterConstraintTest(ct)
-}
-
-func LinkFromOscal(olink oscaltypes113.Link) relational.Link {
-	link := relational.Link{}
-	link.UnmarshalOscal(olink)
-	return link
-}
-
-func PropFromOscal(property oscaltypes113.Property) relational.Prop {
-	prop := relational.Prop{}
-	prop.UnmarshalOscal(property)
-	return prop
-}
-
-// incomplete
-func PartyFromOscal(p oscaltypes113.Party) relational.Party {
-	var email_addresses *[]string
-	party_uuid := uuid.MustParse(p.UUID)
-
-	if p.EmailAddresses != nil {
-		email_addresses = p.EmailAddresses
-	} else {
-		email_addresses = &[]string{}
-	}
-
-	return relational.Party{
-		UUIDModel: relational.UUIDModel{
-			ID: &party_uuid,
-		},
-		Type:           relational.PartyType(p.Type),
-		Name:           &p.Name,
-		ShortName:      &p.ShortName,
-		Props:          ConvertList(p.Props, PropFromOscal),
-		Links:          ConvertList(p.Links, LinkFromOscal),
-		EmailAddresses: *email_addresses,
-		TelephoneNumbers: ConvertList(p.TelephoneNumbers, func(tn oscaltypes113.TelephoneNumber) relational.TelephoneNumber {
-			tn_type := relational.TelephoneNumberType(tn.Type)
-			return relational.TelephoneNumber{
-				Number: tn.Number,
-				Type:   &tn_type,
-			}
-		}),
-
-		// TODO: manage support for if `location-uuids` is set
-		// as spec is choice of addresses OR location-uuids
-		Addresses: ConvertList(p.Addresses, func(a oscaltypes113.Address) relational.Address {
-			addr_type := relational.AddressType(a.Type)
-			return relational.Address{
-				Type:       addr_type,
-				AddrLines:  *a.AddrLines,
-				City:       a.City,
-				State:      a.State,
-				PostalCode: a.PostalCode,
-				Country:    a.Country,
-			}
-		}),
-
-		ExternalIds: ConvertList(p.ExternalIds, func(e oscaltypes113.PartyExternalIdentifier) relational.PartyExternalID {
-			party_scheme := relational.PartyExternalIDScheme(e.Scheme)
-			return relational.PartyExternalID{
-				ID:     e.ID,
-				Scheme: party_scheme,
-			}
-		}),
-
-		// Locations -> many-2-many relationship (Location)
-		// Members of Organizations -> many-2-many relationship (Party)
-
-		Remarks: &p.Remarks,
-	}
 }

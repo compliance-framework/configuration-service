@@ -21,6 +21,20 @@ type Catalog struct {
 	*/
 }
 
+func (c *Catalog) UnmarshalOscal(ocatalog oscalTypes_1_1_3.Catalog) *Catalog {
+	metadata := &Metadata{}
+	metadata.UnmarshalOscal(ocatalog.Metadata)
+
+	id := uuid.MustParse(ocatalog.UUID)
+	*c = Catalog{
+		UUIDModel: UUIDModel{
+			ID: &id,
+		},
+		Metadata: *metadata,
+	}
+	return c
+}
+
 type Group struct {
 	ID     string                         `json:"id" gorm:"primary_key"` // required
 	Class  string                         `json:"class"`
