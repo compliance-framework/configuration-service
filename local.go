@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -61,16 +62,51 @@ func main() {
 		panic(err)
 	}
 
-	err = LoadCatalogDataFromJSON(db, "testdata/sp800_53_catalog.json")
-	if err != nil {
-		fmt.Println(err)
-		panic(err)
+	files := []string{
+		"testdata/sp800_53_catalog.json",
+		"testdata/sp800_53_component_definition_sample.json",
 	}
 
-	err = LoadComponentDefinitionDataFromJSON(db, "testdata/sp800_53_component_definition_sample.json")
-	if err != nil {
-		fmt.Println(err)
-		panic(err)
+	for _, f := range files {
+		jsonFile, err := os.Open(f)
+		if err != nil {
+			panic(err)
+		}
+
+		defer jsonFile.Close()
+		input := &struct {
+			ComponentDefinition *oscaltypes113.ComponentDefinition `json:"component-definition"`
+			Catalog             *oscaltypes113.Catalog             `json:"catalog"`
+		}{}
+
+		err = json.NewDecoder(jsonFile).Decode(input)
+		if err != nil {
+			panic(err)
+		}
+
+		if input.Catalog != nil {
+			def := &relational.Catalog{}
+			def.UnmarshalOscal(*input.Catalog)
+			out := db.Create(def)
+			if out.Error != nil {
+				panic(out.Error)
+			}
+			fmt.Println("Successfully Created Catalog", f)
+			continue
+		}
+
+		if input.ComponentDefinition != nil {
+			def := &relational.ComponentDefinition{}
+			def.UnmarshalOscal(*input.ComponentDefinition)
+			out := db.Create(def)
+			if out.Error != nil {
+				panic(out.Error)
+			}
+			fmt.Println("Successfully Created ComponentDefinition", f)
+			continue
+		}
+
+		panic(errors.New(fmt.Sprintf("File content wasn't understood or mapped, %s", f)))
 	}
 }
 
