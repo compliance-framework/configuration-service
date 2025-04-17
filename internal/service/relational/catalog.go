@@ -32,6 +32,12 @@ func (c *Catalog) UnmarshalOscal(ocatalog oscalTypes_1_1_3.Catalog) *Catalog {
 		},
 		Metadata: *metadata,
 	}
+
+	if ocatalog.BackMatter != nil {
+		backmatter := &BackMatter{}
+		backmatter.UnmarshalOscal(*ocatalog.BackMatter)
+		c.BackMatter = *backmatter
+	}
 	return c
 }
 

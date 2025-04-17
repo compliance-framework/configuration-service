@@ -63,6 +63,12 @@ func main() {
 	}
 
 	files := []string{
+		"testdata/NIST_SP-800_218_catalog.json",
+		"testdata/OWASP_DSOMM_3.28.2.json",
+		"testdata/SAMA_CSF_1.0_catalog.json",
+		"testdata/SAMA_ITGF_1.0_catalog.json",
+
+		"testdata/basic-catalog.json",
 		"testdata/sp800_53_catalog.json",
 		"testdata/sp800_53_component_definition_sample.json",
 	}
