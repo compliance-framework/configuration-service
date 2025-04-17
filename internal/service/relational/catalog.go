@@ -33,7 +33,7 @@ type CatalogMetadata struct {
 	DocumentIDs        datatypes.JSONSlice[DocumentID] `json:"document-ids"` // -> DocumentID
 	Props              datatypes.JSONSlice[Prop]       `json:"props"`
 	Links              datatypes.JSONSlice[Link]       `json:"links"`
-	Revisions          []Revision                      `json:"revisions"` // -> Revision
+	Revisions          []Revision                      `json:"revisions" gorm:"polymorphic:Parent;"`
 	Roles              []Role                          `gorm:"many2many:catalog_roles;"`
 	Locations          []Location                      `gorm:"many2many:catalog_locations;"`
 	Parties            []Party                         `gorm:"many2many:catalog_parties;"`
@@ -294,6 +294,8 @@ type Revision struct {
 	Props             datatypes.JSONSlice[Prop] `json:"props"`
 	Links             datatypes.JSONSlice[Link] `json:"links"`
 	Remarks           *string                   `json:"remarks"`
+	ParentID          *uuid.UUID
+	ParentType        *string
 }
 
 func (d *Revision) FromOscal(rev oscalTypes_1_1_3.RevisionHistoryEntry) {
@@ -359,12 +361,11 @@ type ParameterConstraint struct {
 type ParameterConstraintTest struct {
 	Expression string `json:"expression"`
 	Remarks    string `json:"remarks"`
+}
 
-	/**
-	"required": [
-		"expression"
-	],
-	*/
+func (l *ParameterConstraintTest) UnmarshalOscal(data oscalTypes_1_1_3.ConstraintTest) *ParameterConstraintTest {
+	*l = ParameterConstraintTest(data)
+	return l
 }
 
 type Part struct {

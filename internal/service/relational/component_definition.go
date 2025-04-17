@@ -27,8 +27,10 @@ type ComponentDefinitionMetadata struct {
 	Links                datatypes.JSONSlice[Link]       `json:"links"`
 
 	// TODO: Revisions is currently a 1:* with direct ties to catalog, either needs to be shifted to JSON ot many-to-many
-	//Revisions          []Revision         `json:"revisions"` // -> Revision
-
+	// Revisions are tied to a specific resource to denote it's history.
+	// Many 2 Many would work, but wouldn't properly communicate it's use.
+	// A polymorphic relationship on Revision would be better as that allows us to emulate a BelongsTo->HasMany relationship, without tying it to a specific parent model.
+	Revisions          []Revision         `json:"revisions" gorm:"polymorphic:Parent;"`
 	Roles              []Role             `gorm:"many2many:component_definition_roles;"`
 	Locations          []Location         `gorm:"many2many:component_definition_locations;"`
 	Parties            []Party            `gorm:"many2many:component_definition_parties;"`
