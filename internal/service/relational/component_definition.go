@@ -70,17 +70,8 @@ func (dc *DefinedComponent) UnmarshalOscal(odc oscalTypes_1_1_3.DefinedComponent
 		return protocol
 	})
 
-	links := ConvertList(odc.Links, func(ol oscalTypes_1_1_3.Link) Link {
-		link := Link{}
-		link.UnmarshalOscal(ol)
-		return link
-	})
-
-	props := ConvertList(odc.Props, func(op oscalTypes_1_1_3.Property) Prop {
-		prop := Prop{}
-		prop.UnmarshalOscal(op)
-		return prop
-	})
+	links := ConvertOscalLinks(odc.Links)
+	props := ConvertOscalProps(odc.Props)
 
 	*dc = DefinedComponent{
 		UUIDModel: UUIDModel{
@@ -91,9 +82,9 @@ func (dc *DefinedComponent) UnmarshalOscal(odc oscalTypes_1_1_3.DefinedComponent
 		Purpose:     odc.Purpose,
 		Remarks:     odc.Remarks,
 		Description: odc.Description,
-		Protocols:   datatypes.NewJSONSlice[Protocol](protocols),
-		Links:       datatypes.NewJSONSlice[Link](links),
-		Props:       datatypes.NewJSONSlice[Prop](props),
+		Protocols:   protocols,
+		Links:       links,
+		Props:       props,
 	}
 	return dc
 }
