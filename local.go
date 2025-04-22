@@ -32,11 +32,13 @@ func main() {
 		&relational.Metadata{},
 		&relational.Catalog{},
 		&relational.ComponentDefinition{},
+		&relational.DefinedComponent{},
 		"metadata_responsible_parties",
 		"party_locations",
 		"party_member_of_organisations",
 		"responsible_party_parties",
 		"action_responsible_parties",
+		"component_definition_responsible_roles",
 	)
 	if err != nil {
 		panic(err)
@@ -57,16 +59,17 @@ func main() {
 		&relational.Metadata{},
 		&relational.Catalog{},
 		&relational.ComponentDefinition{},
+		&relational.DefinedComponent{},
 	)
 	if err != nil {
 		panic(err)
 	}
 
 	files := []string{
-		"testdata/NIST_SP-800_218_catalog.json",
-		"testdata/OWASP_DSOMM_3.28.2.json",
-		"testdata/SAMA_CSF_1.0_catalog.json",
-		"testdata/SAMA_ITGF_1.0_catalog.json",
+		//"testdata/NIST_SP-800_218_catalog.json",
+		//"testdata/OWASP_DSOMM_3.28.2.json",
+		//"testdata/SAMA_CSF_1.0_catalog.json",
+		//"testdata/SAMA_ITGF_1.0_catalog.json",
 
 		"testdata/basic-catalog.json",
 		"testdata/sp800_53_catalog.json",

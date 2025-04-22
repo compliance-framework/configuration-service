@@ -28,6 +28,32 @@
               ]
             }
           ],
+          "protocols": [
+            {
+              "name": "HTTPS",
+              "uuid": "00000000-1111-2222-333333333333",
+              "title": "HTTPs Enabled",
+              "port-ranges": [
+                {
+                  "start": 443,
+                  "end": 443,
+                  "transport": "tls"
+                }
+              ]
+            }
+          ],
+          "props": [
+            {
+              "name": "Example property",
+              "value": "foo"
+            }
+          ],
+          "links": [
+            {
+              "href": "http://example.com",
+              "text": "example link"
+            }
+          ],
           "control-implementations": [
             {
               "uuid": "cfcdd674-8595-4f98-a9d1-3ac70825c49f",
