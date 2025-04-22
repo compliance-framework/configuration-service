@@ -38,6 +38,15 @@ func (c *Catalog) UnmarshalOscal(ocatalog oscalTypes_1_1_3.Catalog) *Catalog {
 		backmatter.UnmarshalOscal(*ocatalog.BackMatter)
 		c.BackMatter = *backmatter
 	}
+
+	if ocatalog.Params != nil {
+		params := ConvertList(ocatalog.Params, func(data oscalTypes_1_1_3.Parameter) Parameter {
+			output := Parameter{}
+			output.UnmarshalOscal(data)
+			return output
+		})
+		c.Params = params
+	}
 	return c
 }
 
@@ -75,23 +84,58 @@ type Control struct {
 }
 
 type Parameter struct {
-	ID          string                `json:"id"`
-	Class       string                `json:"class"`
-	Props       []Prop                `json:"props"`
-	Links       []Link                `json:"links"`
-	Label       string                `json:"label"`
-	Usage       string                `json:"usage"`
-	Constraints []ParameterConstraint `json:"constraints"`
-	Guidelines  []ParameterGuideline  `json:"guidelines"`
-	Values      []string              `json:"values"`
-	Select      ParameterSelection    `json:"select"`
-	Remarks     string                `json:"remarks"`
+	ID          string                                   `json:"id"`
+	Class       *string                                  `json:"class"`
+	Label       *string                                  `json:"label"`
+	Usage       *string                                  `json:"usage"`
+	Remarks     *string                                  `json:"remarks"`
+	Constraints datatypes.JSONSlice[ParameterConstraint] `json:"constraints"`
+	Guidelines  datatypes.JSONSlice[ParameterGuideline]  `json:"guidelines"`
+	Select      datatypes.JSONType[ParameterSelection]   `json:"select"`
+	Values      datatypes.JSONSlice[string]              `json:"values"`
+	Props       datatypes.JSONSlice[Prop]                `json:"props"`
+	Links       datatypes.JSONSlice[Link]                `json:"links"`
 
 	/**
 	"required": [
 		"id"
 	],
 	*/
+}
+
+func (l *Parameter) UnmarshalOscal(data oscalTypes_1_1_3.Parameter) *Parameter {
+	*l = Parameter{
+		ID:      data.ID,
+		Class:   &data.Class,
+		Props:   ConvertOscalProps(data.Props),
+		Links:   ConvertOscalLinks(data.Links),
+		Label:   &data.Label,
+		Usage:   &data.Usage,
+		Remarks: &data.Remarks,
+	}
+	if data.Select != nil {
+		selection := ParameterSelection{}
+		selection.UnmarshalOscal(*data.Select)
+		l.Select = datatypes.NewJSONType(selection)
+	}
+	if data.Constraints != nil {
+		l.Constraints = ConvertList(data.Constraints, func(pc oscalTypes_1_1_3.ParameterConstraint) ParameterConstraint {
+			constraint := ParameterConstraint{}
+			constraint.UnmarshalOscal(pc)
+			return constraint
+		})
+	}
+	if data.Guidelines != nil {
+		l.Guidelines = ConvertList(data.Guidelines, func(data oscalTypes_1_1_3.ParameterGuideline) ParameterGuideline {
+			output := ParameterGuideline{}
+			output.UnmarshalOscal(data)
+			return output
+		})
+	}
+	if data.Values != nil {
+		l.Values = *data.Values
+	}
+	return l
 }
 
 type ParameterSelectionCount string
@@ -106,6 +150,16 @@ type ParameterSelection struct {
 	Choice  []string                `json:"choice"`
 }
 
+func (l *ParameterSelection) UnmarshalOscal(data oscalTypes_1_1_3.ParameterSelection) *ParameterSelection {
+	*l = ParameterSelection{
+		HowMany: ParameterSelectionCount(data.HowMany),
+	}
+	if data.Choice != nil {
+		l.Choice = *data.Choice
+	}
+	return l
+}
+
 type ParameterGuideline struct {
 	Prose string `json:"prose"`
 
@@ -116,9 +170,28 @@ type ParameterGuideline struct {
 	*/
 }
 
+func (l *ParameterGuideline) UnmarshalOscal(data oscalTypes_1_1_3.ParameterGuideline) *ParameterGuideline {
+	*l = ParameterGuideline(data)
+	return l
+}
+
 type ParameterConstraint struct {
 	Description string                    `json:"description"`
 	Tests       []ParameterConstraintTest `json:"tests"`
+}
+
+func (l *ParameterConstraint) UnmarshalOscal(data oscalTypes_1_1_3.ParameterConstraint) *ParameterConstraint {
+	*l = ParameterConstraint{
+		Description: data.Description,
+	}
+	if data.Tests != nil {
+		l.Tests = ConvertList(data.Tests, func(t oscalTypes_1_1_3.ConstraintTest) ParameterConstraintTest {
+			test := ParameterConstraintTest{}
+			test.UnmarshalOscal(t)
+			return test
+		})
+	}
+	return l
 }
 
 type ParameterConstraintTest struct {
@@ -132,19 +205,39 @@ func (l *ParameterConstraintTest) UnmarshalOscal(data oscalTypes_1_1_3.Constrain
 }
 
 type Part struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	NS    string `json:"ns"`
-	Class string `json:"class"`
-	Title string `json:"title"`
-	Prose string `json:"prose"`
-	Props []Prop `json:"props"`
-	Links []Link `json:"links"`
-	Parts []Part `json:"parts"` // -> Part
+	ID     string                    `json:"id"`
+	Name   string                    `json:"name"`
+	NS     string                    `json:"ns"`
+	Class  string                    `json:"class"`
+	Title  string                    `json:"title"`
+	Prose  string                    `json:"prose"`
+	Props  datatypes.JSONSlice[Prop] `json:"props"`
+	Links  datatypes.JSONSlice[Link] `json:"links"`
+	PartID string                    `json:"part_id"`
+	Parts  []Part                    `json:"parts"` // -> Part
 
 	/**
 	"required": [
 		"name"
 	],
 	*/
+}
+
+func (l *Part) UnmarshalOscal(data oscalTypes_1_1_3.Part) *Part {
+	*l = Part{
+		ID:    data.ID,
+		Name:  data.Name,
+		NS:    data.Ns,
+		Class: data.Class,
+		Title: data.Title,
+		Prose: data.Prose,
+		Props: ConvertOscalProps(data.Props),
+		Links: ConvertOscalLinks(data.Links),
+		Parts: ConvertList(data.Parts, func(data oscalTypes_1_1_3.Part) Part {
+			output := Part{}
+			output.UnmarshalOscal(data)
+			return output
+		}),
+	}
+	return l
 }
