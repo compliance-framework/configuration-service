@@ -10,8 +10,8 @@ type Catalog struct {
 	UUIDModel
 	Metadata   Metadata                       `json:"metadata" gorm:"polymorphic:Parent;"`
 	Params     datatypes.JSONSlice[Parameter] `json:"params"`
-	Controls   []Control                      `json:"controls"`
-	Groups     []Group                        `json:"groups"`
+	Groups     []Group                        `json:"groups" gorm:"polymorphic:Parent;"`
+	Controls   []Control                      `json:"controls" gorm:"polymorphic:Parent;"`
 	BackMatter BackMatter                     `json:"back-matter" gorm:"polymorphic:Parent;"`
 	/**
 	"required": [
@@ -40,13 +40,29 @@ func (c *Catalog) UnmarshalOscal(ocatalog oscalTypes_1_1_3.Catalog) *Catalog {
 	}
 
 	if ocatalog.Params != nil {
-		params := ConvertList(ocatalog.Params, func(data oscalTypes_1_1_3.Parameter) Parameter {
+		c.Params = ConvertList(ocatalog.Params, func(data oscalTypes_1_1_3.Parameter) Parameter {
 			output := Parameter{}
 			output.UnmarshalOscal(data)
 			return output
 		})
-		c.Params = params
 	}
+
+	if ocatalog.Controls != nil {
+		c.Controls = ConvertList(ocatalog.Controls, func(data oscalTypes_1_1_3.Control) Control {
+			output := Control{}
+			output.UnmarshalOscal(data, id)
+			return output
+		})
+	}
+
+	if ocatalog.Groups != nil {
+		c.Groups = ConvertList(ocatalog.Groups, func(data oscalTypes_1_1_3.Group) Group {
+			output := Group{}
+			output.UnmarshalOscal(data, id)
+			return output
+		})
+	}
+
 	return c
 }
 
@@ -67,6 +83,50 @@ type Group struct {
 	Controls []Control `json:"controls" gorm:"polymorphic:Parent;"`
 }
 
+func (c *Group) UnmarshalOscal(data oscalTypes_1_1_3.Group, catalogId uuid.UUID) *Group {
+	*c = Group{
+		ID:        data.ID,
+		Title:     data.Title,
+		Class:     data.Class,
+		Props:     ConvertOscalProps(data.Props),
+		Links:     ConvertOscalLinks(data.Links),
+		CatalogID: catalogId,
+	}
+	if data.Params != nil {
+		params := ConvertList(data.Params, func(data oscalTypes_1_1_3.Parameter) Parameter {
+			output := Parameter{}
+			output.UnmarshalOscal(data)
+			return output
+		})
+		c.Params = params
+	}
+	if data.Parts != nil {
+		parts := ConvertList(data.Parts, func(data oscalTypes_1_1_3.Part) Part {
+			output := Part{}
+			output.UnmarshalOscal(data)
+			return output
+		})
+		c.Parts = parts
+	}
+	if data.Groups != nil {
+		groups := ConvertList(data.Groups, func(data oscalTypes_1_1_3.Group) Group {
+			output := Group{}
+			output.UnmarshalOscal(data, c.CatalogID)
+			return output
+		})
+		c.Groups = groups
+	}
+	if data.Controls != nil {
+		controls := ConvertList(data.Controls, func(data oscalTypes_1_1_3.Control) Control {
+			output := Control{}
+			output.UnmarshalOscal(data, c.CatalogID)
+			return output
+		})
+		c.Controls = controls
+	}
+	return c
+}
+
 type Control struct {
 	ID     string                         `json:"id" gorm:"primary_key"` // required
 	Title  string                         `json:"title"`                 // required
@@ -81,6 +141,42 @@ type Control struct {
 	ParentType *string
 
 	Controls []Control `json:"controls" gorm:"polymorphic:Parent;"`
+}
+
+func (c *Control) UnmarshalOscal(data oscalTypes_1_1_3.Control, catalogId uuid.UUID) *Control {
+	*c = Control{
+		ID:        data.ID,
+		Title:     data.Title,
+		Class:     &data.Class,
+		Props:     ConvertOscalProps(data.Props),
+		Links:     ConvertOscalLinks(data.Links),
+		CatalogID: catalogId,
+	}
+	if data.Params != nil {
+		params := ConvertList(data.Params, func(data oscalTypes_1_1_3.Parameter) Parameter {
+			output := Parameter{}
+			output.UnmarshalOscal(data)
+			return output
+		})
+		c.Params = params
+	}
+	if data.Parts != nil {
+		parts := ConvertList(data.Parts, func(data oscalTypes_1_1_3.Part) Part {
+			output := Part{}
+			output.UnmarshalOscal(data)
+			return output
+		})
+		c.Parts = parts
+	}
+	if data.Controls != nil {
+		controls := ConvertList(data.Controls, func(data oscalTypes_1_1_3.Control) Control {
+			output := Control{}
+			output.UnmarshalOscal(data, c.CatalogID)
+			return output
+		})
+		c.Controls = controls
+	}
+	return c
 }
 
 type Parameter struct {
