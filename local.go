@@ -31,6 +31,9 @@ func main() {
 		&relational.Action{},
 		&relational.Metadata{},
 		&relational.Catalog{},
+		&relational.ControlStatementImplementation{},
+		&relational.ImplementedRequirementControlImplementation{},
+		&relational.ControlImplementationSet{},
 		&relational.ComponentDefinition{},
 		&relational.DefinedComponent{},
 		"metadata_responsible_parties",
@@ -38,7 +41,6 @@ func main() {
 		"party_member_of_organisations",
 		"responsible_party_parties",
 		"action_responsible_parties",
-		"component_definition_responsible_roles",
 	)
 	if err != nil {
 		panic(err)
@@ -58,6 +60,9 @@ func main() {
 		&relational.Action{},
 		&relational.Metadata{},
 		&relational.Catalog{},
+		&relational.ControlStatementImplementation{},
+		&relational.ImplementedRequirementControlImplementation{},
+		&relational.ControlImplementationSet{},
 		&relational.ComponentDefinition{},
 		&relational.DefinedComponent{},
 	)
