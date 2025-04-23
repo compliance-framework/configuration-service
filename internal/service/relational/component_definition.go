@@ -11,7 +11,8 @@ type ComponentDefinition struct {
 	Metadata   Metadata   `json:"metadata" gorm:"polymorphic:Parent;"`
 	BackMatter BackMatter `json:"back-matter" gorm:"polymorphic:Parent;"`
 
-	Components []DefinedComponent `json:"components"`
+	ImportComponentDefinitions datatypes.JSONSlice[ImportComponentDefinition] `json:"import-component-definitions"`
+	Components                 []DefinedComponent                             `json:"components"`
 
 	//oscaltypes113.ComponentDefinition
 }
@@ -22,18 +23,29 @@ func (c *ComponentDefinition) UnmarshalOscal(ocd oscalTypes_1_1_3.ComponentDefin
 
 	id := uuid.MustParse(ocd.UUID)
 
+	importComponentDefs := ConvertList(ocd.ImportComponentDefinitions, func(oicd oscalTypes_1_1_3.ImportComponentDefinition) ImportComponentDefinition {
+		compDef := ImportComponentDefinition{}
+		compDef.UnmarshalOscal(oicd)
+		return compDef
+	})
+
 	components := ConvertList(ocd.Components, func(odc oscalTypes_1_1_3.DefinedComponent) DefinedComponent {
 		dc := &DefinedComponent{}
 		dc.UnmarshalOscal(odc)
 		return *dc
 	})
 
+	backMatter := &BackMatter{}
+	backMatter.UnmarshalOscal(*ocd.BackMatter)
+
 	*c = ComponentDefinition{
 		UUIDModel: UUIDModel{
 			ID: &id,
 		},
-		Metadata:   *metadata,
-		Components: components,
+		Metadata:                   *metadata,
+		ImportComponentDefinitions: datatypes.NewJSONSlice[ImportComponentDefinition](importComponentDefs),
+		Components:                 components,
+		BackMatter:                 *backMatter,
 	}
 	return c
 }
@@ -274,4 +286,11 @@ type ResponsibleRole oscalTypes_1_1_3.ResponsibleRole
 func (rr *ResponsibleRole) UnmarshalOscal(osc oscalTypes_1_1_3.ResponsibleRole) *ResponsibleRole {
 	*rr = ResponsibleRole(osc)
 	return rr
+}
+
+type ImportComponentDefinition oscalTypes_1_1_3.ImportComponentDefinition
+
+func (icd *ImportComponentDefinition) UnmarshalOscal(oicd oscalTypes_1_1_3.ImportComponentDefinition) *ImportComponentDefinition {
+	*icd = ImportComponentDefinition(oicd)
+	return icd
 }
