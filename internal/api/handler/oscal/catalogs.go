@@ -1,44 +1,108 @@
 package oscal
 
 import (
-	"fmt"
-	"github.com/compliance-framework/configuration-service/internal/api/handler"
-	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
+	"errors"
+	"github.com/compliance-framework/configuration-service/internal/api"
 	"net/http"
 
-	"github.com/compliance-framework/configuration-service/internal/service"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
+
+	"github.com/compliance-framework/configuration-service/internal/api/handler"
+	"github.com/compliance-framework/configuration-service/internal/service/relational"
 )
 
-// CatalogHandler handles CRUD operations for Catalogs.
 type CatalogHandler struct {
-	service        *service.CatalogService
-	controlService *service.CatalogControlService
-	groupService   *service.CatalogGroupService
-	sugar          *zap.SugaredLogger
+	sugar   *zap.SugaredLogger
+	service *relational.CatalogService
 }
 
-// NewCatalogHandler creates a new CatalogHandler.
-func NewCatalogHandler(l *zap.SugaredLogger, s *service.CatalogService, g *service.CatalogGroupService, c *service.CatalogControlService) *CatalogHandler {
+func NewCatalogHandler(l *zap.SugaredLogger, service *relational.CatalogService) *CatalogHandler {
 	return &CatalogHandler{
-		sugar:          l,
-		service:        s,
-		groupService:   g,
-		controlService: c,
+		sugar:   l,
+		service: service,
 	}
 }
 
-// Register registers the Catalog endpoints.
 func (h *CatalogHandler) Register(api *echo.Group) {
+	api.GET("", h.List)
+	api.GET("/:id", h.Get)
 	api.POST("", h.Create)
+	api.PUT("/:id", h.Update)
+	api.DELETE("/:id", h.Delete)
+}
+
+func (h *CatalogHandler) List(ctx echo.Context) error {
+	catalogs, err := h.service.ListCatalogs()
+	if err != nil {
+		h.sugar.Errorw("Failed to list catalogs", "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[relational.Catalog]{Data: catalogs})
+}
+
+func (h *CatalogHandler) Get(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid catalog id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+	catalog, err := h.service.GetCatalog(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Errorw("Failed to get catalog", "id", id, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[relational.Catalog]{Data: *catalog})
 }
 
 func (h *CatalogHandler) Create(ctx echo.Context) error {
-	fmt.Println("Trying to create OSCAL catalog")
+	var catalog relational.Catalog
+	if err := ctx.Bind(&catalog); err != nil {
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+	if err := h.service.CreateCatalog(&catalog); err != nil {
+		h.sugar.Errorw("Failed to create catalog", "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[relational.Catalog]{Data: catalog})
+}
 
-	//// Return the created catalog wrapped in a GenericDataResponse.
-	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[oscaltypes113.Catalog]{
-		Data: oscaltypes113.Catalog{},
-	})
+func (h *CatalogHandler) Update(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid catalog id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+	var catalog relational.Catalog
+	if err := ctx.Bind(&catalog); err != nil {
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+	// Enforce the URL ID
+	catalog.ID = &id
+	if err := h.service.UpdateCatalog(&catalog); err != nil {
+		h.sugar.Errorw("Failed to update catalog", "id", id, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[relational.Catalog]{Data: catalog})
+}
+
+func (h *CatalogHandler) Delete(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid catalog id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+	if err := h.service.DeleteCatalog(id); err != nil {
+		h.sugar.Errorw("Failed to delete catalog", "id", id, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	return ctx.NoContent(http.StatusNoContent)
 }
