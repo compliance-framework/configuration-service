@@ -171,6 +171,46 @@
           ]
         }
       ],
+      "capabilities": [
+        {
+          "uuid": "c1daced9-4a9f-409e-aac0-11039e0fe71a",
+          "name": "Test capability",
+          "description": "Test capability for the unmarshaler",
+          "props": [
+            {
+              "name": "Example property",
+              "value": "foo"
+            }
+          ],
+          "links": [
+            {
+              "href": "http://example.com",
+              "text": "example link"
+            }
+          ],
+          "incorporates-components": [
+            {
+              "component-uuid": "89143a42-b2c2-44bf-a0fb-d57a9b61fa8f",
+              "description": "Random component!"
+            }
+          ],
+          "control-implementations": [
+            {
+              "uuid": "4547dea9-2135-445a-ba2e-0a1962715b8f",
+              "source": "Demo from capabilities",
+              "description": "Implementations for the demo control",
+              "implemented-requirements": [
+                {
+                  "uuid": "32479c47-8172-4a29-8b55-c8a21230a459",
+                  "control-id": "abc-1.1",
+                  "decription": "Implements foo for the demo control"
+                }
+              ]
+            }
+          ],
+          "remarks": "Testing!"
+        }
+      ],
       "back-matter": {
         "resources": [
           {

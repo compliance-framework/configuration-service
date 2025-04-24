@@ -13,6 +13,7 @@ type ComponentDefinition struct {
 
 	ImportComponentDefinitions datatypes.JSONSlice[ImportComponentDefinition] `json:"import-component-definitions"`
 	Components                 []DefinedComponent                             `json:"components"`
+	Capabilities               []Capability                                   `json:"capabilities"`
 
 	//oscaltypes113.ComponentDefinition
 }
@@ -35,6 +36,12 @@ func (c *ComponentDefinition) UnmarshalOscal(ocd oscalTypes_1_1_3.ComponentDefin
 		return *dc
 	})
 
+	capabilities := ConvertList(ocd.Capabilities, func(oc oscalTypes_1_1_3.Capability) Capability {
+		cap := Capability{}
+		cap.UnmarshalOscal(oc)
+		return cap
+	})
+
 	backMatter := &BackMatter{}
 	backMatter.UnmarshalOscal(*ocd.BackMatter)
 
@@ -45,6 +52,7 @@ func (c *ComponentDefinition) UnmarshalOscal(ocd oscalTypes_1_1_3.ComponentDefin
 		Metadata:                   *metadata,
 		ImportComponentDefinitions: datatypes.NewJSONSlice[ImportComponentDefinition](importComponentDefs),
 		Components:                 components,
+		Capabilities:               capabilities,
 		BackMatter:                 *backMatter,
 	}
 	return c
@@ -60,7 +68,7 @@ type DefinedComponent struct {
 
 	// TODO: Convert to a linker table that maps between roles that exist on UUID in the metadata
 	ResponsibleRoles       datatypes.JSONSlice[ResponsibleRole] `json:"responsible-roles"`
-	ControlImplementations []ControlImplementationSet           `json:"control-implementations"`
+	ControlImplementations []ControlImplementationSet           `json:"control-implementations" gorm:"many2many:defined_components_control_implementation_sets"`
 
 	Props     datatypes.JSONSlice[Prop]     `json:"props"`
 	Links     datatypes.JSONSlice[Link]     `json:"links"`
@@ -293,4 +301,59 @@ type ImportComponentDefinition oscalTypes_1_1_3.ImportComponentDefinition
 func (icd *ImportComponentDefinition) UnmarshalOscal(oicd oscalTypes_1_1_3.ImportComponentDefinition) *ImportComponentDefinition {
 	*icd = ImportComponentDefinition(oicd)
 	return icd
+}
+
+type Capability struct {
+	UUIDModel
+	Description string `json:"description"`
+	Name        string `json:"name"`
+	Remarks     string `json:"remarks"`
+
+	Links                  datatypes.JSONSlice[Link]                   `json:"links"`
+	Props                  datatypes.JSONSlice[Prop]                   `json:"props"`
+	IncorporatesComponents datatypes.JSONSlice[IncorporatesComponents] `json:"incorporates-components"`
+	ControlImplementations []ControlImplementationSet                  `json:"control-implementations" gorm:"many2many:capability_control_implementation_sets"`
+
+	ComponentDefinitionId uuid.UUID
+	// oscalTypes_1_1_3.Capability
+}
+
+func (c *Capability) UnmarshalOscal(oc oscalTypes_1_1_3.Capability) *Capability {
+	id := uuid.MustParse(oc.UUID)
+	links := ConvertOscalLinks(oc.Links)
+	props := ConvertOscalProps(oc.Props)
+
+	components := ConvertList(oc.IncorporatesComponents, func(oic oscalTypes_1_1_3.IncorporatesComponent) IncorporatesComponents {
+		component := IncorporatesComponents{}
+		component.UnmarshalOscal(oic)
+		return component
+	})
+
+	controls := ConvertList(oc.ControlImplementations, func(oci oscalTypes_1_1_3.ControlImplementationSet) ControlImplementationSet {
+		control := ControlImplementationSet{}
+		control.UnmarshalOscal(oci)
+		return control
+	})
+
+	*c = Capability{
+		UUIDModel: UUIDModel{
+			ID: &id,
+		},
+		Description:            oc.Description,
+		Name:                   oc.Name,
+		Remarks:                oc.Remarks,
+		Links:                  links,
+		Props:                  props,
+		IncorporatesComponents: datatypes.JSONSlice[IncorporatesComponents](components),
+		ControlImplementations: controls,
+	}
+
+	return c
+}
+
+type IncorporatesComponents oscalTypes_1_1_3.IncorporatesComponent
+
+func (ic *IncorporatesComponents) UnmarshalOscal(iic oscalTypes_1_1_3.IncorporatesComponent) *IncorporatesComponents {
+	*ic = IncorporatesComponents(iic)
+	return ic
 }

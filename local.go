@@ -35,12 +35,15 @@ func main() {
 		&relational.ImplementedRequirementControlImplementation{},
 		&relational.ControlImplementationSet{},
 		&relational.ComponentDefinition{},
+		&relational.Capability{},
 		&relational.DefinedComponent{},
 		"metadata_responsible_parties",
 		"party_locations",
 		"party_member_of_organisations",
 		"responsible_party_parties",
 		"action_responsible_parties",
+		"capability_control_implementation_sets",
+		"defined_components_control_implementation_sets",
 	)
 	if err != nil {
 		panic(err)
@@ -64,6 +67,7 @@ func main() {
 		&relational.ImplementedRequirementControlImplementation{},
 		&relational.ControlImplementationSet{},
 		&relational.ComponentDefinition{},
+		&relational.Capability{},
 		&relational.DefinedComponent{},
 	)
 	if err != nil {
