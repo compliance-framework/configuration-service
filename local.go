@@ -37,6 +37,10 @@ func main() {
 		&relational.ComponentDefinition{},
 		&relational.Capability{},
 		&relational.DefinedComponent{},
+		&relational.InformationType{},
+		&relational.SystemInformation{},
+		&relational.SystemCharacteristics{},
+		&relational.SystemSecurityPlan{},
 		"metadata_responsible_parties",
 		"party_locations",
 		"party_member_of_organisations",
@@ -69,6 +73,10 @@ func main() {
 		&relational.ComponentDefinition{},
 		&relational.Capability{},
 		&relational.DefinedComponent{},
+		&relational.InformationType{},
+		&relational.SystemInformation{},
+		&relational.SystemCharacteristics{},
+		&relational.SystemSecurityPlan{},
 	)
 	if err != nil {
 		panic(err)
@@ -83,6 +91,7 @@ func main() {
 		"testdata/basic-catalog.json",
 		"testdata/sp800_53_catalog.json",
 		"testdata/sp800_53_component_definition_sample.json",
+		"testdata/example-ssp.json",
 	}
 
 	for _, f := range files {
@@ -95,6 +104,7 @@ func main() {
 		input := &struct {
 			ComponentDefinition *oscaltypes113.ComponentDefinition `json:"component-definition"`
 			Catalog             *oscaltypes113.Catalog             `json:"catalog"`
+			SystemSecurityPlan  *oscaltypes113.SystemSecurityPlan  `json:"system-security-plan"`
 		}{}
 
 		err = json.NewDecoder(jsonFile).Decode(input)
@@ -121,6 +131,17 @@ func main() {
 				panic(out.Error)
 			}
 			fmt.Println("Successfully Created ComponentDefinition", f)
+			continue
+		}
+
+		if input.SystemSecurityPlan != nil {
+			def := &relational.SystemSecurityPlan{}
+			def.UnmarshalOscal(*input.SystemSecurityPlan)
+			out := db.Create(def)
+			if out.Error != nil {
+				panic(out.Error)
+			}
+			fmt.Println("Successfully Created SystemSecurityPlan", f)
 			continue
 		}
 
