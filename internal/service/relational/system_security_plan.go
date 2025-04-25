@@ -78,8 +78,8 @@ type SystemCharacteristics struct {
 }
 
 func (sc *SystemCharacteristics) UnmarshalOscal(osc oscalTypes_1_1_3.SystemCharacteristics) *SystemCharacteristics {
-	props := ConvertOscalProps(osc.Props)
-	links := ConvertOscalLinks(osc.Links)
+	props := ConvertOscalToProps(osc.Props)
+	links := ConvertOscalToLinks(osc.Links)
 
 	dateAuthorized := sql.NullTime{}
 	if len(osc.DateAuthorized) > 0 {
@@ -138,8 +138,8 @@ type SystemInformation struct {
 }
 
 func (si *SystemInformation) UnmarshalOscal(osi oscalTypes_1_1_3.SystemInformation) *SystemInformation {
-	props := ConvertOscalProps(osi.Props)
-	links := ConvertOscalLinks(osi.Links)
+	props := ConvertOscalToProps(osi.Props)
+	links := ConvertOscalToLinks(osi.Links)
 
 	informationTypes := ConvertList(&osi.InformationTypes, func(oit oscalTypes_1_1_3.InformationType) InformationType {
 		informationType := InformationType{}
@@ -177,8 +177,8 @@ type InformationType struct {
 func (it *InformationType) UnmarshalOscal(oit oscalTypes_1_1_3.InformationType) *InformationType {
 	id := uuid.MustParse(oit.UUID)
 
-	props := ConvertOscalProps(oit.Props)
-	links := ConvertOscalLinks(oit.Links)
+	props := ConvertOscalToProps(oit.Props)
+	links := ConvertOscalToLinks(oit.Links)
 
 	confImpact := Impact{}
 	confImpact.UnmarshalOscal(*oit.ConfidentialityImpact)
@@ -200,7 +200,7 @@ func (it *InformationType) UnmarshalOscal(oit oscalTypes_1_1_3.InformationType) 
 			ID: &id,
 		},
 		Title:                 oit.Title,
-		description:           oit.Description,
+		Description:           oit.Description,
 		Props:                 props,
 		Links:                 links,
 		ConfidentialityImpact: datatypes.NewJSONType[Impact](confImpact),

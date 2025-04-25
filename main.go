@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/api/handler"
+	"github.com/compliance-framework/configuration-service/internal/api/handler/oscal"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 	"log"
 	"os"
 
@@ -55,6 +58,13 @@ func main() {
 	server := api.NewServer(ctx, sugar)
 
 	handler.RegisterHandlers(server, mongoDatabase, sugar)
+
+	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	oscal.RegisterHandlers(server, sugar, db)
 
 	server.PrintRoutes()
 

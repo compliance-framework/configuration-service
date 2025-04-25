@@ -320,8 +320,8 @@ type Capability struct {
 
 func (c *Capability) UnmarshalOscal(oc oscalTypes_1_1_3.Capability) *Capability {
 	id := uuid.MustParse(oc.UUID)
-	links := ConvertOscalLinks(oc.Links)
-	props := ConvertOscalProps(oc.Props)
+	links := ConvertOscalToLinks(oc.Links)
+	props := ConvertOscalToProps(oc.Props)
 
 	components := ConvertList(oc.IncorporatesComponents, func(oic oscalTypes_1_1_3.IncorporatesComponent) IncorporatesComponents {
 		component := IncorporatesComponents{}
