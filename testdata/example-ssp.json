@@ -115,7 +115,71 @@
         "remarks": "This is an example, and is not intended to be implemented as a system"
       },
       "authorization-boundary": {
-        "description": "The description of the authorization boundary would go here."
+        "description": "The description of the authorization boundary would go here.",
+        "props": [
+          {
+            "name": "cloud-deployment-model",
+            "value": "private-cloud"
+          },
+          {
+            "name": "cloud-service-model",
+            "value": "iaas"
+          }
+        ],
+        "links": [
+          {
+            "href": "http://example.com"
+          }
+        ],
+        "remarks": "Remarks about the authorization boundary",
+        "diagrams": [
+          {
+            "uuid": "0f488870-0e1f-470e-bf52-d8876e0115fd",
+            "description": "Test Diagram",
+            "props": [
+              {
+                "name": "cloud-deployment-model",
+                "value": "private-cloud"
+              },
+              {
+                "name": "cloud-service-model",
+                "value": "iaas"
+              }
+            ],
+            "links": [
+              {
+                "href": "http://example.com"
+              }
+            ],
+            "caption": "Caption of the diagram",
+            "remarks": "remarks"
+          }
+        ]
+      },
+      "network-architecture": {
+        "description": "Network diagrams",
+        "props": [
+          {
+            "name": "cloud-deployment-model",
+            "value": "private-cloud"
+          },
+          {
+            "name": "cloud-service-model",
+            "value": "iaas"
+          }
+        ],
+        "links": [
+          {
+            "href": "http://example.com"
+          }
+        ],
+        "remarks": "Overall network diagram of the system",
+        "diagrams": [
+          {
+            "uuid": "617747c4-48a7-42ee-85e7-58ce989d696b",
+            "description": "Test Network Diagram"
+          }
+        ]
       },
       "date-authorized": "2025-01-02",
       "system-information": {

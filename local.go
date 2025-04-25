@@ -37,6 +37,10 @@ func main() {
 		&relational.ComponentDefinition{},
 		&relational.Capability{},
 		&relational.DefinedComponent{},
+		&relational.Diagram{},
+		&relational.DataFlow{},
+		&relational.NetworkArchitecture{},
+		&relational.AuthorizationBoundary{},
 		&relational.InformationType{},
 		&relational.SystemInformation{},
 		&relational.SystemCharacteristics{},
@@ -48,6 +52,9 @@ func main() {
 		"action_responsible_parties",
 		"capability_control_implementation_sets",
 		"defined_components_control_implementation_sets",
+		"authorization_boundary_diagrams",
+		"network_architecture_diagrams",
+		"data_flow_diagrams",
 	)
 	if err != nil {
 		panic(err)
@@ -73,6 +80,10 @@ func main() {
 		&relational.ComponentDefinition{},
 		&relational.Capability{},
 		&relational.DefinedComponent{},
+		&relational.Diagram{},
+		&relational.DataFlow{},
+		&relational.NetworkArchitecture{},
+		&relational.AuthorizationBoundary{},
 		&relational.InformationType{},
 		&relational.SystemInformation{},
 		&relational.SystemCharacteristics{},

@@ -60,19 +60,16 @@ type SystemCharacteristics struct {
 	SecuritySensitivityLevel string       `json:"security-sensitivity-level"`
 	Remarks                  string       `json:"remarks"`
 
-	SystemIds         datatypes.JSONSlice[SystemId] `json:"system-ids"`
-	SystemInformation SystemInformation             `json:"system-information"`
+	SystemIds            datatypes.JSONSlice[SystemId] `json:"system-ids"`
+	SystemInformation    SystemInformation             `json:"system-information"`
+	Status               datatypes.JSONType[Status]    `json:"status"`
+	AuthorizationBoundry AuthorizationBoundary         `json:"authorization-boundary"`
+	NetworkArchitecture  NetworkArchitecture           `json:"network-architecture"`
+	DataFlow             DataFlow                      `json:"data-flow"`
 
-	Links datatypes.JSONSlice[Link] `json:"links"`
-	Props datatypes.JSONSlice[Prop] `json:"props"`
-
-	// SystemInformation
-	// SecurityImpactLevel
-	// Status
-	// AuthorizationBoundary
-	// Network Architecture
-	// DataFlow
-	// ResponsibleParties
+	Links              datatypes.JSONSlice[Link]             `json:"links"`
+	Props              datatypes.JSONSlice[Prop]             `json:"props"`
+	ResponsibleParties datatypes.JSONSlice[ResponsibleParty] `json:"responsible-role"`
 
 	SystemSecurityPlanId uuid.UUID
 }
@@ -103,6 +100,30 @@ func (sc *SystemCharacteristics) UnmarshalOscal(osc oscalTypes_1_1_3.SystemChara
 	systemInformation := SystemInformation{}
 	systemInformation.UnmarshalOscal(osc.SystemInformation)
 
+	status := Status{}
+	status.UnmarshalOscal(osc.Status)
+
+	authBoundary := AuthorizationBoundary{}
+	authBoundary.UnmarshalOscal(osc.AuthorizationBoundary)
+
+	var networkArchitecture NetworkArchitecture
+	if osc.NetworkArchitecture != nil {
+		networkArchitecture = NetworkArchitecture{}
+		networkArchitecture.UnmarshalOscal(*osc.NetworkArchitecture)
+	}
+
+	var dataflow DataFlow
+	if osc.DataFlow != nil {
+		dataflow = DataFlow{}
+		dataflow.UnmarshalOscal(*osc.DataFlow)
+	}
+
+	responsibleParties := ConvertList(osc.ResponsibleParties, func(orp oscalTypes_1_1_3.ResponsibleParty) ResponsibleParty {
+		rp := ResponsibleParty{}
+		rp.UnmarshalOscal(orp)
+		return rp
+	})
+
 	*sc = SystemCharacteristics{
 		UUIDModel:                UUIDModel{},
 		SystemName:               osc.SystemName,
@@ -115,6 +136,11 @@ func (sc *SystemCharacteristics) UnmarshalOscal(osc oscalTypes_1_1_3.SystemChara
 		Props:                    props,
 		SystemIds:                systemIds,
 		SystemInformation:        systemInformation,
+		Status:                   datatypes.NewJSONType[Status](status),
+		AuthorizationBoundry:     authBoundary,
+		NetworkArchitecture:      networkArchitecture,
+		DataFlow:                 dataflow,
+		ResponsibleParties:       datatypes.NewJSONSlice[ResponsibleParty](responsibleParties),
 	}
 
 	return sc
@@ -224,4 +250,138 @@ type InformationTypeCategorization oscalTypes_1_1_3.InformationTypeCategorizatio
 func (itc *InformationTypeCategorization) UnmarshalOscal(oitc oscalTypes_1_1_3.InformationTypeCategorization) *InformationTypeCategorization {
 	*itc = InformationTypeCategorization(oitc)
 	return itc
+}
+
+type SecurityImpactLevel oscalTypes_1_1_3.SecurityImpactLevel
+
+type Status oscalTypes_1_1_3.Status
+
+func (s *Status) UnmarshalOscal(osi oscalTypes_1_1_3.Status) *Status {
+	*s = Status(osi)
+	return s
+}
+
+type AuthorizationBoundary struct {
+	UUIDModel
+	Description string                    `json:"description"`
+	Remarks     string                    `json:"remarks"`
+	Props       datatypes.JSONSlice[Prop] `json:"props"`
+	Links       datatypes.JSONSlice[Link] `json:"links"`
+	Diagrams    []Diagram                 `json:"diagrams" gorm:"many2many:authorization_boundary_diagrams;"`
+
+	SystemCharacteristicsId uuid.UUID
+}
+
+func (ab *AuthorizationBoundary) UnmarshalOscal(oab oscalTypes_1_1_3.AuthorizationBoundary) *AuthorizationBoundary {
+	links := ConvertOscalToLinks(oab.Links)
+	props := ConvertOscalToProps(oab.Props)
+
+	diagrams := ConvertList(oab.Diagrams, func(od oscalTypes_1_1_3.Diagram) Diagram {
+		diagram := Diagram{}
+		diagram.UnmarshalOscal(od)
+		return diagram
+	})
+
+	*ab = AuthorizationBoundary{
+		UUIDModel:   UUIDModel{},
+		Description: oab.Description,
+		Remarks:     oab.Remarks,
+		Props:       props,
+		Links:       links,
+		Diagrams:    diagrams,
+	}
+	return ab
+}
+
+type NetworkArchitecture struct {
+	UUIDModel
+	Description string                    `json:"description"`
+	Props       datatypes.JSONSlice[Prop] `json:"props"`
+	Links       datatypes.JSONSlice[Link] `json:"links"`
+	Remarks     string                    `json:"remarks"`
+	Diagrams    []Diagram                 `json:"diagrams" gorm:"many2many:network_architecture_diagrams;"`
+
+	SystemCharacteristicsId uuid.UUID
+}
+
+func (na *NetworkArchitecture) UnmarshalOscal(ona oscalTypes_1_1_3.NetworkArchitecture) *NetworkArchitecture {
+	props := ConvertOscalToProps(ona.Props)
+	links := ConvertOscalToLinks(ona.Links)
+
+	diagrams := ConvertList(ona.Diagrams, func(od oscalTypes_1_1_3.Diagram) Diagram {
+		diagram := Diagram{}
+		diagram.UnmarshalOscal(od)
+		return diagram
+	})
+
+	*na = NetworkArchitecture{
+		UUIDModel:   UUIDModel{},
+		Description: ona.Description,
+		Props:       props,
+		Links:       links,
+		Remarks:     ona.Remarks,
+		Diagrams:    diagrams,
+	}
+	return na
+}
+
+type DataFlow struct {
+	UUIDModel
+	Description string                    `json:"description"`
+	Props       datatypes.JSONSlice[Prop] `json:"props"`
+	Links       datatypes.JSONSlice[Link] `json:"links"`
+	Remarks     string                    `json:"remarks"`
+	Diagrams    []Diagram                 `json:"diagrams" gorm:"many2many:data_flow_diagrams;"`
+
+	SystemCharacteristicsId uuid.UUID
+}
+
+func (df *DataFlow) UnmarshalOscal(odf oscalTypes_1_1_3.DataFlow) *DataFlow {
+	props := ConvertOscalToProps(odf.Props)
+	links := ConvertOscalToLinks(odf.Links)
+
+	diagrams := ConvertList(odf.Diagrams, func(od oscalTypes_1_1_3.Diagram) Diagram {
+		diagram := Diagram{}
+		diagram.UnmarshalOscal(od)
+		return diagram
+	})
+
+	*df = DataFlow{
+		UUIDModel:   UUIDModel{},
+		Description: odf.Description,
+		Props:       props,
+		Links:       links,
+		Remarks:     odf.Remarks,
+		Diagrams:    diagrams,
+	}
+
+	return df
+}
+
+type Diagram struct {
+	UUIDModel
+	Description string                    `json:"description"`
+	Props       datatypes.JSONSlice[Prop] `json:"props"`
+	Links       datatypes.JSONSlice[Link] `json:"links"`
+	Caption     string                    `json:"caption"`
+	Remarks     string                    `json:"remarks"`
+}
+
+func (d *Diagram) UnmarshalOscal(od oscalTypes_1_1_3.Diagram) *Diagram {
+	id := uuid.MustParse(od.UUID)
+	links := ConvertOscalToLinks(od.Links)
+	props := ConvertOscalToProps(od.Props)
+
+	*d = Diagram{
+		UUIDModel: UUIDModel{
+			ID: &id,
+		},
+		Description: od.Description,
+		Props:       props,
+		Links:       links,
+		Caption:     od.Caption,
+		Remarks:     od.Remarks,
+	}
+
+	return d
 }
