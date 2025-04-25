@@ -88,8 +88,8 @@ func (c *Group) UnmarshalOscal(data oscalTypes_1_1_3.Group, catalogId uuid.UUID)
 		ID:        data.ID,
 		Title:     data.Title,
 		Class:     data.Class,
-		Props:     ConvertOscalProps(data.Props),
-		Links:     ConvertOscalLinks(data.Links),
+		Props:     ConvertOscalToProps(data.Props),
+		Links:     ConvertOscalToLinks(data.Links),
 		CatalogID: catalogId,
 	}
 	if data.Params != nil {
@@ -148,8 +148,8 @@ func (c *Control) UnmarshalOscal(data oscalTypes_1_1_3.Control, catalogId uuid.U
 		ID:        data.ID,
 		Title:     data.Title,
 		Class:     &data.Class,
-		Props:     ConvertOscalProps(data.Props),
-		Links:     ConvertOscalLinks(data.Links),
+		Props:     ConvertOscalToProps(data.Props),
+		Links:     ConvertOscalToLinks(data.Links),
 		CatalogID: catalogId,
 	}
 	if data.Params != nil {
@@ -203,8 +203,8 @@ func (l *Parameter) UnmarshalOscal(data oscalTypes_1_1_3.Parameter) *Parameter {
 	*l = Parameter{
 		ID:      data.ID,
 		Class:   &data.Class,
-		Props:   ConvertOscalProps(data.Props),
-		Links:   ConvertOscalLinks(data.Links),
+		Props:   ConvertOscalToProps(data.Props),
+		Links:   ConvertOscalToLinks(data.Links),
 		Label:   &data.Label,
 		Usage:   &data.Usage,
 		Remarks: &data.Remarks,
@@ -327,8 +327,8 @@ func (l *Part) UnmarshalOscal(data oscalTypes_1_1_3.Part) *Part {
 		Class: data.Class,
 		Title: data.Title,
 		Prose: data.Prose,
-		Props: ConvertOscalProps(data.Props),
-		Links: ConvertOscalLinks(data.Links),
+		Props: ConvertOscalToProps(data.Props),
+		Links: ConvertOscalToLinks(data.Links),
 		Parts: ConvertList(data.Parts, func(data oscalTypes_1_1_3.Part) Part {
 			output := Part{}
 			output.UnmarshalOscal(data)
@@ -336,4 +336,225 @@ func (l *Part) UnmarshalOscal(data oscalTypes_1_1_3.Part) *Part {
 		}),
 	}
 	return l
+}
+
+func (p *Part) MarshalOscal() *oscalTypes_1_1_3.Part {
+	op := &oscalTypes_1_1_3.Part{
+		ID:    p.ID,
+		Name:  p.Name,
+		Ns:    p.NS,
+		Class: p.Class,
+		Title: p.Title,
+		Prose: p.Prose,
+		Props: ConvertPropsToOscal(p.Props),
+		Links: ConvertLinksToOscal(p.Links),
+	}
+	if len(p.Parts) > 0 {
+		sub := make([]oscalTypes_1_1_3.Part, len(p.Parts))
+		for i, sp := range p.Parts {
+			sub[i] = *sp.MarshalOscal()
+		}
+		op.Parts = &sub
+	}
+	return op
+}
+
+//// MarshalOscal converts Catalog to its OSCAL representation.
+//func (c *Catalog) MarshalOscal() oscalTypes_1_1_3.Catalog {
+//	oc := oscalTypes_1_1_3.Catalog{
+//		UUID:     c.ID.String(),
+//		Metadata: c.Metadata.MarshalOscal(),
+//	}
+//	if c.BackMatter != (BackMatter{}) {
+//		bm := c.BackMatter.MarshalOscal()
+//		oc.BackMatter = &bm
+//	}
+//	if len(c.Params) > 0 {
+//		ps := make([]oscalTypes_1_1_3.Parameter, len(c.Params))
+//		for i, p := range c.Params {
+//			ps[i] = *p.MarshalOscal()
+//		}
+//		oc.Params = &ps
+//	}
+//	if len(c.Groups) > 0 {
+//		gs := make([]oscalTypes_1_1_3.Group, len(c.Groups))
+//		for i, g := range c.Groups {
+//			gs[i] = *g.MarshalOscal()
+//		}
+//		oc.Groups = &gs
+//	}
+//	if len(c.Controls) > 0 {
+//		cs := make([]oscalTypes_1_1_3.Control, len(c.Controls))
+//		for i, ctrl := range c.Controls {
+//			cs[i] = *ctrl.MarshalOscal()
+//		}
+//		oc.Controls = &cs
+//	}
+//	return oc
+//}
+//
+//// MarshalOscal converts Metadata to OSCAL.
+//func (m *Metadata) MarshalOscal() oscalTypes_1_1_3.Metadata {
+//	// assuming Metadata has its own MarshalOscal (add if missing)
+//	return m.MarshalOscal()
+//}
+//
+//// MarshalOscal converts BackMatter to OSCAL.
+//func (b *BackMatter) MarshalOscal() oscalTypes_1_1_3.BackMatter {
+//	// assuming BackMatter has its own MarshalOscal (add if missing)
+//	return b.MarshalOscal()
+//}
+//
+//// MarshalOscal converts Group to OSCAL.
+//func (g *Group) MarshalOscal() *oscalTypes_1_1_3.Group {
+//	og := &oscalTypes_1_1_3.Group{
+//		ID:    g.ID,
+//		Title: g.Title,
+//		Class: g.Class,
+//		Props: ConvertPropsToOscal(g.Props),
+//		Links: ConvertLinksToOscal(g.Links),
+//	}
+//	if len(g.Params) > 0 {
+//		ps := make([]oscalTypes_1_1_3.Parameter, len(g.Params))
+//		for i, p := range g.Params {
+//			ps[i] = *p.MarshalOscal()
+//		}
+//		og.Params = &ps
+//	}
+//	if len(g.Parts) > 0 {
+//		parts := make([]oscalTypes_1_1_3.Part, len(g.Parts))
+//		for i, pt := range g.Parts {
+//			parts[i] = *pt.MarshalOscal()
+//		}
+//		og.Parts = &parts
+//	}
+//	if len(g.Groups) > 0 {
+//		subgroups := make([]oscalTypes_1_1_3.Group, len(g.Groups))
+//		for i, sg := range g.Groups {
+//			subgroups[i] = *sg.MarshalOscal()
+//		}
+//		og.Groups = &subgroups
+//	}
+//	if len(g.Controls) > 0 {
+//		ctrls := make([]oscalTypes_1_1_3.Control, len(g.Controls))
+//		for i, c := range g.Controls {
+//			ctrls[i] = *c.MarshalOscal()
+//		}
+//		og.Controls = &ctrls
+//	}
+//	return og
+//}
+//
+//// MarshalOscal converts Control to OSCAL.
+//func (c *Control) MarshalOscal() *oscalTypes_1_1_3.Control {
+//	oc := &oscalTypes_1_1_3.Control{
+//		ID:    c.ID,
+//		Title: c.Title,
+//		Class: derefString(c.Class),
+//		Props: ConvertPropsToOscal(c.Props),
+//		Links: ConvertLinksToOscal(c.Links),
+//	}
+//	if len(c.Params) > 0 {
+//		ps := make([]oscalTypes_1_1_3.Parameter, len(c.Params))
+//		for i, p := range c.Params {
+//			ps[i] = *p.MarshalOscal()
+//		}
+//		oc.Params = &ps
+//	}
+//	if len(c.Parts) > 0 {
+//		pts := make([]oscalTypes_1_1_3.Part, len(c.Parts))
+//		for i, pt := range c.Parts {
+//			pts[i] = *pt.MarshalOscal()
+//		}
+//		oc.Parts = &pts
+//	}
+//	if len(c.Controls) > 0 {
+//		ctrls := make([]oscalTypes_1_1_3.Control, len(c.Controls))
+//		for i, cl := range c.Controls {
+//			ctrls[i] = *cl.MarshalOscal()
+//		}
+//		oc.Controls = &ctrls
+//	}
+//	return oc
+//}
+//
+//// MarshalOscal converts Parameter to OSCAL.
+//func (p *Parameter) MarshalOscal() *oscalTypes_1_1_3.Parameter {
+//	op := &oscalTypes_1_1_3.Parameter{
+//		ID:      p.ID,
+//		Class:   derefString(p.Class),
+//		Label:   derefString(p.Label),
+//		Usage:   derefString(p.Usage),
+//		Remarks: derefString(p.Remarks),
+//		Props:   ConvertPropsToOscal(p.Props),
+//		Links:   ConvertLinksToOscal(p.Links),
+//	}
+//	if p.Select.Valid {
+//		sel := p.Select.Value
+//		op.Select = &oscalTypes_1_1_3.ParameterSelection{
+//			HowMany: string(sel.HowMany),
+//			Choice:  sel.Choice,
+//		}
+//	}
+//	if len(p.Values) > 0 {
+//		op.Values = &p.Values
+//	}
+//	if len(p.Constraints) > 0 {
+//		cs := make([]oscalTypes_1_1_3.ParameterConstraint, len(p.Constraints))
+//		for i, c := range p.Constraints {
+//			cs[i] = *c.MarshalOscal()
+//		}
+//		op.Constraints = &cs
+//	}
+//	if len(p.Guidelines) > 0 {
+//		gs := make([]oscalTypes_1_1_3.ParameterGuideline, len(p.Guidelines))
+//		for i, g := range p.Guidelines {
+//			gs[i] = *g.MarshalOscal()
+//		}
+//		op.Guidelines = &gs
+//	}
+//	return op
+//}
+//
+//// MarshalOscal converts ParameterSelection to OSCAL.
+//func (p *ParameterSelection) MarshalOscal() *oscalTypes_1_1_3.ParameterSelection {
+//	return &oscalTypes_1_1_3.ParameterSelection{
+//		HowMany: string(p.HowMany),
+//		Choice:  p.Choice,
+//	}
+//}
+//
+//// MarshalOscal converts ParameterGuideline to OSCAL.
+//func (g *ParameterGuideline) MarshalOscal() *oscalTypes_1_1_3.ParameterGuideline {
+//	pg := oscalTypes_1_1_3.ParameterGuideline(g.Prose)
+//	return &pg
+//}
+//
+//// MarshalOscal converts ParameterConstraint to OSCAL.
+//func (c *ParameterConstraint) MarshalOscal() *oscalTypes_1_1_3.ParameterConstraint {
+//	pc := &oscalTypes_1_1_3.ParameterConstraint{
+//		Description: c.Description,
+//	}
+//	if len(c.Tests) > 0 {
+//		ts := make([]oscalTypes_1_1_3.ConstraintTest, len(c.Tests))
+//		for i, t := range c.Tests {
+//			ts[i] = *t.MarshalOscal()
+//		}
+//		pc.Tests = &ts
+//	}
+//	return pc
+//}
+//
+//// MarshalOscal converts ParameterConstraintTest to OSCAL.
+//func (t *ParameterConstraintTest) MarshalOscal() *oscalTypes_1_1_3.ConstraintTest {
+//	ct := oscalTypes_1_1_3.ConstraintTest(*t)
+//	return &ct
+//}
+
+// helper to dereference *string safely
+func derefString(s *string) string {
+	if s != nil {
+		return *s
+	}
+	return ""
 }

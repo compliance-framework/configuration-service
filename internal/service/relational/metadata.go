@@ -65,8 +65,8 @@ func (m *Metadata) UnmarshalOscal(metadata oscaltypes113.Metadata) *Metadata {
 			}
 			return datatypes.NewJSONSlice[DocumentID](list)
 		}(),
-		Props: ConvertOscalProps(metadata.Props),
-		Links: ConvertOscalLinks(metadata.Links),
+		Props: ConvertOscalToProps(metadata.Props),
+		Links: ConvertOscalToLinks(metadata.Links),
 		Revisions: ConvertList(metadata.Revisions, func(entry oscaltypes113.RevisionHistoryEntry) Revision {
 			revision := Revision{}
 			revision.UnmarshalOscal(entry)

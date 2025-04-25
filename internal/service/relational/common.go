@@ -14,14 +14,21 @@ func (p *Prop) UnmarshalOscal(data oscaltypes113.Property) *Prop {
 	return p
 }
 
-func ConvertOscalProps(data *[]oscaltypes113.Property) datatypes.JSONSlice[Prop] {
+func ConvertOscalToProps(data *[]oscaltypes113.Property) datatypes.JSONSlice[Prop] {
 	props := ConvertList(data, func(op oscaltypes113.Property) Prop {
 		prop := Prop{}
 		prop.UnmarshalOscal(op)
 		return prop
 	})
 	return datatypes.NewJSONSlice[Prop](props)
+}
 
+func ConvertPropsToOscal(data datatypes.JSONSlice[Prop]) *[]oscaltypes113.Property {
+	out := make([]oscaltypes113.Property, 0)
+	for _, v := range data {
+		out = append(out, oscaltypes113.Property(v))
+	}
+	return &out
 }
 
 type Link oscaltypes113.Link
@@ -31,13 +38,21 @@ func (l *Link) UnmarshalOscal(data oscaltypes113.Link) *Link {
 	return l
 }
 
-func ConvertOscalLinks(data *[]oscaltypes113.Link) datatypes.JSONSlice[Link] {
+func ConvertOscalToLinks(data *[]oscaltypes113.Link) datatypes.JSONSlice[Link] {
 	links := ConvertList(data, func(ol oscaltypes113.Link) Link {
 		link := Link{}
 		link.UnmarshalOscal(ol)
 		return link
 	})
 	return datatypes.NewJSONSlice[Link](links)
+}
+
+func ConvertLinksToOscal(data datatypes.JSONSlice[Link]) *[]oscaltypes113.Link {
+	out := make([]oscaltypes113.Link, 0)
+	for _, v := range data {
+		out = append(out, oscaltypes113.Link(v))
+	}
+	return &out
 }
 
 type DocumentIDScheme string

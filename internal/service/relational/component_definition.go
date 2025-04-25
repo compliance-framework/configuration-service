@@ -92,8 +92,8 @@ func (dc *DefinedComponent) UnmarshalOscal(odc oscalTypes_1_1_3.DefinedComponent
 		return r
 	})
 
-	links := ConvertOscalLinks(odc.Links)
-	props := ConvertOscalProps(odc.Props)
+	links := ConvertOscalToLinks(odc.Links)
+	props := ConvertOscalToProps(odc.Props)
 
 	*dc = DefinedComponent{
 		UUIDModel: UUIDModel{
@@ -160,8 +160,8 @@ func (ci *ControlImplementationSet) UnmarshalOscal(oci oscalTypes_1_1_3.ControlI
 		return sp
 	})
 
-	links := ConvertOscalLinks(oci.Links)
-	props := ConvertOscalProps(oci.Props)
+	links := ConvertOscalToLinks(oci.Links)
+	props := ConvertOscalToProps(oci.Props)
 
 	implReqs := ConvertList(&oci.ImplementedRequirements, func(oirci oscalTypes_1_1_3.ImplementedRequirementControlImplementation) ImplementedRequirementControlImplementation {
 		irci := ImplementedRequirementControlImplementation{}
@@ -207,8 +207,8 @@ type ImplementedRequirementControlImplementation struct {
 func (irci *ImplementedRequirementControlImplementation) UnmarshalOscal(oirci oscalTypes_1_1_3.ImplementedRequirementControlImplementation) *ImplementedRequirementControlImplementation {
 	id := uuid.MustParse(oirci.UUID)
 
-	links := ConvertOscalLinks(oirci.Links)
-	props := ConvertOscalProps(oirci.Props)
+	links := ConvertOscalToLinks(oirci.Links)
+	props := ConvertOscalToProps(oirci.Props)
 
 	setParms := ConvertList(oirci.SetParameters, func(osp oscalTypes_1_1_3.SetParameter) SetParameter {
 		sp := SetParameter{}
@@ -258,8 +258,8 @@ type ControlStatementImplementation struct {
 
 func (s *ControlStatementImplementation) UnmarshalOscal(oci oscalTypes_1_1_3.ControlStatementImplementation) *ControlStatementImplementation {
 	id := uuid.MustParse(oci.UUID)
-	links := ConvertOscalLinks(oci.Links)
-	props := ConvertOscalProps(oci.Props)
+	links := ConvertOscalToLinks(oci.Links)
+	props := ConvertOscalToProps(oci.Props)
 	roles := ConvertList(oci.ResponsibleRoles, func(rr oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
 		r := ResponsibleRole{}
 		r.UnmarshalOscal(rr)
