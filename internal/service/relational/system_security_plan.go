@@ -75,8 +75,8 @@ type SystemCharacteristics struct {
 }
 
 func (sc *SystemCharacteristics) UnmarshalOscal(osc oscalTypes_1_1_3.SystemCharacteristics) *SystemCharacteristics {
-	props := ConvertOscalProps(osc.Props)
-	links := ConvertOscalLinks(osc.Links)
+	props := ConvertOscalToProps(osc.Props)
+	links := ConvertOscalToLinks(osc.Links)
 
 	dateAuthorized := sql.NullTime{}
 	if len(osc.DateAuthorized) > 0 {
@@ -164,8 +164,8 @@ type SystemInformation struct {
 }
 
 func (si *SystemInformation) UnmarshalOscal(osi oscalTypes_1_1_3.SystemInformation) *SystemInformation {
-	props := ConvertOscalProps(osi.Props)
-	links := ConvertOscalLinks(osi.Links)
+	props := ConvertOscalToProps(osi.Props)
+	links := ConvertOscalToLinks(osi.Links)
 
 	informationTypes := ConvertList(&osi.InformationTypes, func(oit oscalTypes_1_1_3.InformationType) InformationType {
 		informationType := InformationType{}
@@ -203,8 +203,8 @@ type InformationType struct {
 func (it *InformationType) UnmarshalOscal(oit oscalTypes_1_1_3.InformationType) *InformationType {
 	id := uuid.MustParse(oit.UUID)
 
-	props := ConvertOscalProps(oit.Props)
-	links := ConvertOscalLinks(oit.Links)
+	props := ConvertOscalToProps(oit.Props)
+	links := ConvertOscalToLinks(oit.Links)
 
 	confImpact := Impact{}
 	confImpact.UnmarshalOscal(*oit.ConfidentialityImpact)
@@ -273,8 +273,8 @@ type AuthorizationBoundary struct {
 }
 
 func (ab *AuthorizationBoundary) UnmarshalOscal(oab oscalTypes_1_1_3.AuthorizationBoundary) *AuthorizationBoundary {
-	links := ConvertOscalLinks(oab.Links)
-	props := ConvertOscalProps(oab.Props)
+	links := ConvertOscalToLinks(oab.Links)
+	props := ConvertOscalToProps(oab.Props)
 
 	diagrams := ConvertList(oab.Diagrams, func(od oscalTypes_1_1_3.Diagram) Diagram {
 		diagram := Diagram{}
@@ -305,8 +305,8 @@ type NetworkArchitecture struct {
 }
 
 func (na *NetworkArchitecture) UnmarshalOscal(ona oscalTypes_1_1_3.NetworkArchitecture) *NetworkArchitecture {
-	props := ConvertOscalProps(ona.Props)
-	links := ConvertOscalLinks(ona.Links)
+	props := ConvertOscalToProps(ona.Props)
+	links := ConvertOscalToLinks(ona.Links)
 
 	diagrams := ConvertList(ona.Diagrams, func(od oscalTypes_1_1_3.Diagram) Diagram {
 		diagram := Diagram{}
@@ -337,8 +337,8 @@ type DataFlow struct {
 }
 
 func (df *DataFlow) UnmarshalOscal(odf oscalTypes_1_1_3.DataFlow) *DataFlow {
-	props := ConvertOscalProps(odf.Props)
-	links := ConvertOscalLinks(odf.Links)
+	props := ConvertOscalToProps(odf.Props)
+	links := ConvertOscalToLinks(odf.Links)
 
 	diagrams := ConvertList(odf.Diagrams, func(od oscalTypes_1_1_3.Diagram) Diagram {
 		diagram := Diagram{}
@@ -369,8 +369,8 @@ type Diagram struct {
 
 func (d *Diagram) UnmarshalOscal(od oscalTypes_1_1_3.Diagram) *Diagram {
 	id := uuid.MustParse(od.UUID)
-	links := ConvertOscalLinks(od.Links)
-	props := ConvertOscalProps(od.Props)
+	links := ConvertOscalToLinks(od.Links)
+	props := ConvertOscalToProps(od.Props)
 
 	*d = Diagram{
 		UUIDModel: UUIDModel{
