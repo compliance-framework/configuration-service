@@ -2,7 +2,6 @@ package relational
 
 import (
 	"encoding/json"
-	"fmt"
 	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -76,14 +75,215 @@ func TestPart_OscalMarshalling(t *testing.T) {
 	}
 	inputJson, err := json.Marshal(oscalPart)
 
+	// Marshal and Unmarshal, and make sure it remains exactly the same
 	part := &Part{}
 	part.UnmarshalOscal(oscalPart)
 	output := part.MarshalOscal()
-
 	outputJson, err := json.Marshal(output)
 	assert.NoError(t, err)
-
 	assert.JSONEq(t, string(inputJson), string(outputJson))
-	fmt.Println(string(inputJson))
-	fmt.Println(string(outputJson))
+}
+
+func TestParameterConstraintTest_OscalMarshalling(t *testing.T) {
+	oscalTest := oscaltypes113.ConstraintTest{
+		Expression: "example expression",
+		Remarks:    "example remarks",
+	}
+	inputJson, err := json.Marshal(oscalTest)
+	assert.NoError(t, err)
+
+	pct := &ParameterConstraintTest{}
+	pct.UnmarshalOscal(oscalTest)
+	output := pct.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
+}
+
+func TestParameterConstraint_OscalMarshalling(t *testing.T) {
+	oscalConstraint := oscaltypes113.ParameterConstraint{
+		Description: "example description",
+		Tests: &[]oscaltypes113.ConstraintTest{
+			{
+				Expression: "expr1",
+				Remarks:    "rem1",
+			},
+			{
+				Expression: "expr2",
+				Remarks:    "rem2",
+			},
+		},
+	}
+	inputJson, err := json.Marshal(oscalConstraint)
+	assert.NoError(t, err)
+
+	pc := &ParameterConstraint{}
+	pc.UnmarshalOscal(oscalConstraint)
+	output := pc.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
+}
+
+func TestParameterGuideline_OscalMarshalling(t *testing.T) {
+	oscalGuideline := oscaltypes113.ParameterGuideline{
+		Prose: "example prose",
+	}
+	inputJson, err := json.Marshal(oscalGuideline)
+	assert.NoError(t, err)
+
+	pg := &ParameterGuideline{}
+	pg.UnmarshalOscal(oscalGuideline)
+	output := pg.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
+}
+
+func TestParameterSelection_OscalMarshalling(t *testing.T) {
+	oscalSel := oscaltypes113.ParameterSelection{
+		HowMany: "one-or-more",
+		Choice:  &[]string{"opt1", "opt2"},
+	}
+	inputJson, err := json.Marshal(oscalSel)
+	assert.NoError(t, err)
+
+	ps := &ParameterSelection{}
+	ps.UnmarshalOscal(oscalSel)
+	output := ps.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
+}
+
+func TestParameter_OscalMarshalling(t *testing.T) {
+	oscalParam := oscaltypes113.Parameter{
+		ID:      "param-id",
+		Class:   "param-class",
+		Label:   "param-label",
+		Usage:   "param-usage",
+		Remarks: "param-remarks",
+		Props: &[]oscaltypes113.Property{
+			{
+				Class:   "pc",
+				Group:   "pg",
+				Name:    "pn",
+				Ns:      "pns",
+				Remarks: "pr",
+				UUID:    uuid.New().String(),
+				Value:   "pv",
+			},
+		},
+		Links: &[]oscaltypes113.Link{
+			{
+				Href:      "h1",
+				MediaType: "m1",
+				Text:      "t1",
+			},
+		},
+		Select: &oscaltypes113.ParameterSelection{
+			HowMany: "one",
+			Choice:  &[]string{"opt"},
+		},
+		Constraints: &[]oscaltypes113.ParameterConstraint{
+			{
+				Description: "desc",
+				Tests: &[]oscaltypes113.ConstraintTest{
+					{
+						Expression: "expr",
+						Remarks:    "rem",
+					},
+				},
+			},
+		},
+		Guidelines: &[]oscaltypes113.ParameterGuideline{
+			{
+				Prose: "gprose",
+			},
+		},
+		Values: &[]string{"v1", "v2"},
+	}
+	inputJson, err := json.Marshal(oscalParam)
+	assert.NoError(t, err)
+
+	p := &Parameter{}
+	p.UnmarshalOscal(oscalParam)
+	output := p.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
+}
+
+func TestControl_OscalMarshalling(t *testing.T) {
+	// Prepare a minimal OSCAL Control with Props and Links
+	oscalCtrl := oscaltypes113.Control{
+		ID:    "ctrl-id",
+		Title: "ctrl-title",
+		Class: "ctrl-class",
+		Props: &[]oscaltypes113.Property{
+			{
+				Class:   "pc",
+				Group:   "pg",
+				Name:    "pn",
+				Ns:      "pns",
+				Remarks: "pr",
+				UUID:    uuid.New().String(),
+				Value:   "pv",
+			},
+		},
+		Links: &[]oscaltypes113.Link{
+			{
+				Href:      "http://link",
+				MediaType: "mt",
+				Text:      "link-text",
+			},
+		},
+	}
+	inputJson, err := json.Marshal(oscalCtrl)
+	assert.NoError(t, err)
+
+	// Unmarshal into relational.Control and marshal back
+	id := uuid.New()
+	ctrl := &Control{}
+	ctrl.UnmarshalOscal(oscalCtrl, id)
+	output := ctrl.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
+}
+
+func TestGroup_OscalMarshalling(t *testing.T) {
+	oscalGroup := oscaltypes113.Group{
+		ID:    "group-id",
+		Title: "group-title",
+		Class: "group-class",
+		Props: &[]oscaltypes113.Property{
+			{
+				Class:   "pc",
+				Group:   "pg",
+				Name:    "pn",
+				Ns:      "pns",
+				Remarks: "pr",
+				UUID:    uuid.New().String(),
+				Value:   "pv",
+			},
+		},
+		Links: &[]oscaltypes113.Link{
+			{
+				Href:      "http://link",
+				MediaType: "mt",
+				Text:      "link-text",
+			},
+		},
+	}
+	inputJson, err := json.Marshal(oscalGroup)
+	assert.NoError(t, err)
+
+	grp := &Group{}
+	// Use a random UUID for the catalogId parameter
+	grp.UnmarshalOscal(oscalGroup, uuid.New())
+	output := grp.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
 }

@@ -24,6 +24,19 @@ func (b *BackMatter) UnmarshalOscal(resource oscaltypes113.BackMatter) *BackMatt
 	return b
 }
 
+// MarshalOscal converts the BackMatter back to an OSCAL BackMatter
+func (b *BackMatter) MarshalOscal() *oscaltypes113.BackMatter {
+	bm := &oscaltypes113.BackMatter{}
+	if len(b.Resources) > 0 {
+		resources := make([]oscaltypes113.Resource, len(b.Resources))
+		for i, r := range b.Resources {
+			resources[i] = *r.MarshalOscal()
+		}
+		bm.Resources = &resources
+	}
+	return bm
+}
+
 type BackMatterResource struct {
 	UUIDModel                                      // required
 	BackMatterID uuid.UUID                         `json:"back-matter-id"`
@@ -82,6 +95,46 @@ func (c *BackMatterResource) UnmarshalOscal(resource oscaltypes113.Resource) *Ba
 	return c
 }
 
+// MarshalOscal converts the BackMatterResource back to an OSCAL Resource
+func (b *BackMatterResource) MarshalOscal() *oscaltypes113.Resource {
+	res := &oscaltypes113.Resource{
+		UUID:        b.UUIDModel.ID.String(),
+		Title:       *b.Title,
+		Description: *b.Description,
+		Remarks:     *b.Remarks,
+	}
+	if len(b.Props) > 0 {
+		props := *ConvertPropsToOscal(b.Props)
+		res.Props = &props
+	}
+	if len(b.DocumentIDs) > 0 {
+		docs := make([]oscaltypes113.DocumentId, len(b.DocumentIDs))
+		for i, d := range b.DocumentIDs {
+			docs[i] = oscaltypes113.DocumentId{
+				Scheme:     string(d.Scheme),
+				Identifier: d.Identifier,
+			}
+		}
+		res.DocumentIds = &docs
+	}
+	if len(b.RLinks) > 0 {
+		rls := make([]oscaltypes113.ResourceLink, len(b.RLinks))
+		for i, rl := range b.RLinks {
+			rls[i] = *rl.MarshalOscal()
+		}
+		res.Rlinks = &rls
+	}
+	if b.Citation != nil {
+		citationData := b.Citation.Data()
+		res.Citation = citationData.MarshalOscal()
+	}
+	if b.Base64 != nil {
+		base64Data := b.Base64.Data()
+		res.Base64 = base64Data.MarshalOscal()
+	}
+	return res
+}
+
 type Citation struct {
 	Text  string `json:"text"` // required
 	Props []Prop `json:"props"`
@@ -103,6 +156,28 @@ func (c *Citation) UnmarshalOscal(cit oscaltypes113.Citation) *Citation {
 		}),
 	}
 	return c
+}
+
+// MarshalOscal converts the Citation back to an OSCAL Citation
+func (c *Citation) MarshalOscal() *oscaltypes113.Citation {
+	cc := &oscaltypes113.Citation{
+		Text: c.Text,
+	}
+	if len(c.Props) > 0 {
+		props := make([]oscaltypes113.Property, len(c.Props))
+		for i, p := range c.Props {
+			props[i] = oscaltypes113.Property(p)
+		}
+		cc.Props = &props
+	}
+	if len(c.Links) > 0 {
+		links := make([]oscaltypes113.Link, len(c.Links))
+		for i, l := range c.Links {
+			links[i] = oscaltypes113.Link(l)
+		}
+		cc.Links = &links
+	}
+	return cc
 }
 
 type HashAlgorithm string
@@ -131,6 +206,14 @@ func (h *Hash) UnmarshalOscal(hash oscaltypes113.Hash) *Hash {
 	return h
 }
 
+// MarshalOscal converts the Hash back to an OSCAL Hash
+func (h *Hash) MarshalOscal() *oscaltypes113.Hash {
+	return &oscaltypes113.Hash{
+		Algorithm: string(h.Algorithm),
+		Value:     h.Value,
+	}
+}
+
 type ResourceLink struct {
 	Href      string `json:"href"` // required
 	MediaType string `json:"media-type"`
@@ -149,6 +232,22 @@ func (r *ResourceLink) UnmarshalOscal(orlink oscaltypes113.ResourceLink) {
 	}
 }
 
+// MarshalOscal converts the ResourceLink back to an OSCAL ResourceLink
+func (r *ResourceLink) MarshalOscal() *oscaltypes113.ResourceLink {
+	rl := &oscaltypes113.ResourceLink{
+		Href:      r.Href,
+		MediaType: r.MediaType,
+	}
+	if len(r.Hashes) > 0 {
+		hashes := make([]oscaltypes113.Hash, len(r.Hashes))
+		for i, h := range r.Hashes {
+			hashes[i] = *h.MarshalOscal()
+		}
+		rl.Hashes = &hashes
+	}
+	return rl
+}
+
 type Base64 struct {
 	Filename  string `json:"filename"`
 	MediaType string `json:"media-type"`
@@ -162,4 +261,13 @@ func (b *Base64) UnmarshalOscal(base oscaltypes113.Base64) *Base64 {
 		Value:     base.Value,
 	}
 	return b
+}
+
+// MarshalOscal converts the Base64 back to an OSCAL Base64
+func (b *Base64) MarshalOscal() *oscaltypes113.Base64 {
+	return &oscaltypes113.Base64{
+		Filename:  b.Filename,
+		MediaType: b.MediaType,
+		Value:     b.Value,
+	}
 }

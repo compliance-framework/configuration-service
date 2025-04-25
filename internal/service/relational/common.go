@@ -57,7 +57,9 @@ func ConvertLinksToOscal(data datatypes.JSONSlice[Link]) *[]oscaltypes113.Link {
 
 type DocumentIDScheme string
 
-const DocumentIDSchemeDoi DocumentIDScheme = "http://www.doi.org/"
+const (
+	DocumentIDSchemeDoi DocumentIDScheme = "http://www.doi.org/"
+)
 
 type DocumentID struct {
 	Scheme     DocumentIDScheme `json:"scheme"`
@@ -72,10 +74,20 @@ func (d *DocumentID) UnmarshalOscal(id oscaltypes113.DocumentId) *DocumentID {
 	return d
 }
 
+// MarshalOscal converts the DocumentID back to an OSCAL DocumentId
+func (d *DocumentID) MarshalOscal() *oscaltypes113.DocumentId {
+	return &oscaltypes113.DocumentId{
+		Scheme:     string(d.Scheme),
+		Identifier: d.Identifier,
+	}
+}
+
 type AddressType string
 
-const AddressTypeWork AddressType = "work"
-const AddressTypeHome AddressType = "home"
+const (
+	AddressTypeWork AddressType = "work"
+	AddressTypeHome AddressType = "home"
+)
 
 type Address struct {
 	Type       AddressType `json:"type"`
@@ -98,11 +110,26 @@ func (a *Address) UnmarshalOscal(oaddress oscaltypes113.Address) *Address {
 	return a
 }
 
+// MarshalOscal converts the Address back to an OSCAL Address
+func (a *Address) MarshalOscal() *oscaltypes113.Address {
+	addr := &oscaltypes113.Address{
+		Type:       string(a.Type),
+		AddrLines:  &a.AddrLines,
+		City:       a.City,
+		State:      a.State,
+		PostalCode: a.PostalCode,
+		Country:    a.Country,
+	}
+	return addr
+}
+
 type TelephoneNumberType string
 
-const TelephoneNumberTypeHome TelephoneNumberType = "home"
-const TelephoneNumberTypeOffice TelephoneNumberType = "office"
-const TelephoneNumberTypeMobile TelephoneNumberType = "mobile"
+const (
+	TelephoneNumberTypeHome   TelephoneNumberType = "home"
+	TelephoneNumberTypeOffice TelephoneNumberType = "office"
+	TelephoneNumberTypeMobile TelephoneNumberType = "mobile"
+)
 
 type TelephoneNumber struct {
 	Type   *TelephoneNumberType `json:"type"`
@@ -122,6 +149,17 @@ func (t *TelephoneNumber) UnmarshalOscal(number oscaltypes113.TelephoneNumber) *
 		Number: number.Number,
 	}
 	return t
+}
+
+// MarshalOscal converts the TelephoneNumber back to an OSCAL TelephoneNumber
+func (t *TelephoneNumber) MarshalOscal() *oscaltypes113.TelephoneNumber {
+	tn := &oscaltypes113.TelephoneNumber{
+		Number: t.Number,
+	}
+	if t.Type != nil {
+		tn.Type = string(*t.Type)
+	}
+	return tn
 }
 
 type ResponsibleParty struct {
