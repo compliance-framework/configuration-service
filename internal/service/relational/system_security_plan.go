@@ -402,8 +402,6 @@ type SystemImplementation struct {
 	InventoryItems          []InventoryItem           `json:"inventory-items"`
 
 	SystemSecurityPlanId uuid.UUID
-
-	// InventoryItems
 }
 
 func (si *SystemImplementation) UnmarshalOscal(osi oscalTypes_1_1_3.SystemImplementation) *SystemImplementation {
