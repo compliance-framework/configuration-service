@@ -256,6 +256,16 @@
           ],
           "role-ids": [
             "asset-administrator"
+          ],
+          "authorized-privileges": [
+            {
+              "title": "Suoeradmin",
+              "functions-performed": [
+                "read",
+                "write",
+                "destroy"
+              ]
+            }
           ]
         },
         {
@@ -512,6 +522,14 @@
               ]
             }
           ]
+        }
+      ],
+      "leveraged-authorizations": [
+        {
+          "uuid": "da6b3d4a-a96d-43b0-aa40-6a2f4ac4738a",
+          "title": "Authorized for access",
+          "party-uuid": "5cca1c8e-a873-4049-bb4c-40ae3321ca3a",
+          "date-authorized": "2025-04-01"
         }
       ],
       "remarks": "This is a partial implementation that addresses the logging server portion of the auditing system."

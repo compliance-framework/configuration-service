@@ -15,6 +15,7 @@ type SystemSecurityPlan struct {
 
 	ImportProfile         datatypes.JSONType[ImportProfile] `json:"import-profile"`
 	SystemCharacteristics SystemCharacteristics             `json:"system-characteristics"`
+	SystemImplementation  SystemImplementation              `json:"system-implementation"`
 }
 
 func (s *SystemSecurityPlan) UnmarshalOscal(os oscalTypes_1_1_3.SystemSecurityPlan) *SystemSecurityPlan {
@@ -31,6 +32,9 @@ func (s *SystemSecurityPlan) UnmarshalOscal(os oscalTypes_1_1_3.SystemSecurityPl
 	systemCharacteristics := SystemCharacteristics{}
 	systemCharacteristics.UnmarshalOscal(os.SystemCharacteristics)
 
+	systemImplementation := SystemImplementation{}
+	systemImplementation.UnmarshalOscal(os.SystemImplementation)
+
 	*s = SystemSecurityPlan{
 		UUIDModel: UUIDModel{
 			ID: &id,
@@ -39,6 +43,7 @@ func (s *SystemSecurityPlan) UnmarshalOscal(os oscalTypes_1_1_3.SystemSecurityPl
 		BackMatter:            backMatter,
 		ImportProfile:         datatypes.NewJSONType[ImportProfile](importProfile),
 		SystemCharacteristics: systemCharacteristics,
+		SystemImplementation:  systemImplementation,
 	}
 
 	return s
@@ -384,4 +389,264 @@ func (d *Diagram) UnmarshalOscal(od oscalTypes_1_1_3.Diagram) *Diagram {
 	}
 
 	return d
+}
+
+type SystemImplementation struct {
+	UUIDModel
+	Props                   datatypes.JSONSlice[Prop] `json:"props"`
+	Links                   datatypes.JSONSlice[Link] `json:"links"`
+	Remarks                 string                    `json:"remarks"`
+	Users                   []SystemUser              `json:"users"`
+	LeveragedAuthorizations []LeveragedAuthorization  `json:"leveraged-authorizations"`
+	Components              []SystemComponent         `json:"components"`
+	InventoryItems          []InventoryItem           `json:"inventory-items"`
+
+	SystemSecurityPlanId uuid.UUID
+
+	// InventoryItems
+}
+
+func (si *SystemImplementation) UnmarshalOscal(osi oscalTypes_1_1_3.SystemImplementation) *SystemImplementation {
+	*si = SystemImplementation{
+		UUIDModel: UUIDModel{},
+		Props:     ConvertOscalToProps(osi.Props),
+		Links:     ConvertOscalToLinks(osi.Links),
+		Remarks:   osi.Remarks,
+		Users: ConvertList(&osi.Users, func(osu oscalTypes_1_1_3.SystemUser) SystemUser {
+			user := SystemUser{}
+			user.UnmarshalOscal(osu)
+			return user
+		}),
+		LeveragedAuthorizations: ConvertList(osi.LeveragedAuthorizations, func(ola oscalTypes_1_1_3.LeveragedAuthorization) LeveragedAuthorization {
+			la := LeveragedAuthorization{}
+			la.UnmarshalOscal(ola)
+			return la
+		}),
+		Components: ConvertList(&osi.Components, func(osc oscalTypes_1_1_3.SystemComponent) SystemComponent {
+			component := SystemComponent{}
+			component.UnmarshalOscal(osc)
+			return component
+		}),
+		InventoryItems: ConvertList(osi.InventoryItems, func(oii oscalTypes_1_1_3.InventoryItem) InventoryItem {
+			item := InventoryItem{}
+			item.UnmarshalOscal(oii)
+			return item
+		}),
+	}
+
+	return si
+}
+
+type SystemUser struct {
+	UUIDModel
+	Title                string                      `json:"title"`
+	ShortName            string                      `json:"short-name"`
+	Description          string                      `json:"description"`
+	Props                datatypes.JSONSlice[Prop]   `json:"props"`
+	Links                datatypes.JSONSlice[Link]   `json:"links"`
+	RoleIDs              datatypes.JSONSlice[string] `json:"role_ids"`
+	AuthorizedPrivileges []AuthorizedPrivilege       `json:"authorized-privileges"`
+
+	SystemImplementationId uuid.UUID
+
+	//oscalTypes_1_1_3.SystemUser
+}
+
+func (u *SystemUser) UnmarshalOscal(ou oscalTypes_1_1_3.SystemUser) *SystemUser {
+	id := uuid.MustParse(ou.UUID)
+	*u = SystemUser{
+		UUIDModel: UUIDModel{
+			ID: &id,
+		},
+		Title:       ou.Title,
+		ShortName:   ou.ShortName,
+		Description: ou.Description,
+		Props:       ConvertOscalToProps(ou.Props),
+		Links:       ConvertOscalToLinks(ou.Links),
+		RoleIDs:     datatypes.NewJSONSlice[string](u.RoleIDs),
+		AuthorizedPrivileges: ConvertList(ou.AuthorizedPrivileges, func(oap oscalTypes_1_1_3.AuthorizedPrivilege) AuthorizedPrivilege {
+			privilege := AuthorizedPrivilege{}
+			privilege.UnmarshalOscal(oap)
+			return privilege
+		}),
+	}
+	return u
+}
+
+type AuthorizedPrivilege struct {
+	UUIDModel
+	Title              string                      `json:"title"`
+	Description        string                      `json:"description"`
+	FunctionsPerformed datatypes.JSONSlice[string] `json:"functions-performed"`
+
+	SystemUserId uuid.UUID
+}
+
+func (ap *AuthorizedPrivilege) UnmarshalOscal(oap oscalTypes_1_1_3.AuthorizedPrivilege) *AuthorizedPrivilege {
+	*ap = AuthorizedPrivilege{
+		UUIDModel:          UUIDModel{},
+		Title:              oap.Title,
+		Description:        oap.Description,
+		FunctionsPerformed: datatypes.NewJSONSlice[string](oap.FunctionsPerformed),
+	}
+
+	return ap
+}
+
+type LeveragedAuthorization struct {
+	UUIDModel
+	Title          string                    `json:"title"`
+	PartyUUID      uuid.UUID                 `json:"party-uuid"`
+	DateAuthorized time.Time                 `json:"date-authorized"`
+	Remarks        string                    `json:"remarks"`
+	Props          datatypes.JSONSlice[Prop] `json:"props"`
+	Links          datatypes.JSONSlice[Link] `json:"links"`
+
+	SystemImplementationId uuid.UUID
+}
+
+func (la *LeveragedAuthorization) UnmarshalOscal(ola oscalTypes_1_1_3.LeveragedAuthorization) *LeveragedAuthorization {
+	id := uuid.MustParse(ola.UUID)
+	partyId := uuid.MustParse(ola.PartyUuid)
+
+	dateAuthorized, err := time.Parse(time.DateOnly, ola.DateAuthorized)
+	if err != nil {
+		panic("Date parse must parse: " + err.Error())
+	}
+
+	*la = LeveragedAuthorization{
+		UUIDModel: UUIDModel{
+			ID: &id,
+		},
+		Title:          ola.Title,
+		PartyUUID:      partyId,
+		DateAuthorized: dateAuthorized,
+		Remarks:        ola.Remarks,
+		Props:          ConvertOscalToProps(ola.Props),
+		Links:          ConvertOscalToLinks(ola.Links),
+	}
+
+	return la
+}
+
+type SystemComponentStatus oscalTypes_1_1_3.SystemComponentStatus
+
+func (s *SystemComponentStatus) UnmarshalOscal(os oscalTypes_1_1_3.SystemComponentStatus) *SystemComponentStatus {
+	*s = SystemComponentStatus(os)
+	return s
+}
+
+type SystemComponent struct {
+	UUIDModel
+	Type             string                                    `json:"type"`
+	Title            string                                    `json:"title"`
+	Description      string                                    `json:"description"`
+	Purpose          string                                    `json:"purpose"`
+	Status           datatypes.JSONType[SystemComponentStatus] `json:"status"`
+	ResponsableRoles datatypes.JSONSlice[ResponsibleRole]      `json:"responsable-roles"`
+	Protocols        datatypes.JSONSlice[Protocol]             `json:"protocols"`
+	Remarks          string                                    `json:"remarks"`
+	Props            datatypes.JSONSlice[Prop]                 `json:"props"`
+	Links            datatypes.JSONSlice[Link]                 `json:"links"`
+
+	SystemImplementationId uuid.UUID
+}
+
+func (sc *SystemComponent) UnmarshalOscal(osc oscalTypes_1_1_3.SystemComponent) *SystemComponent {
+	id := uuid.MustParse(osc.UUID)
+	status := SystemComponentStatus{}
+	status.UnmarshalOscal(osc.Status)
+
+	*sc = SystemComponent{
+		UUIDModel: UUIDModel{
+			ID: &id,
+		},
+		Type:        osc.Type,
+		Title:       osc.Title,
+		Description: osc.Description,
+		Purpose:     osc.Purpose,
+		Status:      datatypes.NewJSONType[SystemComponentStatus](status),
+		ResponsableRoles: ConvertList(osc.ResponsibleRoles, func(orr oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
+			role := ResponsibleRole{}
+			role.UnmarshalOscal(orr)
+			return role
+		}),
+		Protocols: ConvertList(osc.Protocols, func(op oscalTypes_1_1_3.Protocol) Protocol {
+			protocol := Protocol{}
+			protocol.UnmarshalOscal(op)
+			return protocol
+		}),
+		Remarks: osc.Remarks,
+		Props:   ConvertOscalToProps(osc.Props),
+		Links:   ConvertOscalToLinks(osc.Links),
+	}
+
+	return sc
+}
+
+type InventoryItem struct {
+	UUIDModel
+	Description           string                                `json:"description"`
+	Props                 datatypes.JSONSlice[Prop]             `json:"props"`
+	Links                 datatypes.JSONSlice[Link]             `json:"links"`
+	ResponsibleParties    datatypes.JSONSlice[ResponsibleParty] `json:"responsible-parties"`
+	Remarks               string                                `json:"remarks"`
+	ImplementedComponents []ImplementedComponent                `json:"implemented-components"`
+
+	SystemImplementationId uuid.UUID
+}
+
+func (ii *InventoryItem) UnmarshalOscal(oii oscalTypes_1_1_3.InventoryItem) *InventoryItem {
+	id := uuid.MustParse(oii.UUID)
+
+	*ii = InventoryItem{
+		UUIDModel: UUIDModel{
+			ID: &id,
+		},
+		Description: oii.Description,
+		Props:       ConvertOscalToProps(oii.Props),
+		Links:       ConvertOscalToLinks(oii.Links),
+		ResponsibleParties: ConvertList(oii.ResponsibleParties, func(op oscalTypes_1_1_3.ResponsibleParty) ResponsibleParty {
+			party := ResponsibleParty{}
+			party.UnmarshalOscal(op)
+			return party
+		}),
+		ImplementedComponents: ConvertList(oii.ImplementedComponents, func(oic oscalTypes_1_1_3.ImplementedComponent) ImplementedComponent {
+			component := ImplementedComponent{}
+			component.UnmarshalOscal(oic)
+			return component
+		}),
+		Remarks: oii.Remarks,
+	}
+
+	return ii
+}
+
+type ImplementedComponent struct {
+	UUIDModel
+	ComponentUUID      uuid.UUID                             `json:"component-uuid"`
+	Props              datatypes.JSONSlice[Prop]             `json:"props"`
+	Links              datatypes.JSONSlice[Link]             `json:"links"`
+	ResponsibleParties datatypes.JSONSlice[ResponsibleParty] `json:"responsible-parties"`
+	Remarks            string                                `json:"remarks"`
+
+	InventoryItemId uuid.UUID
+}
+
+func (ic *ImplementedComponent) UnmarshalOscal(oic oscalTypes_1_1_3.ImplementedComponent) *ImplementedComponent {
+	componentId := uuid.MustParse(oic.ComponentUuid)
+	*ic = ImplementedComponent{
+		UUIDModel:     UUIDModel{},
+		ComponentUUID: componentId,
+		Props:         ConvertOscalToProps(oic.Props),
+		Links:         ConvertOscalToLinks(oic.Links),
+		Remarks:       oic.Remarks,
+		ResponsibleParties: ConvertList(oic.ResponsibleParties, func(op oscalTypes_1_1_3.ResponsibleParty) ResponsibleParty {
+			party := ResponsibleParty{}
+			party.UnmarshalOscal(op)
+			return party
+		}),
+	}
+
+	return ic
 }
