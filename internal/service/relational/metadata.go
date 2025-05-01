@@ -157,8 +157,10 @@ func (a *Action) UnmarshalOscal(action oscaltypes113.Action) *Action {
 
 type PartyType string
 
-const PartyTypePerson PartyType = "person"
-const PartyTypeOrganization PartyType = "organization"
+const (
+	PartyTypePerson       PartyType = "person"
+	PartyTypeOrganization PartyType = "organization"
+)
 
 type PartyExternalIDScheme string
 
@@ -181,6 +183,14 @@ func (p *PartyExternalID) UnmarshalOscal(oid oscaltypes113.PartyExternalIdentifi
 	p.Scheme = PartyExternalIDScheme(oid.Scheme)
 
 	return p
+}
+
+// MarshalOscal converts the PartyExternalID back to an OSCAL PartyExternalIdentifier
+func (p *PartyExternalID) MarshalOscal() *oscaltypes113.PartyExternalIdentifier {
+	return &oscaltypes113.PartyExternalIdentifier{
+		ID:     p.ID,
+		Scheme: string(p.Scheme),
+	}
 }
 
 type Party struct {
@@ -220,7 +230,7 @@ func (p *Party) UnmarshalOscal(oparty oscaltypes113.Party) *Party {
 		},
 		Type:      PartyType(oparty.Type),
 		Name:      &oparty.Name,
-		ShortName: &oparty.Name,
+		ShortName: &oparty.ShortName,
 		ExternalIds: ConvertList(oparty.ExternalIds, func(id oscaltypes113.PartyExternalIdentifier) PartyExternalID {
 			pei := PartyExternalID{}
 			pei.UnmarshalOscal(id)
@@ -236,19 +246,83 @@ func (p *Party) UnmarshalOscal(oparty oscaltypes113.Party) *Party {
 			link.UnmarshalOscal(olink)
 			return link
 		}),
-		EmailAddresses:   nil,
-		TelephoneNumbers: nil,
+		EmailAddresses: *oparty.EmailAddresses,
+		TelephoneNumbers: ConvertList(oparty.TelephoneNumbers, func(onumber oscaltypes113.TelephoneNumber) TelephoneNumber {
+			number := TelephoneNumber{}
+			number.UnmarshalOscal(onumber)
+			return number
+		}),
 		Addresses: ConvertList(oparty.Addresses, func(oaddress oscaltypes113.Address) Address {
 			address := Address{}
 			address.UnmarshalOscal(oaddress)
 			return address
 		}),
-		Locations:             nil,
+		Locations: ConvertList(oparty.LocationUuids, func(oloc string) Location {
+			id := uuid.MustParse(oloc)
+			location := Location{
+				UUIDModel: UUIDModel{
+					ID: &id,
+				},
+			}
+			return location
+		}),
 		MemberOfOrganizations: nil,
 		Remarks:               &oparty.Remarks,
 	}
 
 	return p
+}
+
+// MarshalOscal converts the Party back to an OSCAL Party
+func (p *Party) MarshalOscal() *oscaltypes113.Party {
+	party := &oscaltypes113.Party{
+		UUID: p.UUIDModel.ID.String(),
+		Type: string(p.Type),
+	}
+	if p.Name != nil {
+		party.Name = *p.Name
+	}
+	if p.ShortName != nil {
+		party.ShortName = *p.ShortName
+	}
+	if len(p.ExternalIds) > 0 {
+		ext := make([]oscaltypes113.PartyExternalIdentifier, len(p.ExternalIds))
+		for i, id := range p.ExternalIds {
+			ext[i] = *id.MarshalOscal()
+		}
+		party.ExternalIds = &ext
+	}
+	if len(p.Props) > 0 {
+		props := *ConvertPropsToOscal(p.Props)
+		party.Props = &props
+	}
+	if len(p.Links) > 0 {
+		links := *ConvertLinksToOscal(p.Links)
+		party.Links = &links
+	}
+	if len(p.EmailAddresses) > 0 {
+		emails := make([]string, len(p.EmailAddresses))
+		copy(emails, p.EmailAddresses)
+		party.EmailAddresses = &emails
+	}
+	if len(p.TelephoneNumbers) > 0 {
+		tns := make([]oscaltypes113.TelephoneNumber, len(p.TelephoneNumbers))
+		for i, tn := range p.TelephoneNumbers {
+			tns[i] = *tn.MarshalOscal()
+		}
+		party.TelephoneNumbers = &tns
+	}
+	if len(p.Addresses) > 0 {
+		addrs := make([]oscaltypes113.Address, len(p.Addresses))
+		for i, a := range p.Addresses {
+			addrs[i] = *a.MarshalOscal()
+		}
+		party.Addresses = &addrs
+	}
+	if p.Remarks != nil {
+		party.Remarks = *p.Remarks
+	}
+	return party
 }
 
 type Revision struct {
@@ -259,8 +333,8 @@ type Revision struct {
 	MetadataID uuid.UUID `json:"metadata-id"`
 
 	Title        *string                   `json:"title"`
-	Published    sql.NullTime              `json:"published"`
-	LastModified sql.NullTime              `json:"last-modified"`
+	Published    *time.Time                `json:"published"`
+	LastModified *time.Time                `json:"last-modified"`
 	Version      string                    `json:"version"` // required
 	OscalVersion *string                   `json:"oscal-version"`
 	Props        datatypes.JSONSlice[Prop] `json:"props"`
@@ -269,12 +343,8 @@ type Revision struct {
 }
 
 func (r *Revision) UnmarshalOscal(entry oscaltypes113.RevisionHistoryEntry) *Revision {
-	if entry.Published != nil {
-		r.Published = sql.NullTime{Time: *entry.Published}
-	}
-	if entry.LastModified != nil {
-		r.LastModified = sql.NullTime{Time: *entry.LastModified}
-	}
+	r.Published = entry.Published
+	r.LastModified = entry.LastModified
 	r.Version = entry.Version
 	r.OscalVersion = &entry.OscalVersion
 	r.Title = &entry.Title
@@ -291,6 +361,33 @@ func (r *Revision) UnmarshalOscal(entry oscaltypes113.RevisionHistoryEntry) *Rev
 	})
 
 	return r
+}
+
+// MarshalOscal converts the Revision back to an OSCAL RevisionHistoryEntry
+func (r *Revision) MarshalOscal() *oscaltypes113.RevisionHistoryEntry {
+	rev := &oscaltypes113.RevisionHistoryEntry{
+		Version:      r.Version,
+		Published:    r.Published,
+		LastModified: r.LastModified,
+	}
+	if r.OscalVersion != nil {
+		rev.OscalVersion = *r.OscalVersion
+	}
+	if r.Title != nil {
+		rev.Title = *r.Title
+	}
+	if r.Remarks != nil {
+		rev.Remarks = *r.Remarks
+	}
+	if len(r.Props) > 0 {
+		props := *ConvertPropsToOscal(r.Props)
+		rev.Props = &props
+	}
+	if len(r.Links) > 0 {
+		links := *ConvertLinksToOscal(r.Links)
+		rev.Links = &links
+	}
+	return rev
 }
 
 type Role struct {
@@ -327,6 +424,26 @@ func (r *Role) UnmarshalOscal(entry oscaltypes113.Role) *Role {
 	return r
 }
 
+// MarshalOscal converts the Role back to an OSCAL Role
+func (r *Role) MarshalOscal() *oscaltypes113.Role {
+	role := &oscaltypes113.Role{
+		ID:          r.ID,
+		Title:       r.Title,
+		ShortName:   *r.ShortName,
+		Description: *r.Description,
+		Remarks:     *r.Remarks,
+	}
+	if len(r.Props) > 0 {
+		props := *ConvertPropsToOscal(r.Props)
+		role.Props = &props
+	}
+	if len(r.Links) > 0 {
+		links := *ConvertLinksToOscal(r.Links)
+		role.Links = &links
+	}
+	return role
+}
+
 type Location struct {
 	UUIDModel
 
@@ -334,7 +451,7 @@ type Location struct {
 	MetadataID uuid.UUID `json:"metadata-id"`
 
 	Title            *string                              `json:"title"`
-	Address          datatypes.JSONType[Address]          `json:"address"`
+	Address          *datatypes.JSONType[Address]         `json:"address"`
 	EmailAddresses   datatypes.JSONSlice[string]          `json:"email-addresses"`
 	TelephoneNumbers datatypes.JSONSlice[TelephoneNumber] `json:"telephone-numbers"`
 	Urls             datatypes.JSONSlice[string]          `json:"urls"`
@@ -356,6 +473,14 @@ func (l *Location) UnmarshalOscal(olocation oscaltypes113.Location) *Location {
 				return &id
 			}(),
 		},
+		Title:          &olocation.Title,
+		EmailAddresses: *olocation.EmailAddresses,
+		TelephoneNumbers: ConvertList(olocation.TelephoneNumbers, func(onumb oscaltypes113.TelephoneNumber) TelephoneNumber {
+			numb := TelephoneNumber{}
+			numb.UnmarshalOscal(onumb)
+			return numb
+		}),
+		Urls: *olocation.Urls,
 		Props: ConvertList(olocation.Props, func(property oscaltypes113.Property) Prop {
 			prop := Prop{}
 			prop.UnmarshalOscal(property)
@@ -366,14 +491,49 @@ func (l *Location) UnmarshalOscal(olocation oscaltypes113.Location) *Location {
 			link.UnmarshalOscal(olink)
 			return link
 		}),
-		EmailAddresses: *olocation.EmailAddresses,
-		TelephoneNumbers: ConvertList(olocation.TelephoneNumbers, func(onumb oscaltypes113.TelephoneNumber) TelephoneNumber {
-			numb := TelephoneNumber{}
-			numb.UnmarshalOscal(onumb)
-			return numb
-		}),
 		Remarks: &olocation.Remarks,
 	}
 
+	if olocation.Address != nil {
+		address := Address{}
+		address.UnmarshalOscal(*olocation.Address)
+		addressJson := datatypes.NewJSONType[Address](address)
+		l.Address = &addressJson
+	}
+
 	return l
+}
+
+// MarshalOscal converts the Location back to an OSCAL Location
+func (l *Location) MarshalOscal() *oscaltypes113.Location {
+	loc := &oscaltypes113.Location{
+		UUID:    l.UUIDModel.ID.String(),
+		Remarks: *l.Remarks,
+	}
+	if len(l.Props) > 0 {
+		props := *ConvertPropsToOscal(l.Props)
+		loc.Props = &props
+	}
+	if len(l.Links) > 0 {
+		links := *ConvertLinksToOscal(l.Links)
+		loc.Links = &links
+	}
+	if len(l.EmailAddresses) > 0 {
+		emails := make([]string, len(l.EmailAddresses))
+		copy(emails, l.EmailAddresses)
+		loc.EmailAddresses = &emails
+	}
+	if len(l.TelephoneNumbers) > 0 {
+		tns := make([]oscaltypes113.TelephoneNumber, len(l.TelephoneNumbers))
+		for i, tn := range l.TelephoneNumbers {
+			tns[i] = *tn.MarshalOscal()
+		}
+		loc.TelephoneNumbers = &tns
+	}
+	if len(l.Urls) > 0 {
+		urls := make([]string, len(l.Urls))
+		copy(urls, l.Urls)
+		loc.Urls = &urls
+	}
+	return loc
 }
