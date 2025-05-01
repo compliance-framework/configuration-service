@@ -200,6 +200,30 @@ func (r *ResponsibleParty) UnmarshalOscal(or oscaltypes113.ResponsibleParty) *Re
 	return r
 }
 
+// MarshalOscal converts the ResponsibleParty back to an OSCAL ResponsibleParty
+func (r *ResponsibleParty) MarshalOscal() *oscaltypes113.ResponsibleParty {
+	rp := &oscaltypes113.ResponsibleParty{
+		Remarks: r.Remarks,
+		RoleId:  r.RoleID,
+	}
+	if len(r.Props) > 0 {
+		props := *ConvertPropsToOscal(r.Props)
+		rp.Props = &props
+	}
+	if len(r.Links) > 0 {
+		links := *ConvertLinksToOscal(r.Links)
+		rp.Links = &links
+	}
+	if len(r.Parties) > 0 {
+		uuids := make([]string, len(r.Parties))
+		for i, p := range r.Parties {
+			uuids[i] = p.UUIDModel.ID.String()
+		}
+		rp.PartyUuids = uuids
+	}
+	return rp
+}
+
 type UUIDModel struct {
 	ID *uuid.UUID `json:"id" gorm:"type:uuid;primary_key;"`
 }

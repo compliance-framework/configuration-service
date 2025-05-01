@@ -165,3 +165,71 @@ func TestParty_OscalMarshalling(t *testing.T) {
 	assert.NoError(t, err)
 	assert.JSONEq(t, string(inputJson), string(outputJson))
 }
+
+func TestAction_OscalMarshalling(t *testing.T) {
+	now := time.Now().UTC().Truncate(time.Second)
+	oscalAct := oscaltypes113.Action{
+		UUID:    uuid.New().String(),
+		Date:    &now,
+		Type:    "type1",
+		System:  "system1",
+		Remarks: "remarks1",
+	}
+	inputJson, err := json.Marshal(oscalAct)
+	assert.NoError(t, err)
+
+	act := &Action{}
+	act.UnmarshalOscal(oscalAct)
+	output := act.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
+}
+
+func TestMetadata_OscalMarshalling(t *testing.T) {
+	now := time.Now().UTC().Truncate(time.Second)
+	oscalMD := oscaltypes113.Metadata{
+		Title:        "mtitle",
+		Published:    &now,
+		LastModified: now,
+		Version:      "v1",
+		OscalVersion: "1.1.3",
+		Remarks:      "mremarks",
+		DocumentIds: &[]oscaltypes113.DocumentId{
+			{Scheme: "http://www.doi.org/", Identifier: "doc1"},
+		},
+		Props: &[]oscaltypes113.Property{
+			{Class: "pc", Group: "pg", Name: "pn", Ns: "pns", Remarks: "pr", UUID: uuid.New().String(), Value: "pv"},
+		},
+		Links: &[]oscaltypes113.Link{
+			{Href: "http://link", MediaType: "mt", Text: "txt"},
+		},
+		Revisions: &[]oscaltypes113.RevisionHistoryEntry{
+			{Version: "rv1", Title: "rev1", Remarks: "rpr", OscalVersion: "1.1.3", Published: &now, LastModified: &now},
+		},
+		Roles: &[]oscaltypes113.Role{
+			{ID: "role1", Title: "roleTitle", ShortName: "rsh", Description: "rdesc", Remarks: "rpr"},
+		},
+		Locations: &[]oscaltypes113.Location{
+			{UUID: uuid.New().String(), EmailAddresses: &[]string{"e1"}, TelephoneNumbers: &[]oscaltypes113.TelephoneNumber{{Type: "mobile", Number: "123"}}, Urls: &[]string{"http://u"}, Remarks: "locremarks"},
+		},
+		Parties: &[]oscaltypes113.Party{
+			{UUID: uuid.New().String(), Type: "person", Name: "name", ShortName: "sn", Remarks: "pr"},
+		},
+		ResponsibleParties: &[]oscaltypes113.ResponsibleParty{
+			{RoleId: "role1", Remarks: "rpr"},
+		},
+		Actions: &[]oscaltypes113.Action{
+			{UUID: uuid.New().String(), Date: &now, Type: "atype", System: "asys", Remarks: "arm"},
+		},
+	}
+	inputJson, err := json.Marshal(oscalMD)
+	assert.NoError(t, err)
+
+	md := &Metadata{}
+	md.UnmarshalOscal(oscalMD)
+	output := md.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
+}

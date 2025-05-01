@@ -1,7 +1,6 @@
 package relational
 
 import (
-	"database/sql"
 	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
@@ -16,8 +15,8 @@ type Metadata struct {
 	ParentType *string
 
 	Title              string                          `json:"title"`
-	Published          sql.NullTime                    `json:"published"`
-	LastModified       time.Time                       `json:"last-modified"`
+	Published          *time.Time                      `json:"published"`
+	LastModified       *time.Time                      `json:"last-modified"`
 	Version            string                          `json:"version"`
 	OscalVersion       string                          `json:"oscal-version"`
 	DocumentIDs        datatypes.JSONSlice[DocumentID] `json:"document-ids"` // -> DocumentID
@@ -42,16 +41,10 @@ type Metadata struct {
 }
 
 func (m *Metadata) UnmarshalOscal(metadata oscaltypes113.Metadata) *Metadata {
-	published := sql.NullTime{}
-	if metadata.Published != nil {
-		published = sql.NullTime{
-			Time: *metadata.Published,
-		}
-	}
 	*m = Metadata{
 		Title:        metadata.Title,
-		Published:    published,
-		LastModified: metadata.LastModified,
+		Published:    metadata.Published,
+		LastModified: &metadata.LastModified,
 		Version:      metadata.Version,
 		OscalVersion: metadata.OscalVersion,
 		DocumentIDs: func() datatypes.JSONSlice[DocumentID] {
@@ -102,13 +95,83 @@ func (m *Metadata) UnmarshalOscal(metadata oscaltypes113.Metadata) *Metadata {
 	return m
 }
 
+// MarshalOscal converts the Metadata back to an OSCAL Metadata
+func (m *Metadata) MarshalOscal() *oscaltypes113.Metadata {
+	md := &oscaltypes113.Metadata{
+		Title:        m.Title,
+		Published:    m.Published,
+		LastModified: *m.LastModified,
+		Version:      m.Version,
+		OscalVersion: m.OscalVersion,
+		Remarks:      m.Remarks,
+	}
+	if len(m.DocumentIDs) > 0 {
+		docs := make([]oscaltypes113.DocumentId, len(m.DocumentIDs))
+		for i, d := range m.DocumentIDs {
+			docs[i] = *d.MarshalOscal()
+		}
+		md.DocumentIds = &docs
+	}
+	if len(m.Props) > 0 {
+		props := *ConvertPropsToOscal(m.Props)
+		md.Props = &props
+	}
+	if len(m.Links) > 0 {
+		links := *ConvertLinksToOscal(m.Links)
+		md.Links = &links
+	}
+	if len(m.Revisions) > 0 {
+		revs := make([]oscaltypes113.RevisionHistoryEntry, len(m.Revisions))
+		for i, r := range m.Revisions {
+			revs[i] = *r.MarshalOscal()
+		}
+		md.Revisions = &revs
+	}
+	if len(m.Roles) > 0 {
+		roles := make([]oscaltypes113.Role, len(m.Roles))
+		for i, r := range m.Roles {
+			roles[i] = *r.MarshalOscal()
+		}
+		md.Roles = &roles
+	}
+	if len(m.Locations) > 0 {
+		locs := make([]oscaltypes113.Location, len(m.Locations))
+		for i, l := range m.Locations {
+			locs[i] = *l.MarshalOscal()
+		}
+		md.Locations = &locs
+	}
+	if len(m.Parties) > 0 {
+		parts := make([]oscaltypes113.Party, len(m.Parties))
+		for i, p := range m.Parties {
+			parts[i] = *p.MarshalOscal()
+		}
+		md.Parties = &parts
+	}
+	if len(m.ResponsibleParties) > 0 {
+		rps := make([]oscaltypes113.ResponsibleParty, len(m.ResponsibleParties))
+		for i, rp := range m.ResponsibleParties {
+			rps[i] = *rp.MarshalOscal()
+		}
+		md.ResponsibleParties = &rps
+	}
+	if len(m.Actions) > 0 {
+		acts := make([]oscaltypes113.Action, len(m.Actions))
+		for i, a := range m.Actions {
+			acts[i] = *a.MarshalOscal()
+		}
+		md.Actions = &acts
+	}
+	return md
+}
+
 type Action struct {
 	UUIDModel
 
 	// Actions only exist on a metadata object. We'll link them straight there with a BelongsTo relationship
 	MetadataID uuid.UUID `json:"metadata-id"`
 
-	Date               sql.NullTime              `json:"date"`
+	Date               *time.Time                `json:"date"`
 	Type               string                    `json:"type"`   // required
 	System             string                    `json:"system"` // required
 	Props              datatypes.JSONSlice[Prop] `json:"props"`
@@ -118,11 +181,9 @@ type Action struct {
 }
 
 func (a *Action) UnmarshalOscal(action oscaltypes113.Action) *Action {
-	date := sql.NullTime{}
+	var date *time.Time = nil
 	if action.Date != nil {
-		date = sql.NullTime{
-			Time: *action.Date,
-		}
+		date = action.Date
 	}
 	*a = Action{
 		UUIDModel: UUIDModel{
@@ -153,6 +214,36 @@ func (a *Action) UnmarshalOscal(action oscaltypes113.Action) *Action {
 	}
 
 	return a
+}
+
+// MarshalOscal converts the Action back to an OSCAL Action
+func (a *Action) MarshalOscal() *oscaltypes113.Action {
+	act := &oscaltypes113.Action{
+		UUID:    a.UUIDModel.ID.String(),
+		Date:    nil,
+		Type:    a.Type,
+		System:  a.System,
+		Remarks: a.Remarks,
+	}
+	if a.Date != nil {
+		act.Date = a.Date
+	}
+	if len(a.Props) > 0 {
+		props := *ConvertPropsToOscal(a.Props)
+		act.Props = &props
+	}
+	if len(a.Links) > 0 {
+		links := *ConvertLinksToOscal(a.Links)
+		act.Links = &links
+	}
+	if len(a.ResponsibleParties) > 0 {
+		rps := make([]oscaltypes113.ResponsibleParty, len(a.ResponsibleParties))
+		for i, rp := range a.ResponsibleParties {
+			rps[i] = *rp.MarshalOscal()
+		}
+		act.ResponsibleParties = &rps
+	}
+	return act
 }
 
 type PartyType string
@@ -246,7 +337,6 @@ func (p *Party) UnmarshalOscal(oparty oscaltypes113.Party) *Party {
 			link.UnmarshalOscal(olink)
 			return link
 		}),
-		EmailAddresses: *oparty.EmailAddresses,
 		TelephoneNumbers: ConvertList(oparty.TelephoneNumbers, func(onumber oscaltypes113.TelephoneNumber) TelephoneNumber {
 			number := TelephoneNumber{}
 			number.UnmarshalOscal(onumber)
@@ -268,6 +358,10 @@ func (p *Party) UnmarshalOscal(oparty oscaltypes113.Party) *Party {
 		}),
 		MemberOfOrganizations: nil,
 		Remarks:               &oparty.Remarks,
+	}
+
+	if oparty.EmailAddresses != nil {
+		p.EmailAddresses = *oparty.EmailAddresses
 	}
 
 	return p
