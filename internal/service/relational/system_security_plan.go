@@ -16,6 +16,7 @@ type SystemSecurityPlan struct {
 	ImportProfile         datatypes.JSONType[ImportProfile] `json:"import-profile"`
 	SystemCharacteristics SystemCharacteristics             `json:"system-characteristics"`
 	SystemImplementation  SystemImplementation              `json:"system-implementation"`
+	ControlImplementation ControlImplementation             `json:"control-implementation"`
 }
 
 func (s *SystemSecurityPlan) UnmarshalOscal(os oscalTypes_1_1_3.SystemSecurityPlan) *SystemSecurityPlan {
@@ -35,6 +36,9 @@ func (s *SystemSecurityPlan) UnmarshalOscal(os oscalTypes_1_1_3.SystemSecurityPl
 	systemImplementation := SystemImplementation{}
 	systemImplementation.UnmarshalOscal(os.SystemImplementation)
 
+	controlImplementation := ControlImplementation{}
+	controlImplementation.UnmarshalOscal(os.ControlImplementation)
+
 	*s = SystemSecurityPlan{
 		UUIDModel: UUIDModel{
 			ID: &id,
@@ -44,6 +48,7 @@ func (s *SystemSecurityPlan) UnmarshalOscal(os oscalTypes_1_1_3.SystemSecurityPl
 		ImportProfile:         datatypes.NewJSONType[ImportProfile](importProfile),
 		SystemCharacteristics: systemCharacteristics,
 		SystemImplementation:  systemImplementation,
+		ControlImplementation: controlImplementation,
 	}
 
 	return s
@@ -647,4 +652,355 @@ func (ic *ImplementedComponent) UnmarshalOscal(oic oscalTypes_1_1_3.ImplementedC
 	}
 
 	return ic
+}
+
+type ControlImplementation struct {
+	UUIDModel
+	Description             string                            `json:"description"`
+	SetParameters           datatypes.JSONSlice[SetParameter] `json:"set-parameters"`
+	ImplementedRequirements []ImplementedRequirement          `json:"implemented-requirements"`
+
+	SystemSecurityPlanId uuid.UUID
+}
+
+func (ci *ControlImplementation) UnmarshalOscal(oci oscalTypes_1_1_3.ControlImplementation) *ControlImplementation {
+	*ci = ControlImplementation{
+		UUIDModel:   UUIDModel{},
+		Description: oci.Description,
+		SetParameters: ConvertList(oci.SetParameters, func(sp oscalTypes_1_1_3.SetParameter) SetParameter {
+			param := SetParameter{}
+			param.UnmarshalOscal(sp)
+			return param
+		}),
+		ImplementedRequirements: ConvertList(&oci.ImplementedRequirements, func(oir oscalTypes_1_1_3.ImplementedRequirement) ImplementedRequirement {
+			req := ImplementedRequirement{}
+			req.UnmarshalOscal(oir)
+			return req
+		}),
+	}
+
+	return ci
+}
+
+type ImplementedRequirement struct {
+	UUIDModel
+	ControlId        string                               `json:"control-id"`
+	Props            datatypes.JSONSlice[Prop]            `json:"props"`
+	Links            datatypes.JSONSlice[Link]            `json:"links"`
+	SetParameters    datatypes.JSONSlice[SetParameter]    `json:"set-parameters"`
+	ResponsibleRoles datatypes.JSONSlice[ResponsibleRole] `json:"responsible-roles"`
+	Remarks          string                               `json:"remarks"`
+	ByComponents     []ByComponent                        `json:"by-components" gorm:"Polymorphic:Parent"`
+	Statements       []Statement                          `json:"statements"`
+
+	ControlImplementationId uuid.UUID
+
+	// Statements
+	// ByComponents
+}
+
+func (ir *ImplementedRequirement) UnmarshalOscal(oir oscalTypes_1_1_3.ImplementedRequirement) *ImplementedRequirement {
+	id := uuid.MustParse(oir.UUID)
+	*ir = ImplementedRequirement{
+		UUIDModel: UUIDModel{
+			ID: &id,
+		},
+		ControlId: oir.ControlId,
+		Props:     ConvertOscalToProps(oir.Props),
+		Links:     ConvertOscalToLinks(oir.Links),
+		SetParameters: ConvertList(oir.SetParameters, func(op oscalTypes_1_1_3.SetParameter) SetParameter {
+			param := SetParameter{}
+			param.UnmarshalOscal(op)
+			return param
+		}),
+		ResponsibleRoles: ConvertList(oir.ResponsibleRoles, func(op oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
+			role := ResponsibleRole{}
+			role.UnmarshalOscal(op)
+			return role
+		}),
+		ByComponents: ConvertList(oir.ByComponents, func(op oscalTypes_1_1_3.ByComponent) ByComponent {
+			component := ByComponent{}
+			component.UnmarshalOscal(op)
+			return component
+		}),
+		Statements: ConvertList(oir.Statements, func(op oscalTypes_1_1_3.Statement) Statement {
+			statement := Statement{}
+			statement.UnmarshalOscal(op)
+			return statement
+		}),
+		Remarks: oir.Remarks,
+	}
+
+	return ir
+}
+
+type ByComponent struct {
+	UUIDModel
+
+	// As ByComponent can be found in Implemented Requirements & Statements, using GORM polymorphism to tell us where to attach
+	ParentID   *uuid.UUID
+	ParentType *string
+
+	ComponentUUID        uuid.UUID                                      `json:"component-uuid"`
+	Description          string                                         `json:"description"`
+	Props                datatypes.JSONSlice[Prop]                      `json:"props"`
+	Links                datatypes.JSONSlice[Link]                      `json:"links"`
+	SetParameters        datatypes.JSONSlice[SetParameter]              `json:"set-parameters"`
+	ResponsibleRoles     datatypes.JSONSlice[ResponsibleRole]           `json:"responsible-parties"`
+	Remarks              string                                         `json:"remarks"`
+	ImplementationStatus datatypes.JSONSlice[ImplementationStatus]      `json:"implementation-status"`
+	Export               Export                                         `json:"export"`
+	Inherited            []InheritedControlImplementation               `json:"inherited-control-implementations"`
+	Satisfied            []SatisfiedControlImplementationResponsibility `json:"satisfied"`
+}
+
+func (bc *ByComponent) UnmarshalOscal(obc oscalTypes_1_1_3.ByComponent) *ByComponent {
+	id := uuid.MustParse(obc.UUID)
+	componentId := uuid.MustParse(obc.ComponentUuid)
+
+	export := Export{}
+	if obc.Export != nil {
+		export.UnmarshalOscal(*obc.Export)
+	}
+
+	*bc = ByComponent{
+		UUIDModel: UUIDModel{
+			ID: &id,
+		},
+		ComponentUUID: componentId,
+		Description:   obc.Description,
+		Props:         ConvertOscalToProps(obc.Props),
+		Links:         ConvertOscalToLinks(obc.Links),
+		SetParameters: ConvertList(obc.SetParameters, func(op oscalTypes_1_1_3.SetParameter) SetParameter {
+			param := SetParameter{}
+			param.UnmarshalOscal(op)
+			return param
+		}),
+		ResponsibleRoles: ConvertList(obc.ResponsibleRoles, func(orr oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
+			role := ResponsibleRole{}
+			role.UnmarshalOscal(orr)
+			return role
+		}),
+		Remarks: obc.Remarks,
+		Export:  export,
+	}
+	return bc
+}
+
+type ImplementationStatus oscalTypes_1_1_3.ImplementationStatus
+
+func (is *ImplementationStatus) UnmarshalOscal(ois oscalTypes_1_1_3.ImplementationStatus) *ImplementationStatus {
+	*is = ImplementationStatus(ois)
+	return is
+}
+
+type Export struct {
+	UUIDModel
+	Description      string                                `json:"description"`
+	Props            datatypes.JSONSlice[Prop]             `json:"props"`
+	Links            datatypes.JSONSlice[Link]             `json:"links"`
+	Remarks          string                                `json:"remarks"`
+	Provided         []ProvidedControlImplementation       `json:"provided"`
+	Responsibilities []ControlImplementationResponsibility `json:"responsibilities"`
+
+	ByComponentId uuid.UUID
+}
+
+func (e *Export) UnmarshalOscal(oe oscalTypes_1_1_3.Export) *Export {
+	*e = Export{
+		UUIDModel:   UUIDModel{},
+		Description: oe.Description,
+		Props:       ConvertOscalToProps(oe.Props),
+		Links:       ConvertOscalToLinks(oe.Links),
+		Remarks:     oe.Remarks,
+		Provided: ConvertList(oe.Provided, func(opci oscalTypes_1_1_3.ProvidedControlImplementation) ProvidedControlImplementation {
+			provided := ProvidedControlImplementation{}
+			provided.UnmarshalOscal(opci)
+			return provided
+		}),
+		Responsibilities: ConvertList(oe.Responsibilities, func(cir oscalTypes_1_1_3.ControlImplementationResponsibility) ControlImplementationResponsibility {
+			responsibility := ControlImplementationResponsibility{}
+			responsibility.UnmarshalOscal(cir)
+			return responsibility
+		}),
+	}
+
+	return e
+}
+
+type ProvidedControlImplementation struct {
+	UUIDModel
+	Description      string                               `json:"description"`
+	Links            datatypes.JSONSlice[Link]            `json:"links"`
+	Props            datatypes.JSONSlice[Prop]            `json:"props"`
+	Remarks          string                               `json:"remarks"`
+	ResponsibleRoles datatypes.JSONSlice[ResponsibleRole] `json:"responsible-roles"`
+
+	ExportId uuid.UUID
+}
+
+func (pci *ProvidedControlImplementation) UnmarshalOscal(opci oscalTypes_1_1_3.ProvidedControlImplementation) *ProvidedControlImplementation {
+	id := uuid.MustParse(opci.UUID)
+	*pci = ProvidedControlImplementation{
+		UUIDModel: UUIDModel{
+			ID: &id,
+		},
+		Description: opci.Description,
+		Props:       ConvertOscalToProps(opci.Props),
+		Links:       ConvertOscalToLinks(opci.Links),
+		Remarks:     opci.Remarks,
+		ResponsibleRoles: ConvertList(opci.ResponsibleRoles, func(or oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
+			role := ResponsibleRole{}
+			role.UnmarshalOscal(or)
+			return role
+		}),
+	}
+	return pci
+}
+
+type ControlImplementationResponsibility struct {
+	UUIDModel
+	Description      string                               `json:"description"`
+	Links            datatypes.JSONSlice[Link]            `json:"links"`
+	Props            datatypes.JSONSlice[Prop]            `json:"props"`
+	ProvidedUuid     uuid.UUID                            `json:"provided-uuid"`
+	Remarks          string                               `json:"remarks"`
+	ResponsibleRoles datatypes.JSONSlice[ResponsibleRole] `json:"responsible-roles"`
+
+	ExportId uuid.UUID
+}
+
+func (cir *ControlImplementationResponsibility) UnmarshalOscal(ocir oscalTypes_1_1_3.ControlImplementationResponsibility) *ControlImplementationResponsibility {
+	id := uuid.MustParse(ocir.UUID)
+
+	providedUuid, err := uuid.Parse(ocir.ProvidedUuid)
+	if err != nil {
+		// Force nil if parse fails
+		providedUuid = uuid.Nil
+	}
+
+	*cir = ControlImplementationResponsibility{
+		UUIDModel: UUIDModel{
+			ID: &id,
+		},
+		ProvidedUuid: providedUuid,
+		Description:  ocir.Description,
+		Remarks:      ocir.Remarks,
+		Props:        ConvertOscalToProps(ocir.Props),
+		Links:        ConvertOscalToLinks(ocir.Links),
+		ResponsibleRoles: ConvertList(ocir.ResponsibleRoles, func(or oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
+			role := ResponsibleRole{}
+			role.UnmarshalOscal(or)
+			return role
+		}),
+	}
+
+	return cir
+}
+
+type InheritedControlImplementation struct {
+	UUIDModel
+	ProvidedUuid     uuid.UUID                            `json:"provided-uuid"`
+	Description      string                               `json:"description"`
+	Links            datatypes.JSONSlice[Link]            `json:"links"`
+	Props            datatypes.JSONSlice[Prop]            `json:"props"`
+	ResponsibleRoles datatypes.JSONSlice[ResponsibleRole] `json:"responsible-roles"`
+
+	ByComponentId uuid.UUID
+}
+
+func (i *InheritedControlImplementation) UnmarshalOscal(oi oscalTypes_1_1_3.InheritedControlImplementation) *InheritedControlImplementation {
+	providedUuid, err := uuid.Parse(oi.ProvidedUuid)
+	if err != nil {
+		providedUuid = uuid.Nil
+	}
+	*i = InheritedControlImplementation{
+		UUIDModel:    UUIDModel{},
+		ProvidedUuid: providedUuid,
+		Description:  oi.Description,
+		Links:        ConvertOscalToLinks(oi.Links),
+		Props:        ConvertOscalToProps(oi.Props),
+		ResponsibleRoles: ConvertList(oi.ResponsibleRoles, func(or oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
+			role := ResponsibleRole{}
+			role.UnmarshalOscal(or)
+			return role
+		}),
+	}
+
+	return i
+}
+
+type SatisfiedControlImplementationResponsibility struct {
+	UUIDModel
+	ResponsibilityUuid uuid.UUID                            `json:"responsibility-uuid"`
+	Description        string                               `json:"description"`
+	Props              datatypes.JSONSlice[Prop]            `json:"props"`
+	Links              datatypes.JSONSlice[Link]            `json:"links"`
+	ResponsibleRoles   datatypes.JSONSlice[ResponsibleRole] `json:"responsible-roles"`
+	Remarks            string                               `json:"remarks"`
+
+	ByComponentId uuid.UUID `json:"by-component-id"`
+}
+
+func (s *SatisfiedControlImplementationResponsibility) UnmarshalOscal(os oscalTypes_1_1_3.SatisfiedControlImplementationResponsibility) *SatisfiedControlImplementationResponsibility {
+	id := uuid.MustParse(os.UUID)
+	responsiblityUuid, err := uuid.Parse(os.ResponsibilityUuid)
+	if err != nil {
+		responsiblityUuid = uuid.Nil
+	}
+
+	*s = SatisfiedControlImplementationResponsibility{
+		UUIDModel: UUIDModel{
+			ID: &id,
+		},
+		ResponsibilityUuid: responsiblityUuid,
+		Description:        os.Description,
+		Links:              ConvertOscalToLinks(os.Links),
+		Props:              ConvertOscalToProps(os.Props),
+		Remarks:            os.Remarks,
+		ResponsibleRoles: ConvertList(os.ResponsibleRoles, func(or oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
+			role := ResponsibleRole{}
+			role.UnmarshalOscal(or)
+			return role
+		}),
+	}
+	return s
+}
+
+type Statement struct {
+	UUIDModel
+	StatementId      string                               `json:"statement-id"`
+	Props            datatypes.JSONSlice[Prop]            `json:"props"`
+	Links            datatypes.JSONSlice[Link]            `json:"links"`
+	ResponsibleRoles datatypes.JSONSlice[ResponsibleRole] `json:"responsible-roles"`
+	ByComponents     []ByComponent                        `json:"by-components" gorm:"polymorphic:Parent"`
+	Remarks          string                               `json:"remarks"`
+
+	ImplementedRequirementId uuid.UUID
+}
+
+func (s *Statement) UnmarshalOscal(os oscalTypes_1_1_3.Statement) *Statement {
+	id := uuid.MustParse(os.UUID)
+
+	*s = Statement{
+		UUIDModel: UUIDModel{
+			ID: &id,
+		},
+		StatementId: os.StatementId,
+		Props:       ConvertOscalToProps(os.Props),
+		Links:       ConvertOscalToLinks(os.Links),
+		ResponsibleRoles: ConvertList(os.ResponsibleRoles, func(op oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
+			role := ResponsibleRole{}
+			role.UnmarshalOscal(op)
+			return role
+		}),
+		ByComponents: ConvertList(os.ByComponents, func(op oscalTypes_1_1_3.ByComponent) ByComponent {
+			component := ByComponent{}
+			component.UnmarshalOscal(op)
+			return component
+		}),
+		Remarks: os.Remarks,
+	}
+
+	return s
 }
