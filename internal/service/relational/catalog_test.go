@@ -5,7 +5,9 @@ import (
 	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"os"
 	"testing"
+	"time"
 )
 
 func TestPart_OscalMarshalling(t *testing.T) {
@@ -286,4 +288,69 @@ func TestGroup_OscalMarshalling(t *testing.T) {
 	outputJson, err := json.Marshal(output)
 	assert.NoError(t, err)
 	assert.JSONEq(t, string(inputJson), string(outputJson))
+}
+
+func TestCatalog_OscalMarshalling(t *testing.T) {
+	t.Run("Basic", func(t *testing.T) {
+		now := time.Now().UTC().Truncate(time.Second)
+		oscalCat := oscaltypes113.Catalog{
+			UUID: uuid.New().String(),
+			Metadata: oscaltypes113.Metadata{
+				Title:        "catalog title",
+				Published:    &now,
+				LastModified: now,
+				Version:      "v1",
+				OscalVersion: "1.1.3",
+				Remarks:      "catalog remarks",
+			},
+			Groups: &[]oscaltypes113.Group{
+				{
+					Class: "family",
+					Controls: &[]oscaltypes113.Control{
+						{
+							ID:    "AC-1",
+							Class: "SP800-53",
+							Title: "Access Control",
+						},
+					},
+					ID:    "AC",
+					Title: "",
+				},
+			},
+		}
+		inputJson, err := json.Marshal(oscalCat)
+		assert.NoError(t, err)
+
+		c := &Catalog{}
+		c.UnmarshalOscal(oscalCat)
+		output := c.MarshalOscal()
+		outputJson, err := json.Marshal(output)
+		assert.NoError(t, err)
+		assert.JSONEq(t, string(inputJson), string(outputJson))
+	})
+
+	t.Run("SP800-53", func(t *testing.T) {
+		// SP800-53 ensures that a FULL catalog can be unmarshalled, and re-marshalled, producing the same JSON object.
+		// This proves our entire schema for a Catalog works correctly.
+		f, err := os.Open("./testdata/full_catalog.json")
+		assert.NoError(t, err)
+		defer f.Close()
+
+		embed := struct {
+			Catalog oscaltypes113.Catalog `json:"catalog"`
+		}{}
+		err = json.NewDecoder(f).Decode(&embed)
+		assert.NoError(t, err)
+
+		inputJson, err := json.Marshal(embed.Catalog)
+		assert.NoError(t, err)
+
+		catalog := &Catalog{}
+		// Use a random UUID for the catalogId parameter
+		catalog.UnmarshalOscal(embed.Catalog)
+		output := catalog.MarshalOscal()
+		outputJson, err := json.Marshal(output)
+		assert.NoError(t, err)
+		assert.JSONEq(t, string(inputJson), string(outputJson))
+	})
 }
