@@ -15,7 +15,4 @@ __debug_*
 # Remove any SQLite databases created
 *.db
 
-testdata/NIST_SP-800_218_catalog.json
-testdata/OWASP_DSOMM_3.28.2.json
-testdata/SAMA_CSF_1.0_catalog.json
-testdata/SAMA_ITGF_1.0_catalog.json
+local.go
