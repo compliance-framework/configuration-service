@@ -36,7 +36,22 @@ func (h *CatalogHandler) Register(api *echo.Group) {
 	//api.DELETE("/:id", h.Delete)
 }
 
+// List godoc
+//
+//	@Summary		List catalogs
+//	@Description	Retrieves all catalogs.
+//	@Tags			Oscal Catalogs
+//	@Produce		json
+//	@Success		200	{object}	handler.GenericDataListResponse[oscal.List.responseCatalog]
+//	@Failure		400	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/catalogs [get]
 func (h *CatalogHandler) List(ctx echo.Context) error {
+	type responseCatalog struct {
+		UUID     uuid.UUID                 `json:"uuid"`
+		Metadata oscalTypes_1_1_3.Metadata `json:"metadata"`
+	}
+
 	var catalogs []relational.Catalog
 	if err := h.db.
 		Preload("Metadata").
@@ -54,7 +69,24 @@ func (h *CatalogHandler) List(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.Catalog]{Data: oscalCatalogs})
 }
 
+// Get godoc
+//
+//	@Summary		Get a Catalog
+//	@Description	Retrieves a single Catalog by its unique ID.
+//	@Tags			Oscal Catalogs
+//	@Produce		json
+//	@Param			id	path		string	true	"Catalog ID"
+//	@Success		200	{object}	handler.GenericDataResponse[oscal.Get.responseCatalog]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/catalogs/{id} [get]
 func (h *CatalogHandler) Get(ctx echo.Context) error {
+	type responseCatalog struct {
+		UUID     uuid.UUID                 `json:"uuid"`
+		Metadata oscalTypes_1_1_3.Metadata `json:"metadata"`
+	}
+
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
@@ -77,7 +109,24 @@ func (h *CatalogHandler) Get(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Catalog]{Data: *catalog.MarshalOscal()})
 }
 
+// GetBackMatter godoc
+//
+//	@Summary		Get back-matter for a Catalog
+//	@Description	Retrieves the back-matter for a given Catalog.
+//	@Tags			Oscal Catalogs
+//	@Produce		json
+//	@Param			id	path		string	true	"Catalog ID"
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/catalogs/{id}/back-matter [get]
 func (h *CatalogHandler) GetBackMatter(ctx echo.Context) error {
+	type Response handler.GenericDataResponse[struct {
+		Metadata relational.Metadata `json:"metadata"`
+		UUID     uuid.UUID           `json:"uuid"`
+	}]
+
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
@@ -96,6 +145,11 @@ func (h *CatalogHandler) GetBackMatter(ctx echo.Context) error {
 		h.sugar.Warnw("Failed to load catalog", "id", idParam, "error", err)
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
+
+	//handler.GenericDataResponse[struct {
+	//			UUID     uuid.UUID           `json:"uuid"`
+	//			Metadata relational.Metadata `json:"metadata"`
+	//		}]{}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[*oscalTypes_1_1_3.BackMatter]{Data: catalog.BackMatter.MarshalOscal()})
 }
