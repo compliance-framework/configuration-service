@@ -54,6 +54,15 @@ func (s *SystemSecurityPlan) UnmarshalOscal(os oscalTypes_1_1_3.SystemSecurityPl
 	return s
 }
 
+func (s *SystemSecurityPlan) MarshalOscal() *oscalTypes_1_1_3.SystemSecurityPlan {
+	plan := &oscalTypes_1_1_3.SystemSecurityPlan{
+		UUID:     s.UUIDModel.ID.String(),
+		Metadata: *s.Metadata.MarshalOscal(),
+	}
+
+	return plan
+}
+
 type ImportProfile oscalTypes_1_1_3.ImportProfile
 
 func (ip *ImportProfile) UnmarshalOscal(oip oscalTypes_1_1_3.ImportProfile) *ImportProfile {
