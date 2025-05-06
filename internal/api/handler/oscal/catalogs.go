@@ -122,11 +122,6 @@ func (h *CatalogHandler) Get(ctx echo.Context) error {
 //	@Failure		500	{object}	api.Error
 //	@Router			/oscal/catalogs/{id}/back-matter [get]
 func (h *CatalogHandler) GetBackMatter(ctx echo.Context) error {
-	type Response handler.GenericDataResponse[struct {
-		Metadata relational.Metadata `json:"metadata"`
-		UUID     uuid.UUID           `json:"uuid"`
-	}]
-
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
