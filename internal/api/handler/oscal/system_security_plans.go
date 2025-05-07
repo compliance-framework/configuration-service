@@ -1,6 +1,8 @@
 package oscal
 
 import (
+	"errors"
+	"github.com/google/uuid"
 	"net/http"
 
 	"github.com/compliance-framework/configuration-service/internal/api"
@@ -28,6 +30,7 @@ func NewSystemSecurityPlanHandler(sugar *zap.SugaredLogger, db *gorm.DB) *System
 func (h *SystemSecurityPlanHandler) Register(api *echo.Group) {
 	api.GET("", h.List)
 	api.GET("/:id", h.Get)
+	api.GET("/:id/back-matter", h.GetBackMatter)
 }
 
 func (h *SystemSecurityPlanHandler) List(ctx echo.Context) error {
@@ -59,4 +62,41 @@ func (h *SystemSecurityPlanHandler) Get(ctx echo.Context) error {
 	var ssp oscalTypes_1_1_3.SystemSecurityPlan
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.SystemSecurityPlan]{Data: ssp})
+}
+
+// GetBackMatter godoc
+//
+// @Summary 	Get back-matter for a System Security Plan
+// @Description Retrieves the back-matter for a given System Security Plan by the specified param ID in the path
+// @Tags 		Oscal System Security Plan
+// @Product 	json
+// @Param		id	path		string	true		"System Security Plan ID"
+// @Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]
+// @Failure		400	{object}	api.Error
+// @Failure		404	{object}	api.Error
+// @Failure		500	{object}	api.Error
+// @Router		/oscal/ssp/{id}/back-matter	[get]
+func (h *SystemSecurityPlanHandler) GetBackMatter(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid SSP id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var ssp relational.SystemSecurityPlan
+	if err := h.db.
+		Preload("BackMatter").
+		Preload("BackMatter.Resources").
+		First(&ssp, "id = ?", id).Error; err != nil {
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+
+		h.sugar.Warnw("Failed to load SSP", "id", id, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[*oscalTypes_1_1_3.BackMatter]{Data: ssp.BackMatter.MarshalOscal()})
 }
