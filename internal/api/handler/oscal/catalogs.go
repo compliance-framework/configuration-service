@@ -158,17 +158,17 @@ func (h *CatalogHandler) GetBackMatter(ctx echo.Context) error {
 
 // GetGroup godoc
 //
-// @Summary Get a specific Group within a Catalog
-// @Description Retrieves a single Group by its ID for a given Catalog.
-// @Tags Catalogs
-// @Produce json
-// @Param id path string true "Catalog ID"
-// @Param group path string true "Group ID"
-// @Success 200 {object} handler.GenericDataResponse[oscalTypes_1_1_3.Group]
-// @Failure 400 {object} api.Error
-// @Failure 404 {object} api.Error
-// @Failure 500 {object} api.Error
-// @Router /oscal/catalogs/{id}/groups/{group} [get]
+//	@Summary		Get a specific Group within a Catalog
+//	@Description	Retrieves a single Group by its ID for a given Catalog.
+//	@Tags			Catalogs
+//	@Produce		json
+//	@Param			id		path		string	true	"Catalog ID"
+//	@Param			group	path		string	true	"Group ID"
+//	@Success		200		{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Group]
+//	@Failure		400		{object}	api.Error
+//	@Failure		404		{object}	api.Error
+//	@Failure		500		{object}	api.Error
+//	@Router			/oscal/catalogs/{id}/groups/{group} [get]
 func (h *CatalogHandler) GetGroup(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -192,16 +192,16 @@ func (h *CatalogHandler) GetGroup(ctx echo.Context) error {
 
 // GetGroups godoc
 //
-// @Summary List groups for a Catalog
-// @Description Retrieves the top-level groups for a given Catalog.
-// @Tags Catalogs
-// @Produce json
-// @Param id path string true "Catalog ID"
-// @Success 200 {object} handler.GenericDataListResponse[oscalTypes_1_1_3.Group]
-// @Failure 400 {object} api.Error
-// @Failure 404 {object} api.Error
-// @Failure 500 {object} api.Error
-// @Router /oscal/catalogs/{id}/groups [get]
+//	@Summary		List groups for a Catalog
+//	@Description	Retrieves the top-level groups for a given Catalog.
+//	@Tags			Catalogs
+//	@Produce		json
+//	@Param			id	path		string	true	"Catalog ID"
+//	@Success		200	{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.Group]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/catalogs/{id}/groups [get]
 func (h *CatalogHandler) GetGroups(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -228,17 +228,17 @@ func (h *CatalogHandler) GetGroups(ctx echo.Context) error {
 
 // GetSubGroups godoc
 //
-// @Summary List sub-groups for a Group within a Catalog
-// @Description Retrieves the sub-groups of a specific Group in a given Catalog.
-// @Tags Catalogs
-// @Produce json
-// @Param id path string true "Catalog ID"
-// @Param group path string true "Group ID"
-// @Success 200 {object} handler.GenericDataListResponse[oscalTypes_1_1_3.Group]
-// @Failure 400 {object} api.Error
-// @Failure 404 {object} api.Error
-// @Failure 500 {object} api.Error
-// @Router /oscal/catalogs/{id}/groups/{group}/groups [get]
+//	@Summary		List sub-groups for a Group within a Catalog
+//	@Description	Retrieves the sub-groups of a specific Group in a given Catalog.
+//	@Tags			Catalogs
+//	@Produce		json
+//	@Param			id		path		string	true	"Catalog ID"
+//	@Param			group	path		string	true	"Group ID"
+//	@Success		200		{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.Group]
+//	@Failure		400		{object}	api.Error
+//	@Failure		404		{object}	api.Error
+//	@Failure		500		{object}	api.Error
+//	@Router			/oscal/catalogs/{id}/groups/{group}/groups [get]
 func (h *CatalogHandler) GetSubGroups(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -267,17 +267,17 @@ func (h *CatalogHandler) GetSubGroups(ctx echo.Context) error {
 
 // GetGroupControls godoc
 //
-// @Summary List controls for a Group within a Catalog
-// @Description Retrieves the controls directly under a specific Group in a given Catalog.
-// @Tags Catalogs
-// @Produce json
-// @Param id path string true "Catalog ID"
-// @Param group path string true "Group ID"
-// @Success 200 {object} handler.GenericDataListResponse[oscalTypes_1_1_3.Control]
-// @Failure 400 {object} api.Error
-// @Failure 404 {object} api.Error
-// @Failure 500 {object} api.Error
-// @Router /oscal/catalogs/{id}/groups/{group}/controls [get]
+//	@Summary		List controls for a Group within a Catalog
+//	@Description	Retrieves the controls directly under a specific Group in a given Catalog.
+//	@Tags			Catalogs
+//	@Produce		json
+//	@Param			id		path		string	true	"Catalog ID"
+//	@Param			group	path		string	true	"Group ID"
+//	@Success		200		{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.Control]
+//	@Failure		400		{object}	api.Error
+//	@Failure		404		{object}	api.Error
+//	@Failure		500		{object}	api.Error
+//	@Router			/oscal/catalogs/{id}/groups/{group}/controls [get]
 func (h *CatalogHandler) GetGroupControls(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -306,17 +306,17 @@ func (h *CatalogHandler) GetGroupControls(ctx echo.Context) error {
 
 // GetControl godoc
 //
-// @Summary Get a specific Control within a Catalog
-// @Description Retrieves a single Control by its ID for a given Catalog.
-// @Tags Catalogs
-// @Produce json
-// @Param id path string true "Catalog ID"
-// @Param control path string true "Control ID"
-// @Success 200 {object} handler.GenericDataResponse[oscalTypes_1_1_3.Control]
-// @Failure 400 {object} api.Error
-// @Failure 404 {object} api.Error
-// @Failure 500 {object} api.Error
-// @Router /oscal/catalogs/{id}/controls/{control} [get]
+//	@Summary		Get a specific Control within a Catalog
+//	@Description	Retrieves a single Control by its ID for a given Catalog.
+//	@Tags			Catalogs
+//	@Produce		json
+//	@Param			id		path		string	true	"Catalog ID"
+//	@Param			control	path		string	true	"Control ID"
+//	@Success		200		{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Control]
+//	@Failure		400		{object}	api.Error
+//	@Failure		404		{object}	api.Error
+//	@Failure		500		{object}	api.Error
+//	@Router			/oscal/catalogs/{id}/controls/{control} [get]
 func (h *CatalogHandler) GetControl(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -340,16 +340,16 @@ func (h *CatalogHandler) GetControl(ctx echo.Context) error {
 
 // GetControls godoc
 //
-// @Summary List controls for a Catalog
-// @Description Retrieves the top-level controls for a given Catalog.
-// @Tags Catalogs
-// @Produce json
-// @Param id path string true "Catalog ID"
-// @Success 200 {object} handler.GenericDataListResponse[oscalTypes_1_1_3.Control]
-// @Failure 400 {object} api.Error
-// @Failure 404 {object} api.Error
-// @Failure 500 {object} api.Error
-// @Router /oscal/catalogs/{id}/controls [get]
+//	@Summary		List controls for a Catalog
+//	@Description	Retrieves the top-level controls for a given Catalog.
+//	@Tags			Catalogs
+//	@Produce		json
+//	@Param			id	path		string	true	"Catalog ID"
+//	@Success		200	{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.Control]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/catalogs/{id}/controls [get]
 func (h *CatalogHandler) GetControls(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -376,17 +376,17 @@ func (h *CatalogHandler) GetControls(ctx echo.Context) error {
 
 // GetSubControls godoc
 //
-// @Summary List child controls for a Control within a Catalog
-// @Description Retrieves the controls directly under a specific Control in a given Catalog.
-// @Tags Catalogs
-// @Produce json
-// @Param id path string true "Catalog ID"
-// @Param control path string true "Control ID"
-// @Success 200 {object} handler.GenericDataListResponse[oscalTypes_1_1_3.Control]
-// @Failure 400 {object} api.Error
-// @Failure 404 {object} api.Error
-// @Failure 500 {object} api.Error
-// @Router /oscal/catalogs/{id}/controls/{control}/controls [get]
+//	@Summary		List child controls for a Control within a Catalog
+//	@Description	Retrieves the controls directly under a specific Control in a given Catalog.
+//	@Tags			Catalogs
+//	@Produce		json
+//	@Param			id		path		string	true	"Catalog ID"
+//	@Param			control	path		string	true	"Control ID"
+//	@Success		200		{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.Control]
+//	@Failure		400		{object}	api.Error
+//	@Failure		404		{object}	api.Error
+//	@Failure		500		{object}	api.Error
+//	@Router			/oscal/catalogs/{id}/controls/{control}/controls [get]
 func (h *CatalogHandler) GetSubControls(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
