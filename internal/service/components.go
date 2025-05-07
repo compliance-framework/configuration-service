@@ -2,11 +2,13 @@ package service
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Component represents your struct. Ensure this is imported or defined appropriately.
@@ -123,4 +125,34 @@ func (s *ComponentService) FindOrCreate(ctx context.Context, identifier string, 
 
 	component.Identifier = identifier
 	return s.Create(ctx, component)
+}
+
+// ListAllComponentIDs returns both the component ID and name in JSON format.
+func (s *ComponentService) ListAllComponentIDs(ctx context.Context) ([]map[string]string, error) {
+	filter := bson.M{}
+	projection := bson.M{"_id": 1, "identifier": 1}
+	cursor, err := s.collection.Find(ctx, filter, options.Find().SetProjection(projection))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var components []map[string]string
+	for cursor.Next(ctx) {
+		var result struct {
+			ID         []byte `bson:"_id"`
+			Identifier string `bson:"identifier"`
+		}
+		if err := cursor.Decode(&result); err != nil {
+			return nil, err
+		}
+		components = append(components, map[string]string{
+			"id":   base64.StdEncoding.EncodeToString(result.ID),
+			"name": result.Identifier,
+		})
+	}
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+	return components, nil
 }
