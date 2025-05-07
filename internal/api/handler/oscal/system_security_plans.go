@@ -1,11 +1,12 @@
 package oscal
 
 import (
+	"net/http"
+
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/api/handler"
 	"github.com/compliance-framework/configuration-service/internal/service/relational"
 	oscalTypes_1_1_3 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
-	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
@@ -44,9 +45,9 @@ func (h *SystemSecurityPlanHandler) List(ctx echo.Context) error {
 	}
 
 	oscalSSP := make([]oscalTypes_1_1_3.SystemSecurityPlan, len(ssps))
-	for _, ssp := range ssps {
+	for i, ssp := range ssps {
 		// TODO: Only the main SSP has been Marshaled with the UUID and Metadata - we need to expand it further down throughout the relational model
-		oscalSSP = append(oscalSSP, *ssp.MarshalOscal())
+		oscalSSP[i] = *ssp.MarshalOscal()
 	}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.SystemSecurityPlan]{Data: oscalSSP})

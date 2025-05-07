@@ -870,7 +870,7 @@ func (pci *ProvidedControlImplementation) UnmarshalOscal(opci oscalTypes_1_1_3.P
 
 type ControlImplementationResponsibility struct {
 	UUIDModel
-	Description      string                               `json:"description"`
+	Description      string                               `json:"description"` // required
 	Links            datatypes.JSONSlice[Link]            `json:"links"`
 	Props            datatypes.JSONSlice[Prop]            `json:"props"`
 	ProvidedUuid     uuid.UUID                            `json:"provided-uuid"`
@@ -906,6 +906,39 @@ func (cir *ControlImplementationResponsibility) UnmarshalOscal(ocir oscalTypes_1
 	}
 
 	return cir
+}
+
+func (cir *ControlImplementationResponsibility) MarshalOscal() *oscalTypes_1_1_3.ControlImplementationResponsibility {
+	ret := oscalTypes_1_1_3.ControlImplementationResponsibility{
+		UUID:        cir.UUIDModel.ID.String(),
+		Description: cir.Description,
+	}
+
+	if cir.ProvidedUuid != uuid.Nil {
+		ret.ProvidedUuid = cir.ProvidedUuid.String()
+	}
+
+	if cir.Remarks != "" {
+		ret.Remarks = cir.Remarks
+	}
+
+	if len(cir.Props) > 0 {
+		ret.Props = ConvertPropsToOscal(cir.Props)
+	}
+
+	if len(cir.Links) > 0 {
+		ret.Links = ConvertLinksToOscal(cir.Links)
+	}
+
+	if len(cir.ResponsibleRoles) > 0 {
+		roles := make([]oscalTypes_1_1_3.ResponsibleRole, len(cir.ResponsibleRoles))
+		for i, role := range cir.ResponsibleRoles {
+			roles[i] = *role.MarshalOscal()
+		}
+		ret.ResponsibleRoles = &roles
+	}
+
+	return &ret
 }
 
 type InheritedControlImplementation struct {
