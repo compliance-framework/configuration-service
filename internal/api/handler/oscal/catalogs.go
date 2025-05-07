@@ -38,9 +38,6 @@ func (h *CatalogHandler) Register(api *echo.Group) {
 	api.GET("/:id/controls", h.GetControls)
 	api.GET("/:id/controls/:control", h.GetControl)
 	api.GET("/:id/controls/:control/controls", h.GetSubControls)
-	//api.POST("", h.Create)
-	//api.PUT("/:id", h.Update)
-	//api.DELETE("/:id", h.Delete)
 }
 
 // List godoc
@@ -412,50 +409,3 @@ func (h *CatalogHandler) GetSubControls(ctx echo.Context) error {
 	}
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.Control]{Data: oscalControls})
 }
-
-//
-//func (h *CatalogHandler) Create(ctx echo.Context) error {
-//	var catalog relational.Catalog
-//	if err := ctx.Bind(&catalog); err != nil {
-//		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-//	}
-//	if err := h.catalogService.CreateCatalog(&catalog); err != nil {
-//		h.sugar.Errorw("Failed to create catalog", "error", err)
-//		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-//	}
-//	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[relational.Catalog]{Data: catalog})
-//}
-//
-//func (h *CatalogHandler) Update(ctx echo.Context) error {
-//	idParam := ctx.Param("id")
-//	id, err := uuid.Parse(idParam)
-//	if err != nil {
-//		h.sugar.Warnw("Invalid catalog id", "id", idParam, "error", err)
-//		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-//	}
-//	var catalog relational.Catalog
-//	if err := ctx.Bind(&catalog); err != nil {
-//		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-//	}
-//	// Enforce the URL ID
-//	catalog.ID = &id
-//	if err := h.catalogService.UpdateCatalog(&catalog); err != nil {
-//		h.sugar.Errorw("Failed to update catalog", "id", id, "error", err)
-//		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-//	}
-//	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[relational.Catalog]{Data: catalog})
-//}
-//
-//func (h *CatalogHandler) Delete(ctx echo.Context) error {
-//	idParam := ctx.Param("id")
-//	id, err := uuid.Parse(idParam)
-//	if err != nil {
-//		h.sugar.Warnw("Invalid catalog id", "id", idParam, "error", err)
-//		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-//	}
-//	if err := h.catalogService.DeleteCatalog(id); err != nil {
-//		h.sugar.Errorw("Failed to delete catalog", "id", id, "error", err)
-//		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-//	}
-//	return ctx.NoContent(http.StatusNoContent)
-//}
