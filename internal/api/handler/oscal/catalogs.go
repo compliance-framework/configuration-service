@@ -33,11 +33,13 @@ func (h *CatalogHandler) Register(api *echo.Group) {
 	api.GET("", h.List)
 	api.POST("", h.Create)
 	api.GET("/:id", h.Get)
+	api.PUT("/:id", h.Update)
 	api.GET("/:id/full", h.Full)
 	api.GET("/:id/back-matter", h.GetBackMatter)
 	api.GET("/:id/groups", h.GetGroups)
 	api.POST("/:id/groups", h.CreateGroup)
 	api.GET("/:id/groups/:group", h.GetGroup)
+	api.PUT("/:id/groups/:group", h.UpdateGroup)
 	api.GET("/:id/groups/:group/groups", h.GetGroupSubGroups)
 	api.POST("/:id/groups/:group/groups", h.CreateGroupSubGroup)
 	api.GET("/:id/groups/:group/controls", h.GetGroupControls)
@@ -45,6 +47,7 @@ func (h *CatalogHandler) Register(api *echo.Group) {
 	api.GET("/:id/controls", h.GetControls)
 	api.POST("/:id/controls", h.CreateControl)
 	api.GET("/:id/controls/:control", h.GetControl)
+	api.PUT("/:id/controls/:control", h.UpdateControl)
 	api.GET("/:id/controls/:control/controls", h.GetControlSubControls)
 	api.POST("/:id/controls/:control/controls", h.CreateControlSubControl)
 }
@@ -151,6 +154,50 @@ func (h *CatalogHandler) Create(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[oscalTypes_1_1_3.Catalog]{Data: *relCat.MarshalOscal()})
+}
+
+// Update godoc
+//
+//	@Summary		Update a Catalog
+//	@Description	Updates an existing OSCAL Catalog.
+//	@Tags			Oscal
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string						true	"Catalog ID"
+//	@Param			catalog	body		oscalTypes_1_1_3.Catalog	true	"Updated Catalog object"
+//	@Success		200		{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Catalog]
+//	@Failure		400		{object}	api.Error
+//	@Failure		404		{object}	api.Error
+//	@Failure		500		{object}	api.Error
+//	@Router			/oscal/catalogs/{id} [put]
+func (h *CatalogHandler) Update(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	catalogID, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid catalog id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var oscalCat oscalTypes_1_1_3.Catalog
+	if err := ctx.Bind(&oscalCat); err != nil {
+		h.sugar.Warnw("Invalid update catalog request", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	now := time.Now()
+	relCat := &relational.Catalog{}
+	relCat.UnmarshalOscal(oscalCat)
+	relCat.ID = &catalogID
+	relCat.Metadata.LastModified = &now
+	relCat.Metadata.OscalVersion = versioning.GetLatestSupportedVersion()
+	if err := h.db.Model(relCat).Updates(relCat).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Errorf("Failed to update catalog: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Catalog]{Data: *relCat.MarshalOscal()})
 }
 
 // GetBackMatter godoc
@@ -386,6 +433,49 @@ func (h *CatalogHandler) CreateGroup(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[oscalTypes_1_1_3.Group]{Data: *relGroup.MarshalOscal()})
+}
+
+// UpdateGroup godoc
+//
+//	@Summary		Update a Group within a Catalog
+//	@Description	Updates the properties of an existing Group under the specified Catalog.
+//	@Tags			Oscal
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string					true	"Catalog ID"
+//	@Param			group	path		string					true	"Group ID"
+//	@Param			group	body		oscalTypes_1_1_3.Group	true	"Updated Group object"
+//	@Success		200		{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Group]
+//	@Failure		400		{object}	api.Error
+//	@Failure		404		{object}	api.Error
+//	@Failure		500		{object}	api.Error
+//	@Router			/oscal/catalogs/{id}/groups/{group} [put]
+func (h *CatalogHandler) UpdateGroup(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	catalogID, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid catalog id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	groupID := ctx.Param("group")
+	var oscalGroup oscalTypes_1_1_3.Group
+	if err := ctx.Bind(&oscalGroup); err != nil {
+		h.sugar.Warnw("Invalid update group request", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	relGroup := &relational.Group{}
+	relGroup.UnmarshalOscal(oscalGroup, catalogID)
+	relGroup.ID = groupID
+	if err := h.db.Model(relGroup).Updates(relGroup).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Errorf("Failed to update group: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Group]{Data: *relGroup.MarshalOscal()})
 }
 
 // CreateGroupSubGroup godoc
@@ -644,6 +734,49 @@ func (h *CatalogHandler) CreateControl(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[oscalTypes_1_1_3.Control]{Data: *relCtl.MarshalOscal()})
+}
+
+// UpdateControl godoc
+//
+//	@Summary		Update a Control within a Catalog
+//	@Description	Updates the properties of an existing Control under the specified Catalog.
+//	@Tags			Oscal
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string						true	"Catalog ID"
+//	@Param			control	path		string						true	"Control ID"
+//	@Param			control	body		oscalTypes_1_1_3.Control	true	"Updated Control object"
+//	@Success		200		{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Control]
+//	@Failure		400		{object}	api.Error
+//	@Failure		404		{object}	api.Error
+//	@Failure		500		{object}	api.Error
+//	@Router			/oscal/catalogs/{id}/controls/{control} [put]
+func (h *CatalogHandler) UpdateControl(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	catalogID, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid catalog id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	controlID := ctx.Param("control")
+	var oscalControl oscalTypes_1_1_3.Control
+	if err := ctx.Bind(&oscalControl); err != nil {
+		h.sugar.Warnw("Invalid update control request", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	relCtl := &relational.Control{}
+	relCtl.UnmarshalOscal(oscalControl, catalogID)
+	relCtl.ID = controlID
+	if err := h.db.Model(relCtl).Updates(relCtl).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Errorf("Failed to update control: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Control]{Data: *relCtl.MarshalOscal()})
 }
 
 // CreateControlSubControl godoc
