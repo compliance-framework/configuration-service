@@ -2,10 +2,11 @@ package relational
 
 import (
 	"database/sql"
+	"time"
+
 	oscalTypes_1_1_3 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
-	"time"
 )
 
 type SystemSecurityPlan struct {
@@ -52,6 +53,15 @@ func (s *SystemSecurityPlan) UnmarshalOscal(os oscalTypes_1_1_3.SystemSecurityPl
 	}
 
 	return s
+}
+
+func (s *SystemSecurityPlan) MarshalOscal() *oscalTypes_1_1_3.SystemSecurityPlan {
+	plan := &oscalTypes_1_1_3.SystemSecurityPlan{
+		UUID:     s.UUIDModel.ID.String(),
+		Metadata: *s.Metadata.MarshalOscal(),
+	}
+
+	return plan
 }
 
 type ImportProfile oscalTypes_1_1_3.ImportProfile
@@ -860,7 +870,7 @@ func (pci *ProvidedControlImplementation) UnmarshalOscal(opci oscalTypes_1_1_3.P
 
 type ControlImplementationResponsibility struct {
 	UUIDModel
-	Description      string                               `json:"description"`
+	Description      string                               `json:"description"` // required
 	Links            datatypes.JSONSlice[Link]            `json:"links"`
 	Props            datatypes.JSONSlice[Prop]            `json:"props"`
 	ProvidedUuid     uuid.UUID                            `json:"provided-uuid"`
@@ -898,10 +908,43 @@ func (cir *ControlImplementationResponsibility) UnmarshalOscal(ocir oscalTypes_1
 	return cir
 }
 
+func (cir *ControlImplementationResponsibility) MarshalOscal() *oscalTypes_1_1_3.ControlImplementationResponsibility {
+	ret := oscalTypes_1_1_3.ControlImplementationResponsibility{
+		UUID:        cir.UUIDModel.ID.String(),
+		Description: cir.Description,
+	}
+
+	if cir.ProvidedUuid != uuid.Nil {
+		ret.ProvidedUuid = cir.ProvidedUuid.String()
+	}
+
+	if cir.Remarks != "" {
+		ret.Remarks = cir.Remarks
+	}
+
+	if len(cir.Props) > 0 {
+		ret.Props = ConvertPropsToOscal(cir.Props)
+	}
+
+	if len(cir.Links) > 0 {
+		ret.Links = ConvertLinksToOscal(cir.Links)
+	}
+
+	if len(cir.ResponsibleRoles) > 0 {
+		roles := make([]oscalTypes_1_1_3.ResponsibleRole, len(cir.ResponsibleRoles))
+		for i, role := range cir.ResponsibleRoles {
+			roles[i] = *role.MarshalOscal()
+		}
+		ret.ResponsibleRoles = &roles
+	}
+
+	return &ret
+}
+
 type InheritedControlImplementation struct {
-	UUIDModel
+	UUIDModel //required
 	ProvidedUuid     uuid.UUID                            `json:"provided-uuid"`
-	Description      string                               `json:"description"`
+	Description      string                               `json:"description"` //required
 	Links            datatypes.JSONSlice[Link]            `json:"links"`
 	Props            datatypes.JSONSlice[Prop]            `json:"props"`
 	ResponsibleRoles datatypes.JSONSlice[ResponsibleRole] `json:"responsible-roles"`
@@ -910,12 +953,15 @@ type InheritedControlImplementation struct {
 }
 
 func (i *InheritedControlImplementation) UnmarshalOscal(oi oscalTypes_1_1_3.InheritedControlImplementation) *InheritedControlImplementation {
+	id := uuid.MustParse(oi.UUID)
 	providedUuid, err := uuid.Parse(oi.ProvidedUuid)
 	if err != nil {
 		providedUuid = uuid.Nil
 	}
 	*i = InheritedControlImplementation{
-		UUIDModel:    UUIDModel{},
+		UUIDModel: UUIDModel{
+			ID: &id,
+		},
 		ProvidedUuid: providedUuid,
 		Description:  oi.Description,
 		Links:        ConvertOscalToLinks(oi.Links),
@@ -928,6 +974,35 @@ func (i *InheritedControlImplementation) UnmarshalOscal(oi oscalTypes_1_1_3.Inhe
 	}
 
 	return i
+}
+
+func (i *InheritedControlImplementation) MarshalOscal() *oscalTypes_1_1_3.InheritedControlImplementation {
+	ret := oscalTypes_1_1_3.InheritedControlImplementation{
+		UUID:        i.UUIDModel.ID.String(),
+		Description: i.Description,
+	}
+
+	if i.ProvidedUuid != uuid.Nil {
+		ret.ProvidedUuid = i.ProvidedUuid.String()
+	}
+
+	if len(i.Props) > 0 {
+		ret.Props = ConvertPropsToOscal(i.Props)
+	}
+
+	if len(i.Links) > 0 {
+		ret.Links = ConvertLinksToOscal(i.Links)
+	}
+
+	if len(i.ResponsibleRoles) > 0 {
+		roles := make([]oscalTypes_1_1_3.ResponsibleRole, len(i.ResponsibleRoles))
+		for i, role := range i.ResponsibleRoles {
+			roles[i] = *role.MarshalOscal()
+		}
+		ret.ResponsibleRoles = &roles
+	}
+
+	return &ret
 }
 
 type SatisfiedControlImplementationResponsibility struct {
@@ -965,6 +1040,45 @@ func (s *SatisfiedControlImplementationResponsibility) UnmarshalOscal(os oscalTy
 		}),
 	}
 	return s
+}
+
+func (s *SatisfiedControlImplementationResponsibility) MarshalOscal() *oscalTypes_1_1_3.SatisfiedControlImplementationResponsibility {
+	ret := oscalTypes_1_1_3.SatisfiedControlImplementationResponsibility{
+		UUID:               s.UUIDModel.ID.String(),
+		ResponsibilityUuid: s.ResponsibilityUuid.String(),
+		Description:        "",
+		Remarks:            "",
+	}
+
+	if s.ResponsibilityUuid != uuid.Nil {
+		ret.ResponsibilityUuid = s.ResponsibilityUuid.String()
+	}
+
+	if len(s.Props) > 0 {
+		ret.Props = ConvertPropsToOscal(s.Props)
+	}
+
+	if len(s.Links) > 0 {
+		ret.Links = ConvertLinksToOscal(s.Links)
+	}
+
+	if s.Description != "" {
+		ret.Description = s.Description
+	}
+
+	if s.Remarks != "" {
+		ret.Remarks = s.Remarks
+	}
+
+	if len(s.ResponsibleRoles) > 0 {
+		roles := make([]oscalTypes_1_1_3.ResponsibleRole, len(s.ResponsibleRoles))
+		for i, role := range s.ResponsibleRoles {
+			roles[i] = *role.MarshalOscal()
+		}
+		ret.ResponsibleRoles = &roles
+	}
+
+	return &ret
 }
 
 type Statement struct {
