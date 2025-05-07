@@ -942,9 +942,9 @@ func (cir *ControlImplementationResponsibility) MarshalOscal() *oscalTypes_1_1_3
 }
 
 type InheritedControlImplementation struct {
-	UUIDModel
-	ProvidedUuid     uuid.UUID                            `json:"provided-uuid"`
-	Description      string                               `json:"description"`
+	UUIDModel //required
+	ProvidedUuid     uuid.UUID                            `json:"provided-uuid"` //required
+	Description      string                               `json:"description"` //required
 	Links            datatypes.JSONSlice[Link]            `json:"links"`
 	Props            datatypes.JSONSlice[Prop]            `json:"props"`
 	ResponsibleRoles datatypes.JSONSlice[ResponsibleRole] `json:"responsible-roles"`
@@ -953,12 +953,15 @@ type InheritedControlImplementation struct {
 }
 
 func (i *InheritedControlImplementation) UnmarshalOscal(oi oscalTypes_1_1_3.InheritedControlImplementation) *InheritedControlImplementation {
+	id := uuid.MustParse(oi.UUID)
 	providedUuid, err := uuid.Parse(oi.ProvidedUuid)
 	if err != nil {
 		providedUuid = uuid.Nil
 	}
 	*i = InheritedControlImplementation{
-		UUIDModel:    UUIDModel{},
+		UUIDModel: UUIDModel{
+			ID: &id,
+		},
 		ProvidedUuid: providedUuid,
 		Description:  oi.Description,
 		Links:        ConvertOscalToLinks(oi.Links),
@@ -971,6 +974,31 @@ func (i *InheritedControlImplementation) UnmarshalOscal(oi oscalTypes_1_1_3.Inhe
 	}
 
 	return i
+}
+
+func (ici *InheritedControlImplementation) MarshalOscal() *oscalTypes_1_1_3.InheritedControlImplementation {
+	ret := oscalTypes_1_1_3.InheritedControlImplementation{
+		UUID: ici.UUIDModel.ID.String(),
+		ProvidedUuid: ici.ProvidedUuid.String(),
+		Description:  ici.Description,
+	}
+	if len(ici.Props) > 0 {
+		ret.Props = ConvertPropsToOscal(ici.Props)
+	}
+
+	if len(ici.Links) > 0 {
+		ret.Links = ConvertLinksToOscal(ici.Links)
+	}
+
+	if len(ici.ResponsibleRoles) > 0 {
+		roles := make([]oscalTypes_1_1_3.ResponsibleRole, len(ici.ResponsibleRoles))
+		for i, role := range ici.ResponsibleRoles {
+			roles[i] = *role.MarshalOscal()
+		}
+		ret.ResponsibleRoles = &roles
+	}
+
+	return &ret
 }
 
 type SatisfiedControlImplementationResponsibility struct {
