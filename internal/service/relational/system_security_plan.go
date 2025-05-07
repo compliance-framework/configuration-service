@@ -943,7 +943,7 @@ func (cir *ControlImplementationResponsibility) MarshalOscal() *oscalTypes_1_1_3
 
 type InheritedControlImplementation struct {
 	UUIDModel //required
-	ProvidedUuid     uuid.UUID                            `json:"provided-uuid"` //required
+	ProvidedUuid     uuid.UUID                            `json:"provided-uuid"`
 	Description      string                               `json:"description"` //required
 	Links            datatypes.JSONSlice[Link]            `json:"links"`
 	Props            datatypes.JSONSlice[Prop]            `json:"props"`
@@ -976,23 +976,27 @@ func (i *InheritedControlImplementation) UnmarshalOscal(oi oscalTypes_1_1_3.Inhe
 	return i
 }
 
-func (ici *InheritedControlImplementation) MarshalOscal() *oscalTypes_1_1_3.InheritedControlImplementation {
+func (i *InheritedControlImplementation) MarshalOscal() *oscalTypes_1_1_3.InheritedControlImplementation {
 	ret := oscalTypes_1_1_3.InheritedControlImplementation{
-		UUID: ici.UUIDModel.ID.String(),
-		ProvidedUuid: ici.ProvidedUuid.String(),
-		Description:  ici.Description,
-	}
-	if len(ici.Props) > 0 {
-		ret.Props = ConvertPropsToOscal(ici.Props)
+		UUID:        i.UUIDModel.ID.String(),
+		Description: i.Description,
 	}
 
-	if len(ici.Links) > 0 {
-		ret.Links = ConvertLinksToOscal(ici.Links)
+	if i.ProvidedUuid != uuid.Nil {
+		ret.ProvidedUuid = i.ProvidedUuid.String()
 	}
 
-	if len(ici.ResponsibleRoles) > 0 {
-		roles := make([]oscalTypes_1_1_3.ResponsibleRole, len(ici.ResponsibleRoles))
-		for i, role := range ici.ResponsibleRoles {
+	if len(i.Props) > 0 {
+		ret.Props = ConvertPropsToOscal(i.Props)
+	}
+
+	if len(i.Links) > 0 {
+		ret.Links = ConvertLinksToOscal(i.Links)
+	}
+
+	if len(i.ResponsibleRoles) > 0 {
+		roles := make([]oscalTypes_1_1_3.ResponsibleRole, len(i.ResponsibleRoles))
+		for i, role := range i.ResponsibleRoles {
 			roles[i] = *role.MarshalOscal()
 		}
 		ret.ResponsibleRoles = &roles
