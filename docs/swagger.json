@@ -833,6 +833,47 @@
                 }
             }
         },
+        "/findings/by-component/{component_id}": {
+            "get": {
+                "description": "Fetches all findings that share the same component ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Findings"
+                ],
+                "summary": "Get findings by component ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Component ID",
+                        "name": "component_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataListResponse-service_Finding"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/groups/catalog/{catalog}": {
             "get": {
                 "description": "Retrieves catalog groups that belong to a catalog, identified by its unique catalog ID.",

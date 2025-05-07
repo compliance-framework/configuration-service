@@ -607,3 +607,26 @@ func (s *FindingService) GetIntervalledComplianceReportForUUID(ctx context.Conte
 
 	return results, nil
 }
+
+// FindByComponentID retrieves findings that share the same component ID.
+func (s *FindingService) FindByComponentID(ctx context.Context, componentID uuid.UUID) ([]*Finding, error) {
+	filter := bson.M{"componentids": componentID}
+	cursor, err := s.collection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var findings []*Finding
+	for cursor.Next(ctx) {
+		var f Finding
+		if err := cursor.Decode(&f); err != nil {
+			return nil, err
+		}
+		findings = append(findings, &f)
+	}
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+	return findings, nil
+}

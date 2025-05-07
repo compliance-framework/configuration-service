@@ -32,6 +32,7 @@ func (h *FindingsHandler) Register(api *echo.Group) {
 	api.GET("/list-control-classes", h.ListControlClasses)
 	api.GET("/by-control/:class/:id", h.SearchByControlID)
 	api.GET("/by-control/:class", h.SearchByControlClass)
+	api.GET("/by-component/:component_id", h.GetFindingsByComponentID)
 }
 
 func NewFindingsHandler(
@@ -296,6 +297,34 @@ func (h *FindingsHandler) SearchByControlClass(ctx echo.Context) error {
 
 	return ctx.JSON(http.StatusOK, GenericDataListResponse[service.FindingsGroupedByControl]{
 		Data: results,
+	})
+}
+
+// GetFindingsByComponentID godoc
+//
+//	@Summary		Get findings by component ID
+//	@Description	Fetches all findings that share the same component ID.
+//	@Tags			Findings
+//	@Produce		json
+//	@Param			component_id	path		string	true	"Component ID"
+//	@Success		200	{object}	handler.GenericDataListResponse[service.Finding]
+//	@Failure		400	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/findings/by-component/{component_id} [get]
+func (h *FindingsHandler) GetFindingsByComponentID(ctx echo.Context) error {
+	componentIDParam := ctx.Param("component_id")
+	componentID, err := uuid.Parse(componentIDParam)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	findings, err := h.findingService.FindByComponentID(ctx.Request().Context(), componentID)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, GenericDataListResponse[*service.Finding]{
+		Data: findings,
 	})
 }
 
