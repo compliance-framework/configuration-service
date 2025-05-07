@@ -47,7 +47,7 @@ func (h *CatalogHandler) Register(api *echo.Group) {
 //
 //	@Summary		List catalogs
 //	@Description	Retrieves all catalogs.
-//	@Tags			Oscal Catalogs
+//	@Tags			Oscal
 //	@Produce		json
 //	@Success		200	{object}	handler.GenericDataListResponse[oscal.List.responseCatalog]
 //	@Failure		400	{object}	api.Error
@@ -80,7 +80,7 @@ func (h *CatalogHandler) List(ctx echo.Context) error {
 //
 //	@Summary		Get a Catalog
 //	@Description	Retrieves a single Catalog by its unique ID.
-//	@Tags			Oscal Catalogs
+//	@Tags			Oscal
 //	@Produce		json
 //	@Param			id	path		string	true	"Catalog ID"
 //	@Success		200	{object}	handler.GenericDataResponse[oscal.Get.responseCatalog]
@@ -120,7 +120,7 @@ func (h *CatalogHandler) Get(ctx echo.Context) error {
 //
 //	@Summary		Get back-matter for a Catalog
 //	@Description	Retrieves the back-matter for a given Catalog.
-//	@Tags			Oscal Catalogs
+//	@Tags			Oscal
 //	@Produce		json
 //	@Param			id	path		string	true	"Catalog ID"
 //	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]
@@ -160,7 +160,7 @@ func (h *CatalogHandler) GetBackMatter(ctx echo.Context) error {
 //
 //	@Summary		Get a specific Group within a Catalog
 //	@Description	Retrieves a single Group by its ID for a given Catalog.
-//	@Tags			Catalogs
+//	@Tags			Oscal
 //	@Produce		json
 //	@Param			id		path		string	true	"Catalog ID"
 //	@Param			group	path		string	true	"Group ID"
@@ -194,7 +194,7 @@ func (h *CatalogHandler) GetGroup(ctx echo.Context) error {
 //
 //	@Summary		List groups for a Catalog
 //	@Description	Retrieves the top-level groups for a given Catalog.
-//	@Tags			Catalogs
+//	@Tags			Oscal
 //	@Produce		json
 //	@Param			id	path		string	true	"Catalog ID"
 //	@Success		200	{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.Group]
@@ -230,7 +230,7 @@ func (h *CatalogHandler) GetGroups(ctx echo.Context) error {
 //
 //	@Summary		List sub-groups for a Group within a Catalog
 //	@Description	Retrieves the sub-groups of a specific Group in a given Catalog.
-//	@Tags			Catalogs
+//	@Tags			Oscal
 //	@Produce		json
 //	@Param			id		path		string	true	"Catalog ID"
 //	@Param			group	path		string	true	"Group ID"
@@ -269,7 +269,7 @@ func (h *CatalogHandler) GetSubGroups(ctx echo.Context) error {
 //
 //	@Summary		List controls for a Group within a Catalog
 //	@Description	Retrieves the controls directly under a specific Group in a given Catalog.
-//	@Tags			Catalogs
+//	@Tags			Oscal
 //	@Produce		json
 //	@Param			id		path		string	true	"Catalog ID"
 //	@Param			group	path		string	true	"Group ID"
@@ -308,7 +308,7 @@ func (h *CatalogHandler) GetGroupControls(ctx echo.Context) error {
 //
 //	@Summary		Get a specific Control within a Catalog
 //	@Description	Retrieves a single Control by its ID for a given Catalog.
-//	@Tags			Catalogs
+//	@Tags			Oscal
 //	@Produce		json
 //	@Param			id		path		string	true	"Catalog ID"
 //	@Param			control	path		string	true	"Control ID"
@@ -342,7 +342,7 @@ func (h *CatalogHandler) GetControl(ctx echo.Context) error {
 //
 //	@Summary		List controls for a Catalog
 //	@Description	Retrieves the top-level controls for a given Catalog.
-//	@Tags			Catalogs
+//	@Tags			Oscal
 //	@Produce		json
 //	@Param			id	path		string	true	"Catalog ID"
 //	@Success		200	{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.Control]
@@ -378,7 +378,7 @@ func (h *CatalogHandler) GetControls(ctx echo.Context) error {
 //
 //	@Summary		List child controls for a Control within a Catalog
 //	@Description	Retrieves the controls directly under a specific Control in a given Catalog.
-//	@Tags			Catalogs
+//	@Tags			Oscal
 //	@Produce		json
 //	@Param			id		path		string	true	"Catalog ID"
 //	@Param			control	path		string	true	"Control ID"

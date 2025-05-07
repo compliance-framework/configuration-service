@@ -1074,7 +1074,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal Catalogs"
+                    "Oscal"
                 ],
                 "summary": "List catalogs",
                 "responses": {
@@ -1106,7 +1106,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal Catalogs"
+                    "Oscal"
                 ],
                 "summary": "Get a Catalog",
                 "parameters": [
@@ -1153,7 +1153,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal Catalogs"
+                    "Oscal"
                 ],
                 "summary": "Get back-matter for a Catalog",
                 "parameters": [
@@ -1200,7 +1200,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Catalogs"
+                    "Oscal"
                 ],
                 "summary": "List controls for a Catalog",
                 "parameters": [
@@ -1247,7 +1247,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Catalogs"
+                    "Oscal"
                 ],
                 "summary": "Get a specific Control within a Catalog",
                 "parameters": [
@@ -1301,7 +1301,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Catalogs"
+                    "Oscal"
                 ],
                 "summary": "List child controls for a Control within a Catalog",
                 "parameters": [
@@ -1355,7 +1355,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Catalogs"
+                    "Oscal"
                 ],
                 "summary": "List groups for a Catalog",
                 "parameters": [
@@ -1402,7 +1402,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Catalogs"
+                    "Oscal"
                 ],
                 "summary": "Get a specific Group within a Catalog",
                 "parameters": [
@@ -1456,7 +1456,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Catalogs"
+                    "Oscal"
                 ],
                 "summary": "List controls for a Group within a Catalog",
                 "parameters": [
@@ -1510,7 +1510,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Catalogs"
+                    "Oscal"
                 ],
                 "summary": "List sub-groups for a Group within a Catalog",
                 "parameters": [
