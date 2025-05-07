@@ -33,6 +33,7 @@ func (h *FindingsHandler) Register(api *echo.Group) {
 	api.GET("/by-control/:class/:id", h.SearchByControlID)
 	api.GET("/by-control/:class", h.SearchByControlClass)
 	api.GET("/by-component/:component_id", h.GetFindingsByComponentID)
+	api.GET("/components/ids", h.ListAllComponentIDs)
 }
 
 func NewFindingsHandler(
@@ -285,7 +286,7 @@ func (h *FindingsHandler) SearchBySubject(ctx echo.Context) error {
 //	@Param			class	path		string	true	"Control Class"
 //	@Success		200		{object}	handler.GenericDataListResponse[service.FindingsGroupedByControl]
 //	@Failure		422		{object}	api.Error
-//	@Failure		500		{object}	api.Error
+//	@Failure		500	{object}	api.Error
 //	@Router			/findings/by-control/{class} [get]
 func (h *FindingsHandler) SearchByControlClass(ctx echo.Context) error {
 	classParam := ctx.Param("class")
@@ -338,7 +339,7 @@ func (h *FindingsHandler) GetFindingsByComponentID(ctx echo.Context) error {
 //	@Param		id		path		string	true	"Label filter criteria"
 //	@Success	201		{object}	handler.GenericDataListResponse[service.StatusOverTimeRecord]
 //	@Failure	422		{object}	api.Error
-//	@Failure	500		{object}	api.Error
+//	@Failure	500	{object}	api.Error
 //	@Router		/findings/instant-compliance-by-control/{class}/{id} [get]
 func (h *FindingsHandler) SearchByControlID(ctx echo.Context) error {
 	classParam := ctx.Param("class")
@@ -396,7 +397,7 @@ func (h *FindingsHandler) ComplianceBySearch(ctx echo.Context) error {
 //	@Param		id		path		string	true	"Label filter criteria"
 //	@Success	201		{object}	handler.GenericDataListResponse[service.StatusOverTimeRecord]
 //	@Failure	422		{object}	api.Error
-//	@Failure	500		{object}	api.Error
+//	@Failure	500	{object}	api.Error
 //	@Router		/findings/instant-compliance-by-control/{class}/{id} [get]
 func (h *FindingsHandler) InstantComplianceByControlID(ctx echo.Context) error {
 	class := ctx.Param("class")
@@ -461,5 +462,24 @@ func (h *FindingsHandler) ComplianceByUUID(ctx echo.Context) error {
 	// Wrap the search results in GenericDataListResponse.
 	return ctx.JSON(http.StatusOK, GenericDataListResponse[service.StatusOverTimeGroup]{
 		Data: results,
+	})
+}
+
+// ListAllComponentIDs godoc
+//
+// @Summary      List all component IDs
+// @Description  Retrieves all component IDs from the components table.
+// @Tags         Components
+// @Produce      json
+// @Success      200  {object}  handler.GenericDataListResponse[map[string]string]
+// @Failure      500  {object}  api.Error
+// @Router       /components/ids [get]
+func (h *FindingsHandler) ListAllComponentIDs(ctx echo.Context) error {
+	componentIDs, err := h.componentService.ListAllComponentIDs(ctx.Request().Context())
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	return ctx.JSON(http.StatusOK, GenericDataListResponse[map[string]string]{
+		Data: componentIDs,
 	})
 }

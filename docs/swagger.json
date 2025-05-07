@@ -1396,6 +1396,32 @@
                     }
                 }
             }
+        },
+        "/api/components/ids": {
+            "get": {
+                "summary": "List all component IDs",
+                "description": "Retrieves all component IDs from the components table.",
+                "tags": [
+                    "Components"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataListResponse-string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
