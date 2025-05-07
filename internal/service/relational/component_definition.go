@@ -296,6 +296,11 @@ func (rr *ResponsibleRole) UnmarshalOscal(osc oscalTypes_1_1_3.ResponsibleRole) 
 	return rr
 }
 
+func (rr *ResponsibleRole) MarshalOscal() *oscalTypes_1_1_3.ResponsibleRole {
+	ret := oscalTypes_1_1_3.ResponsibleRole(*rr)
+	return &ret
+}
+
 type ImportComponentDefinition oscalTypes_1_1_3.ImportComponentDefinition
 
 func (icd *ImportComponentDefinition) UnmarshalOscal(oicd oscalTypes_1_1_3.ImportComponentDefinition) *ImportComponentDefinition {

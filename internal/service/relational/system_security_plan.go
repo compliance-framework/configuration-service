@@ -2,10 +2,11 @@ package relational
 
 import (
 	"database/sql"
+	"time"
+
 	oscalTypes_1_1_3 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
-	"time"
 )
 
 type SystemSecurityPlan struct {
@@ -974,6 +975,45 @@ func (s *SatisfiedControlImplementationResponsibility) UnmarshalOscal(os oscalTy
 		}),
 	}
 	return s
+}
+
+func (s *SatisfiedControlImplementationResponsibility) MarshalOscal() *oscalTypes_1_1_3.SatisfiedControlImplementationResponsibility {
+	ret := oscalTypes_1_1_3.SatisfiedControlImplementationResponsibility{
+		UUID:               s.UUIDModel.ID.String(),
+		ResponsibilityUuid: s.ResponsibilityUuid.String(),
+		Description:        "",
+		Remarks:            "",
+	}
+
+	if s.ResponsibilityUuid != uuid.Nil {
+		ret.ResponsibilityUuid = s.ResponsibilityUuid.String()
+	}
+
+	if len(s.Props) > 0 {
+		ret.Props = ConvertPropsToOscal(s.Props)
+	}
+
+	if len(s.Links) > 0 {
+		ret.Links = ConvertLinksToOscal(s.Links)
+	}
+
+	if s.Description != "" {
+		ret.Description = s.Description
+	}
+
+	if s.Remarks != "" {
+		ret.Remarks = s.Remarks
+	}
+
+	if len(s.ResponsibleRoles) > 0 {
+		roles := make([]oscalTypes_1_1_3.ResponsibleRole, len(s.ResponsibleRoles))
+		for i, role := range s.ResponsibleRoles {
+			roles[i] = *role.MarshalOscal()
+		}
+		ret.ResponsibleRoles = &roles
+	}
+
+	return &ret
 }
 
 type Statement struct {
