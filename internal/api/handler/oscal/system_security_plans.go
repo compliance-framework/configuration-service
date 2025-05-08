@@ -66,16 +66,16 @@ func (h *SystemSecurityPlanHandler) Get(ctx echo.Context) error {
 
 // GetBackMatter godoc
 //
-// @Summary 	Get back-matter for a System Security Plan
-// @Description Retrieves the back-matter for a given System Security Plan by the specified param ID in the path
-// @Tags 		Oscal System Security Plan
-// @Product 	json
-// @Param		id	path		string	true		"System Security Plan ID"
-// @Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]
-// @Failure		400	{object}	api.Error
-// @Failure		404	{object}	api.Error
-// @Failure		500	{object}	api.Error
-// @Router		/oscal/ssp/{id}/back-matter	[get]
+//	@Summary		Get back-matter for a System Security Plan
+//	@Description	Retrieves the back-matter for a given System Security Plan by the specified param ID in the path
+//	@Tags			Oscal System Security Plan
+//	@Product		json
+//	@Param			id							path		string	true	"System Security Plan ID"
+//	@Success		200							{object}	handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]
+//	@Failure		400							{object}	api.Error
+//	@Failure		404							{object}	api.Error
+//	@Failure		500							{object}	api.Error
+//	@Router			/oscal/ssp/{id}/back-matter	[get]
 func (h *SystemSecurityPlanHandler) GetBackMatter(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
