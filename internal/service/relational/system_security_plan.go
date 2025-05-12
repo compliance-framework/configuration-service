@@ -294,17 +294,14 @@ func (si *SystemInformation) MarshalOscal() *oscalTypes_1_1_3.SystemInformation 
 
 type InformationType struct {
 	UUIDModel
-	Title       string `json:"title"`
-	Description string `json:"description"`
-
-	Props datatypes.JSONSlice[Prop] `json:"props"`
-	Links datatypes.JSONSlice[Link] `json:"links"`
-
-	ConfidentialityImpact datatypes.JSONType[Impact] `json:"confidentiality-impact"`
-	IntegrityImpact       datatypes.JSONType[Impact] `json:"integrity-impact"`
-	AvailabilityImpact    datatypes.JSONType[Impact] `json:"availability-impact"`
-
-	Categorizations datatypes.JSONSlice[InformationTypeCategorization] `json:"categorizations"`
+	Title                 string                                             `json:"title"`
+	Description           string                                             `json:"description"`
+	Props                 datatypes.JSONSlice[Prop]                          `json:"props"`
+	Links                 datatypes.JSONSlice[Link]                          `json:"links"`
+	ConfidentialityImpact *datatypes.JSONType[Impact]                        `json:"confidentiality-impact"`
+	IntegrityImpact       *datatypes.JSONType[Impact]                        `json:"integrity-impact"`
+	AvailabilityImpact    *datatypes.JSONType[Impact]                        `json:"availability-impact"`
+	Categorizations       datatypes.JSONSlice[InformationTypeCategorization] `json:"categorizations"`
 
 	SystemInformationId uuid.UUID
 }
@@ -314,15 +311,6 @@ func (it *InformationType) UnmarshalOscal(oit oscalTypes_1_1_3.InformationType) 
 
 	props := ConvertOscalToProps(oit.Props)
 	links := ConvertOscalToLinks(oit.Links)
-
-	confImpact := Impact{}
-	confImpact.UnmarshalOscal(*oit.ConfidentialityImpact)
-
-	integrityImpact := Impact{}
-	integrityImpact.UnmarshalOscal(*oit.IntegrityImpact)
-
-	availabilityImpact := Impact{}
-	availabilityImpact.UnmarshalOscal(*oit.AvailabilityImpact)
 
 	categorizations := ConvertList(oit.Categorizations, func(oitc oscalTypes_1_1_3.InformationTypeCategorization) InformationTypeCategorization {
 		category := InformationTypeCategorization{}
@@ -334,14 +322,32 @@ func (it *InformationType) UnmarshalOscal(oit oscalTypes_1_1_3.InformationType) 
 		UUIDModel: UUIDModel{
 			ID: &id,
 		},
-		Title:                 oit.Title,
-		Description:           oit.Description,
-		Props:                 props,
-		Links:                 links,
-		ConfidentialityImpact: datatypes.NewJSONType[Impact](confImpact),
-		IntegrityImpact:       datatypes.NewJSONType[Impact](integrityImpact),
-		AvailabilityImpact:    datatypes.NewJSONType[Impact](availabilityImpact),
-		Categorizations:       categorizations,
+		Title:           oit.Title,
+		Description:     oit.Description,
+		Props:           props,
+		Links:           links,
+		Categorizations: categorizations,
+	}
+
+	if oit.ConfidentialityImpact != nil {
+		confImpact := Impact{}
+		confImpact.UnmarshalOscal(*oit.ConfidentialityImpact)
+		jsonImp := datatypes.NewJSONType(confImpact)
+		it.ConfidentialityImpact = &jsonImp
+	}
+
+	if oit.IntegrityImpact != nil {
+		intImpact := Impact{}
+		intImpact.UnmarshalOscal(*oit.IntegrityImpact)
+		jsonImp := datatypes.NewJSONType(intImpact)
+		it.IntegrityImpact = &jsonImp
+	}
+
+	if oit.AvailabilityImpact != nil {
+		availImpact := Impact{}
+		availImpact.UnmarshalOscal(*oit.AvailabilityImpact)
+		jsonImp := datatypes.NewJSONType(availImpact)
+		it.AvailabilityImpact = &jsonImp
 	}
 
 	return it
@@ -360,12 +366,18 @@ func (it *InformationType) MarshalOscal() *oscalTypes_1_1_3.InformationType {
 		ret.Links = ConvertLinksToOscal(it.Links)
 	}
 	// JSONType fields
-	ci := it.ConfidentialityImpact.Data()
-	ret.ConfidentialityImpact = ci.MarshalOscal()
-	ii := it.IntegrityImpact.Data()
-	ret.IntegrityImpact = ii.MarshalOscal()
-	ai := it.AvailabilityImpact.Data()
-	ret.AvailabilityImpact = ai.MarshalOscal()
+	if it.ConfidentialityImpact != nil {
+		ci := it.ConfidentialityImpact.Data()
+		ret.ConfidentialityImpact = ci.MarshalOscal()
+	}
+	if it.IntegrityImpact != nil {
+		ii := it.IntegrityImpact.Data()
+		ret.IntegrityImpact = ii.MarshalOscal()
+	}
+	if it.AvailabilityImpact != nil {
+		ai := it.AvailabilityImpact.Data()
+		ret.AvailabilityImpact = ai.MarshalOscal()
+	}
 	if len(it.Categorizations) > 0 {
 		cats := make([]oscalTypes_1_1_3.InformationTypeCategorization, len(it.Categorizations))
 		for i, cat := range it.Categorizations {
@@ -1686,7 +1698,7 @@ type Statement struct {
 	Props            datatypes.JSONSlice[Prop]            `json:"props"`
 	Links            datatypes.JSONSlice[Link]            `json:"links"`
 	ResponsibleRoles datatypes.JSONSlice[ResponsibleRole] `json:"responsible-roles"`
-	ByComponents     []ByComponent                        `json:"by-components" gorm:"polymorphic:Parent"`
+	ByComponents     []ByComponent                        `json:"by-components,omitempty" gorm:"polymorphic:Parent"`
 	Remarks          string                               `json:"remarks"`
 
 	ImplementedRequirementId uuid.UUID
@@ -1719,14 +1731,10 @@ func (s *Statement) UnmarshalOscal(os oscalTypes_1_1_3.Statement) *Statement {
 }
 
 func (s *Statement) MarshalOscal() *oscalTypes_1_1_3.Statement {
-	components := ConvertList(&s.ByComponents, func(in ByComponent) oscalTypes_1_1_3.ByComponent {
-		return *in.MarshalOscal()
-	})
 	ret := &oscalTypes_1_1_3.Statement{
-		UUID:         s.UUIDModel.ID.String(),
-		StatementId:  s.StatementId,
-		Remarks:      s.Remarks,
-		ByComponents: &components,
+		UUID:        s.UUIDModel.ID.String(),
+		StatementId: s.StatementId,
+		Remarks:     s.Remarks,
 	}
 	if len(s.Props) > 0 {
 		ret.Props = ConvertPropsToOscal(s.Props)
@@ -1740,6 +1748,12 @@ func (s *Statement) MarshalOscal() *oscalTypes_1_1_3.Statement {
 			roles[i] = *rr.MarshalOscal()
 		}
 		ret.ResponsibleRoles = &roles
+	}
+	if len(s.ByComponents) > 0 {
+		comps := ConvertList(&s.ByComponents, func(in ByComponent) oscalTypes_1_1_3.ByComponent {
+			return *in.MarshalOscal()
+		})
+		ret.ByComponents = &comps
 	}
 	return ret
 }
