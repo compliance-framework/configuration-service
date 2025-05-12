@@ -870,8 +870,8 @@ type ByComponent struct {
 	ResponsibleRoles     datatypes.JSONSlice[ResponsibleRole]           `json:"responsible-parties"`
 	Remarks              string                                         `json:"remarks"`
 	ImplementationStatus datatypes.JSONType[ImplementationStatus]       `json:"implementation-status"`
-	Export               Export                                         `json:"export"`
-	Inherited            []InheritedControlImplementation               `json:"inherited-control-implementations"`
+	Export               *Export                                        `json:"export,omitempty"`
+	Inherited            []InheritedControlImplementation               `json:"inherited-control-implementations,omitempty"`
 	Satisfied            []SatisfiedControlImplementationResponsibility `json:"satisfied"`
 }
 
@@ -879,17 +879,13 @@ func (bc *ByComponent) UnmarshalOscal(obc oscalTypes_1_1_3.ByComponent) *ByCompo
 	id := uuid.MustParse(obc.UUID)
 	componentId := uuid.MustParse(obc.ComponentUuid)
 
-	export := Export{}
-	if obc.Export != nil {
-		export.UnmarshalOscal(*obc.Export)
-	}
-
 	*bc = ByComponent{
 		UUIDModel: UUIDModel{
 			ID: &id,
 		},
 		ComponentUUID: componentId,
 		Description:   obc.Description,
+		Remarks:       obc.Remarks,
 		Props:         ConvertOscalToProps(obc.Props),
 		Links:         ConvertOscalToLinks(obc.Links),
 		SetParameters: ConvertList(obc.SetParameters, func(op oscalTypes_1_1_3.SetParameter) SetParameter {
@@ -902,9 +898,23 @@ func (bc *ByComponent) UnmarshalOscal(obc oscalTypes_1_1_3.ByComponent) *ByCompo
 			role.UnmarshalOscal(orr)
 			return role
 		}),
-		Remarks: obc.Remarks,
-		Export:  export,
+		Inherited: ConvertList(obc.Inherited, func(in oscalTypes_1_1_3.InheritedControlImplementation) InheritedControlImplementation {
+			ret := InheritedControlImplementation{}
+			ret.UnmarshalOscal(in)
+			return ret
+		}),
+		Satisfied: ConvertList(obc.Satisfied, func(in oscalTypes_1_1_3.SatisfiedControlImplementationResponsibility) SatisfiedControlImplementationResponsibility {
+			ret := SatisfiedControlImplementationResponsibility{}
+			ret.UnmarshalOscal(in)
+			return ret
+		}),
 	}
+
+	if obc.Export != nil {
+		export := Export{}
+		bc.Export = export.UnmarshalOscal(*obc.Export)
+	}
+
 	return bc
 }
 
@@ -934,6 +944,23 @@ func (bc *ByComponent) MarshalOscal() *oscalTypes_1_1_3.ByComponent {
 			roles[i] = *rr.MarshalOscal()
 		}
 		ret.ResponsibleRoles = &roles
+	}
+	if len(bc.Inherited) > 0 {
+		inherited := make([]oscalTypes_1_1_3.InheritedControlImplementation, len(bc.Inherited))
+		for i, rr := range bc.Inherited {
+			inherited[i] = *rr.MarshalOscal()
+		}
+		ret.Inherited = &inherited
+	}
+	if bc.Export != nil {
+		ret.Export = bc.Export.MarshalOscal()
+	}
+	if len(bc.Satisfied) > 0 {
+		satisfied := make([]oscalTypes_1_1_3.SatisfiedControlImplementationResponsibility, len(bc.Inherited))
+		for i, rr := range bc.Satisfied {
+			satisfied[i] = *rr.MarshalOscal()
+		}
+		ret.Satisfied = &satisfied
 	}
 	return ret
 }
@@ -1321,12 +1348,15 @@ func (s *Statement) UnmarshalOscal(os oscalTypes_1_1_3.Statement) *Statement {
 	return s
 }
 
-// MarshalOscal converts the Statement back to an OSCAL Statement
 func (s *Statement) MarshalOscal() *oscalTypes_1_1_3.Statement {
+	components := ConvertList(&s.ByComponents, func(in ByComponent) oscalTypes_1_1_3.ByComponent {
+		return *in.MarshalOscal()
+	})
 	ret := &oscalTypes_1_1_3.Statement{
-		UUID:        s.UUIDModel.ID.String(),
-		StatementId: s.StatementId,
-		Remarks:     s.Remarks,
+		UUID:         s.UUIDModel.ID.String(),
+		StatementId:  s.StatementId,
+		Remarks:      s.Remarks,
+		ByComponents: &components,
 	}
 	if len(s.Props) > 0 {
 		ret.Props = ConvertPropsToOscal(s.Props)
