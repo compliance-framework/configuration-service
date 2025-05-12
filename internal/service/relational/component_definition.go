@@ -121,13 +121,6 @@ func (dc *DefinedComponent) UnmarshalOscal(odc oscalTypes_1_1_3.DefinedComponent
 	return dc
 }
 
-type Protocol oscalTypes_1_1_3.Protocol
-
-func (p *Protocol) UnmarshalOscal(op oscalTypes_1_1_3.Protocol) *Protocol {
-	*p = Protocol(op)
-	return p
-}
-
 type ControlImplementationSet struct {
 	UUIDModel
 	Source        string                            `json:"source"`

@@ -443,6 +443,116 @@ func TestSystemInformation_OscalMarshalling(t *testing.T) {
 	assert.JSONEq(t, string(inputJson), string(outputJson))
 }
 
+func TestLeveragedAuthorization_OscalMarshalling(t *testing.T) {
+	now := time.Now().UTC()
+	dateStr := now.Format(time.DateOnly)
+	oscalLA := oscalTypes_1_1_3.LeveragedAuthorization{
+		UUID:           uuid.New().String(),
+		Title:          "LA Title",
+		PartyUuid:      uuid.New().String(),
+		DateAuthorized: dateStr,
+		Remarks:        "la-remarks",
+		Props: &[]oscalTypes_1_1_3.Property{
+			{Name: "p", Value: "v"},
+		},
+		Links: &[]oscalTypes_1_1_3.Link{
+			{Href: "h", MediaType: "m", Text: "t"},
+		},
+	}
+	inputJson, err := json.Marshal(oscalLA)
+	assert.NoError(t, err)
+
+	la := &LeveragedAuthorization{}
+	la.UnmarshalOscal(oscalLA)
+	output := la.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
+}
+
+func TestAuthorizedPrivilege_OscalMarshalling(t *testing.T) {
+	oscalAP := oscalTypes_1_1_3.AuthorizedPrivilege{
+		Title:              "AP Title",
+		Description:        "ap-desc",
+		FunctionsPerformed: []string{"f1", "f2"},
+	}
+	inputJson, err := json.Marshal(oscalAP)
+	assert.NoError(t, err)
+
+	ap := &AuthorizedPrivilege{}
+	ap.UnmarshalOscal(oscalAP)
+	output := ap.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
+}
+
+func TestSystemUser_OscalMarshalling(t *testing.T) {
+	oscalSU := oscalTypes_1_1_3.SystemUser{
+		UUID:        uuid.New().String(),
+		Title:       "User Title",
+		ShortName:   "usr",
+		Description: "user-desc",
+		Props: &[]oscalTypes_1_1_3.Property{
+			{Name: "p", Value: "v"},
+		},
+		Links: &[]oscalTypes_1_1_3.Link{
+			{Href: "h", MediaType: "m", Text: "t"},
+		},
+		RoleIds:              &[]string{"r1", "r2"},
+		AuthorizedPrivileges: &[]oscalTypes_1_1_3.AuthorizedPrivilege{{Title: "AP", Description: "apd", FunctionsPerformed: []string{"f"}}},
+	}
+	inputJson, err := json.Marshal(oscalSU)
+	assert.NoError(t, err)
+
+	su := &SystemUser{}
+	su.UnmarshalOscal(oscalSU)
+	output := su.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
+}
+
+func TestSystemComponent_OscalMarshalling(t *testing.T) {
+	oscalSC := oscalTypes_1_1_3.SystemComponent{
+		UUID:        uuid.New().String(),
+		Type:        "type1",
+		Title:       "title1",
+		Description: "desc1",
+		Purpose:     "purpose1",
+		Status: oscalTypes_1_1_3.SystemComponentStatus{
+			State: "active",
+		},
+		Props: &[]oscalTypes_1_1_3.Property{
+			{Name: "p1", Value: "v1"},
+		},
+		Links: &[]oscalTypes_1_1_3.Link{
+			{Href: "http://link", MediaType: "mt", Text: "text"},
+		},
+		ResponsibleRoles: &[]oscalTypes_1_1_3.ResponsibleRole{
+			{RoleId: "role1", Remarks: "rr"},
+		},
+		Protocols: &[]oscalTypes_1_1_3.Protocol{
+			{Name: "proto", PortRanges: &[]oscalTypes_1_1_3.PortRange{
+				{
+					Start: 443,
+					End:   443,
+				},
+			}},
+		},
+		Remarks: "rem1",
+	}
+	inputJson, err := json.Marshal(oscalSC)
+	assert.NoError(t, err)
+
+	sc := &SystemComponent{}
+	sc.UnmarshalOscal(oscalSC)
+	output := sc.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
+}
+
 func TestInformationType_OscalMarshalling(t *testing.T) {
 	oscalIT := oscalTypes_1_1_3.InformationType{
 		UUID:        uuid.New().String(),
