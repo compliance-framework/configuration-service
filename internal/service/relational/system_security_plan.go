@@ -1,7 +1,6 @@
 package relational
 
 import (
-	"database/sql"
 	"time"
 
 	oscalTypes_1_1_3 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
@@ -62,6 +61,7 @@ func (s *SystemSecurityPlan) MarshalOscal() *oscalTypes_1_1_3.SystemSecurityPlan
 		UUID:                  s.UUIDModel.ID.String(),
 		Metadata:              *s.Metadata.MarshalOscal(),
 		ControlImplementation: *s.ControlImplementation.MarshalOscal(),
+		SystemCharacteristics: *s.SystemCharacteristics.MarshalOscal(),
 	}
 
 	importProfile := s.ImportProfile.Data()
@@ -88,23 +88,23 @@ func (ip *ImportProfile) MarshalOscal() *oscalTypes_1_1_3.ImportProfile {
 
 type SystemCharacteristics struct {
 	UUIDModel
-	SystemName               string       `json:"system-name"`
-	SystemNameShort          string       `json:"system-name-short"`
-	Description              string       `json:"description"`
-	DateAuthorized           sql.NullTime `json:"date-authorized"`
-	SecuritySensitivityLevel string       `json:"security-sensitivity-level"`
-	Remarks                  string       `json:"remarks"`
+	SystemName               string     `json:"system-name"`
+	SystemNameShort          string     `json:"system-name-short"`
+	Description              string     `json:"description"`
+	DateAuthorized           *time.Time `json:"date-authorized"`
+	SecuritySensitivityLevel string     `json:"security-sensitivity-level"`
+	Remarks                  string     `json:"remarks"`
 
-	SystemIds            datatypes.JSONSlice[SystemId] `json:"system-ids"`
-	SystemInformation    SystemInformation             `json:"system-information"`
-	Status               datatypes.JSONType[Status]    `json:"status"`
-	AuthorizationBoundry AuthorizationBoundary         `json:"authorization-boundary"`
-	NetworkArchitecture  NetworkArchitecture           `json:"network-architecture"`
-	DataFlow             DataFlow                      `json:"data-flow"`
-
-	Links              datatypes.JSONSlice[Link]             `json:"links"`
-	Props              datatypes.JSONSlice[Prop]             `json:"props"`
-	ResponsibleParties datatypes.JSONSlice[ResponsibleParty] `json:"responsible-role"`
+	SystemIds            datatypes.JSONSlice[SystemId]         `json:"system-ids"`
+	SystemInformation    SystemInformation                     `json:"system-information"`
+	Status               datatypes.JSONType[Status]            `json:"status"`
+	AuthorizationBoundry AuthorizationBoundary                 `json:"authorization-boundary"`
+	NetworkArchitecture  *NetworkArchitecture                  `json:"network-architecture"`
+	DataFlow             *DataFlow                             `json:"data-flow"`
+	SecurityImpactLevel  *SecurityImpactLevel                  `json:"security-impact-level"`
+	Links                datatypes.JSONSlice[Link]             `json:"links"`
+	Props                datatypes.JSONSlice[Prop]             `json:"props"`
+	ResponsibleParties   datatypes.JSONSlice[ResponsibleParty] `json:"responsible-role"`
 
 	SystemSecurityPlanId uuid.UUID
 }
@@ -112,20 +112,6 @@ type SystemCharacteristics struct {
 func (sc *SystemCharacteristics) UnmarshalOscal(osc oscalTypes_1_1_3.SystemCharacteristics) *SystemCharacteristics {
 	props := ConvertOscalToProps(osc.Props)
 	links := ConvertOscalToLinks(osc.Links)
-
-	dateAuthorized := sql.NullTime{}
-	if len(osc.DateAuthorized) > 0 {
-		// Todo: Assume that a timezone is attached as per the spec - https://pages.nist.gov/metaschema/specification/datatypes/#date
-		parsed, err := time.Parse(time.DateOnly, osc.DateAuthorized)
-		if err != nil {
-			panic(err)
-		}
-		dateAuthorized = sql.NullTime{
-			Time:  parsed,
-			Valid: true,
-		}
-
-	}
 
 	systemIds := ConvertList(&osc.SystemIds, func(osi oscalTypes_1_1_3.SystemId) SystemId {
 		sid := SystemId(osi)
@@ -141,18 +127,6 @@ func (sc *SystemCharacteristics) UnmarshalOscal(osc oscalTypes_1_1_3.SystemChara
 	authBoundary := AuthorizationBoundary{}
 	authBoundary.UnmarshalOscal(osc.AuthorizationBoundary)
 
-	var networkArchitecture NetworkArchitecture
-	if osc.NetworkArchitecture != nil {
-		networkArchitecture = NetworkArchitecture{}
-		networkArchitecture.UnmarshalOscal(*osc.NetworkArchitecture)
-	}
-
-	var dataflow DataFlow
-	if osc.DataFlow != nil {
-		dataflow = DataFlow{}
-		dataflow.UnmarshalOscal(*osc.DataFlow)
-	}
-
 	responsibleParties := ConvertList(osc.ResponsibleParties, func(orp oscalTypes_1_1_3.ResponsibleParty) ResponsibleParty {
 		rp := ResponsibleParty{}
 		rp.UnmarshalOscal(orp)
@@ -164,7 +138,6 @@ func (sc *SystemCharacteristics) UnmarshalOscal(osc oscalTypes_1_1_3.SystemChara
 		SystemName:               osc.SystemName,
 		SystemNameShort:          osc.SystemNameShort,
 		Description:              osc.Description,
-		DateAuthorized:           dateAuthorized,
 		SecuritySensitivityLevel: osc.SecuritySensitivityLevel,
 		Remarks:                  osc.Remarks,
 		Links:                    links,
@@ -173,12 +146,89 @@ func (sc *SystemCharacteristics) UnmarshalOscal(osc oscalTypes_1_1_3.SystemChara
 		SystemInformation:        systemInformation,
 		Status:                   datatypes.NewJSONType[Status](status),
 		AuthorizationBoundry:     authBoundary,
-		NetworkArchitecture:      networkArchitecture,
-		DataFlow:                 dataflow,
 		ResponsibleParties:       datatypes.NewJSONSlice[ResponsibleParty](responsibleParties),
 	}
 
+	if osc.NetworkArchitecture != nil {
+		networkArchitecture := NetworkArchitecture{}
+		sc.NetworkArchitecture = networkArchitecture.UnmarshalOscal(*osc.NetworkArchitecture)
+	}
+
+	if osc.DataFlow != nil {
+		dataFlow := DataFlow{}
+		sc.DataFlow = dataFlow.UnmarshalOscal(*osc.DataFlow)
+	}
+
+	if osc.DateAuthorized != "" {
+		if len(osc.DateAuthorized) > 0 {
+			// Todo: Assume that a timezone is attached as per the spec - https://pages.nist.gov/metaschema/specification/datatypes/#date
+			parsed, err := time.Parse(time.DateTime, osc.DateAuthorized)
+			if err != nil {
+				panic(err)
+			}
+			sc.DateAuthorized = &parsed
+		}
+	}
+
+	if osc.SecurityImpactLevel != nil {
+		securityImpact := SecurityImpactLevel{}
+		securityImpact.UnmarshalOscal(*osc.SecurityImpactLevel)
+		sc.SecurityImpactLevel = &securityImpact
+	}
+
 	return sc
+}
+
+// MarshalOscal converts the SystemCharacteristics back to an OSCAL SystemCharacteristics
+func (sc *SystemCharacteristics) MarshalOscal() *oscalTypes_1_1_3.SystemCharacteristics {
+	oc := &oscalTypes_1_1_3.SystemCharacteristics{
+		SystemName:               sc.SystemName,
+		SystemNameShort:          sc.SystemNameShort,
+		Description:              sc.Description,
+		SecuritySensitivityLevel: sc.SecuritySensitivityLevel,
+		Remarks:                  sc.Remarks,
+	}
+	if sc.DateAuthorized != nil {
+		oc.DateAuthorized = sc.DateAuthorized.Format(time.DateTime)
+	}
+	if len(sc.SystemIds) > 0 {
+		ids := make([]oscalTypes_1_1_3.SystemId, len(sc.SystemIds))
+		for i, sid := range sc.SystemIds {
+			ids[i] = *sid.MarshalOscal()
+		}
+		oc.SystemIds = ids
+	}
+
+	oc.SystemInformation = *sc.SystemInformation.MarshalOscal()
+
+	status := sc.Status.Data()
+	oc.Status = *status.MarshalOscal()
+
+	oc.AuthorizationBoundary = *sc.AuthorizationBoundry.MarshalOscal()
+
+	if sc.NetworkArchitecture != nil {
+		oc.NetworkArchitecture = sc.NetworkArchitecture.MarshalOscal()
+	}
+	if sc.DataFlow != nil {
+		oc.DataFlow = sc.DataFlow.MarshalOscal()
+	}
+	if sc.SecurityImpactLevel != nil {
+		oc.SecurityImpactLevel = sc.SecurityImpactLevel.MarshalOscal()
+	}
+	if len(sc.Props) > 0 {
+		oc.Props = ConvertPropsToOscal(sc.Props)
+	}
+	if len(sc.Links) > 0 {
+		oc.Links = ConvertLinksToOscal(sc.Links)
+	}
+	if len(sc.ResponsibleParties) > 0 {
+		rp := make([]oscalTypes_1_1_3.ResponsibleParty, len(sc.ResponsibleParties))
+		for i, party := range sc.ResponsibleParties {
+			rp[i] = *party.MarshalOscal()
+		}
+		oc.ResponsibleParties = &rp
+	}
+	return oc
 }
 
 type SystemId oscalTypes_1_1_3.SystemId
@@ -221,6 +271,24 @@ func (si *SystemInformation) UnmarshalOscal(osi oscalTypes_1_1_3.SystemInformati
 	}
 
 	return si
+}
+
+func (si *SystemInformation) MarshalOscal() *oscalTypes_1_1_3.SystemInformation {
+	ret := &oscalTypes_1_1_3.SystemInformation{}
+	if len(si.Props) > 0 {
+		ret.Props = ConvertPropsToOscal(si.Props)
+	}
+	if len(si.Links) > 0 {
+		ret.Links = ConvertLinksToOscal(si.Links)
+	}
+	if len(si.InformationTypes) > 0 {
+		its := make([]oscalTypes_1_1_3.InformationType, len(si.InformationTypes))
+		for i, it := range si.InformationTypes {
+			its[i] = *it.MarshalOscal()
+		}
+		ret.InformationTypes = its
+	}
+	return ret
 }
 
 type InformationType struct {
@@ -276,6 +344,35 @@ func (it *InformationType) UnmarshalOscal(oit oscalTypes_1_1_3.InformationType) 
 	}
 
 	return it
+}
+
+func (it *InformationType) MarshalOscal() *oscalTypes_1_1_3.InformationType {
+	ret := &oscalTypes_1_1_3.InformationType{
+		UUID:        it.UUIDModel.ID.String(),
+		Title:       it.Title,
+		Description: it.Description,
+	}
+	if len(it.Props) > 0 {
+		ret.Props = ConvertPropsToOscal(it.Props)
+	}
+	if len(it.Links) > 0 {
+		ret.Links = ConvertLinksToOscal(it.Links)
+	}
+	// JSONType fields
+	ci := it.ConfidentialityImpact.Data()
+	ret.ConfidentialityImpact = ci.MarshalOscal()
+	ii := it.IntegrityImpact.Data()
+	ret.IntegrityImpact = ii.MarshalOscal()
+	ai := it.AvailabilityImpact.Data()
+	ret.AvailabilityImpact = ai.MarshalOscal()
+	if len(it.Categorizations) > 0 {
+		cats := make([]oscalTypes_1_1_3.InformationTypeCategorization, len(it.Categorizations))
+		for i, cat := range it.Categorizations {
+			cats[i] = *cat.MarshalOscal()
+		}
+		ret.Categorizations = &cats
+	}
+	return ret
 }
 
 type Impact oscalTypes_1_1_3.Impact
@@ -358,6 +455,27 @@ func (ab *AuthorizationBoundary) UnmarshalOscal(oab oscalTypes_1_1_3.Authorizati
 	return ab
 }
 
+func (ab *AuthorizationBoundary) MarshalOscal() *oscalTypes_1_1_3.AuthorizationBoundary {
+	ret := &oscalTypes_1_1_3.AuthorizationBoundary{
+		Description: ab.Description,
+		Remarks:     ab.Remarks,
+	}
+	if len(ab.Props) > 0 {
+		ret.Props = ConvertPropsToOscal(ab.Props)
+	}
+	if len(ab.Links) > 0 {
+		ret.Links = ConvertLinksToOscal(ab.Links)
+	}
+	if len(ab.Diagrams) > 0 {
+		diagrams := make([]oscalTypes_1_1_3.Diagram, len(ab.Diagrams))
+		for i, d := range ab.Diagrams {
+			diagrams[i] = *d.MarshalOscal()
+		}
+		ret.Diagrams = &diagrams
+	}
+	return ret
+}
+
 type NetworkArchitecture struct {
 	UUIDModel
 	Description string                    `json:"description"`
@@ -388,6 +506,27 @@ func (na *NetworkArchitecture) UnmarshalOscal(ona oscalTypes_1_1_3.NetworkArchit
 		Diagrams:    diagrams,
 	}
 	return na
+}
+
+func (na *NetworkArchitecture) MarshalOscal() *oscalTypes_1_1_3.NetworkArchitecture {
+	ret := &oscalTypes_1_1_3.NetworkArchitecture{
+		Description: na.Description,
+		Remarks:     na.Remarks,
+	}
+	if len(na.Props) > 0 {
+		ret.Props = ConvertPropsToOscal(na.Props)
+	}
+	if len(na.Links) > 0 {
+		ret.Links = ConvertLinksToOscal(na.Links)
+	}
+	if len(na.Diagrams) > 0 {
+		diagrams := make([]oscalTypes_1_1_3.Diagram, len(na.Diagrams))
+		for i, d := range na.Diagrams {
+			diagrams[i] = *d.MarshalOscal()
+		}
+		ret.Diagrams = &diagrams
+	}
+	return ret
 }
 
 type DataFlow struct {
@@ -423,6 +562,27 @@ func (df *DataFlow) UnmarshalOscal(odf oscalTypes_1_1_3.DataFlow) *DataFlow {
 	return df
 }
 
+func (df *DataFlow) MarshalOscal() *oscalTypes_1_1_3.DataFlow {
+	ret := &oscalTypes_1_1_3.DataFlow{
+		Description: df.Description,
+		Remarks:     df.Remarks,
+	}
+	if len(df.Props) > 0 {
+		ret.Props = ConvertPropsToOscal(df.Props)
+	}
+	if len(df.Links) > 0 {
+		ret.Links = ConvertLinksToOscal(df.Links)
+	}
+	if len(df.Diagrams) > 0 {
+		diagrams := make([]oscalTypes_1_1_3.Diagram, len(df.Diagrams))
+		for i, d := range df.Diagrams {
+			diagrams[i] = *d.MarshalOscal()
+		}
+		ret.Diagrams = &diagrams
+	}
+	return ret
+}
+
 type Diagram struct {
 	UUIDModel
 	Description string                    `json:"description"`
@@ -449,6 +609,22 @@ func (d *Diagram) UnmarshalOscal(od oscalTypes_1_1_3.Diagram) *Diagram {
 	}
 
 	return d
+}
+
+func (d *Diagram) MarshalOscal() *oscalTypes_1_1_3.Diagram {
+	ret := &oscalTypes_1_1_3.Diagram{
+		UUID:        d.UUIDModel.ID.String(),
+		Description: d.Description,
+		Caption:     d.Caption,
+		Remarks:     d.Remarks,
+	}
+	if len(d.Props) > 0 {
+		ret.Props = ConvertPropsToOscal(d.Props)
+	}
+	if len(d.Links) > 0 {
+		ret.Links = ConvertLinksToOscal(d.Links)
+	}
+	return ret
 }
 
 type SystemImplementation struct {

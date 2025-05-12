@@ -2,12 +2,12 @@ package relational
 
 import (
 	"encoding/json"
+	oscalTypes_1_1_3 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
-
-	oscalTypes_1_1_3 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
+	"time"
 )
 
 func TestSatisfiedControlImplementationResponsibilityUnmarshal(t *testing.T) {
@@ -285,6 +285,247 @@ func TestControlImplementation_OscalMarshalling(t *testing.T) {
 	ci := &ControlImplementation{}
 	ci.UnmarshalOscal(oscalCI)
 	output := ci.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
+}
+
+func TestDiagram_OscalMarshalling(t *testing.T) {
+	oscalDiag := oscalTypes_1_1_3.Diagram{
+		UUID:        uuid.New().String(),
+		Description: "desc",
+		Props: &[]oscalTypes_1_1_3.Property{
+			{Name: "p", Value: "v"},
+		},
+		Links: &[]oscalTypes_1_1_3.Link{
+			{Href: "h", MediaType: "m", Text: "t"},
+		},
+		Caption: "cap",
+		Remarks: "rem",
+	}
+	inputJson, err := json.Marshal(oscalDiag)
+	assert.NoError(t, err)
+
+	d := &Diagram{}
+	d.UnmarshalOscal(oscalDiag)
+	output := d.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
+}
+
+func TestDataFlow_OscalMarshalling(t *testing.T) {
+	oscalDF := oscalTypes_1_1_3.DataFlow{
+		Description: "desc",
+		Props: &[]oscalTypes_1_1_3.Property{
+			{Name: "p", Value: "v"},
+		},
+		Links: &[]oscalTypes_1_1_3.Link{
+			{Href: "h", MediaType: "m", Text: "t"},
+		},
+		Remarks: "rem",
+		Diagrams: &[]oscalTypes_1_1_3.Diagram{
+			{
+				UUID:        uuid.New().String(),
+				Description: "diagram-desc",
+				Caption:     "cap",
+				Props: &[]oscalTypes_1_1_3.Property{
+					{Name: "dp", Value: "dv"},
+				},
+				Links: &[]oscalTypes_1_1_3.Link{
+					{Href: "dh", MediaType: "dm", Text: "dt"},
+				},
+				Remarks: "drem",
+			},
+		},
+	}
+	inputJson, err := json.Marshal(oscalDF)
+	assert.NoError(t, err)
+
+	df := &DataFlow{}
+	df.UnmarshalOscal(oscalDF)
+	output := df.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
+}
+
+func TestNetworkArchitecture_OscalMarshalling(t *testing.T) {
+	oscalDF := oscalTypes_1_1_3.NetworkArchitecture{
+		Description: "desc",
+		Props: &[]oscalTypes_1_1_3.Property{
+			{Name: "p", Value: "v"},
+		},
+		Links: &[]oscalTypes_1_1_3.Link{
+			{Href: "h", MediaType: "m", Text: "t"},
+		},
+		Remarks: "rem",
+		Diagrams: &[]oscalTypes_1_1_3.Diagram{
+			{
+				UUID:        uuid.New().String(),
+				Description: "diagram-desc",
+				Caption:     "cap",
+				Props: &[]oscalTypes_1_1_3.Property{
+					{Name: "dp", Value: "dv"},
+				},
+				Links: &[]oscalTypes_1_1_3.Link{
+					{Href: "dh", MediaType: "dm", Text: "dt"},
+				},
+				Remarks: "drem",
+			},
+		},
+	}
+	inputJson, err := json.Marshal(oscalDF)
+	assert.NoError(t, err)
+
+	df := &NetworkArchitecture{}
+	df.UnmarshalOscal(oscalDF)
+	output := df.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
+}
+
+func TestAuthorizationBoundary_OscalMarshalling(t *testing.T) {
+	oscalAB := oscalTypes_1_1_3.AuthorizationBoundary{
+		Description: "ab-desc",
+		Props: &[]oscalTypes_1_1_3.Property{
+			{Name: "p", Value: "v"},
+		},
+		Links: &[]oscalTypes_1_1_3.Link{
+			{Href: "h", MediaType: "m", Text: "t"},
+		},
+		Remarks: "ab-rem",
+		Diagrams: &[]oscalTypes_1_1_3.Diagram{
+			{
+				UUID:        uuid.New().String(),
+				Description: "diag-desc",
+				Caption:     "cap",
+				Remarks:     "diag-rem",
+			},
+		},
+	}
+	inputJson, err := json.Marshal(oscalAB)
+	assert.NoError(t, err)
+
+	ab := &AuthorizationBoundary{}
+	ab.UnmarshalOscal(oscalAB)
+	output := ab.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
+}
+
+func TestSystemInformation_OscalMarshalling(t *testing.T) {
+	oscalSI := oscalTypes_1_1_3.SystemInformation{
+		Props: &[]oscalTypes_1_1_3.Property{
+			{Name: "p", Value: "v"},
+		},
+		Links: &[]oscalTypes_1_1_3.Link{
+			{Href: "h", MediaType: "m", Text: "t"},
+		},
+		InformationTypes: []oscalTypes_1_1_3.InformationType{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "title",
+				Description: "desc",
+			},
+		},
+	}
+	inputJson, err := json.Marshal(oscalSI)
+	assert.NoError(t, err)
+
+	si := &SystemInformation{}
+	si.UnmarshalOscal(oscalSI)
+	output := si.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
+}
+
+func TestInformationType_OscalMarshalling(t *testing.T) {
+	oscalIT := oscalTypes_1_1_3.InformationType{
+		UUID:        uuid.New().String(),
+		Title:       "Test Title",
+		Description: "Test Description",
+		Props: &[]oscalTypes_1_1_3.Property{
+			{Name: "p1", Value: "v1"},
+		},
+		Links: &[]oscalTypes_1_1_3.Link{
+			{Href: "http://link", MediaType: "mt", Text: "text"},
+		},
+		ConfidentialityImpact: &oscalTypes_1_1_3.Impact{
+			Base: "impact",
+		},
+		IntegrityImpact: &oscalTypes_1_1_3.Impact{
+			Base: "impact",
+		},
+		AvailabilityImpact: &oscalTypes_1_1_3.Impact{
+			Base: "impact",
+		},
+		Categorizations: &[]oscalTypes_1_1_3.InformationTypeCategorization{
+			{},
+		},
+	}
+	inputJson, err := json.Marshal(oscalIT)
+	assert.NoError(t, err)
+
+	it := &InformationType{}
+	it.UnmarshalOscal(oscalIT)
+	output := it.MarshalOscal()
+	outputJson, err := json.Marshal(output)
+	assert.NoError(t, err)
+	assert.JSONEq(t, string(inputJson), string(outputJson))
+}
+
+func TestSystemCharacteristics_OscalMarshalling(t *testing.T) {
+	now := time.Now().UTC().Truncate(time.Second)
+	dateStr := now.Format(time.DateTime)
+	oscalSC := oscalTypes_1_1_3.SystemCharacteristics{
+		SystemName:               "name",
+		SystemNameShort:          "short",
+		Description:              "desc",
+		DateAuthorized:           dateStr,
+		SecuritySensitivityLevel: "level",
+		Remarks:                  "rem",
+		SystemIds: []oscalTypes_1_1_3.SystemId{
+			{ID: "id", IdentifierType: "some-type"},
+		},
+		SystemInformation: oscalTypes_1_1_3.SystemInformation{
+			Links:            nil,
+			InformationTypes: nil,
+		},
+		Status: oscalTypes_1_1_3.Status{
+			State: "active",
+		},
+		AuthorizationBoundary: oscalTypes_1_1_3.AuthorizationBoundary{
+			Description: "ab-desc",
+			Remarks:     "ab-rem",
+		},
+		NetworkArchitecture: &oscalTypes_1_1_3.NetworkArchitecture{
+			Description: "na-desc",
+			Remarks:     "na-rem",
+		},
+		DataFlow: &oscalTypes_1_1_3.DataFlow{
+			Description: "df-desc",
+			Remarks:     "df-rem",
+		},
+		Props: &[]oscalTypes_1_1_3.Property{
+			{Name: "pn", Value: "pv"},
+		},
+		Links: &[]oscalTypes_1_1_3.Link{
+			{Href: "h", MediaType: "m", Text: "t"},
+		},
+		ResponsibleParties: &[]oscalTypes_1_1_3.ResponsibleParty{
+			{RoleId: "r", Remarks: "rr"},
+		},
+	}
+	inputJson, err := json.Marshal(oscalSC)
+	assert.NoError(t, err)
+
+	sc := &SystemCharacteristics{}
+	sc.UnmarshalOscal(oscalSC)
+	output := sc.MarshalOscal()
 	outputJson, err := json.Marshal(output)
 	assert.NoError(t, err)
 	assert.JSONEq(t, string(inputJson), string(outputJson))
