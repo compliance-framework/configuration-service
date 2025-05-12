@@ -8,6 +8,14 @@ definitions:
         additionalProperties: true
         type: object
     type: object
+  handler.GenericDataListResponse-oscal_List_response:
+    properties:
+      data:
+        description: Items from the list response
+        items:
+          $ref: '#/definitions/oscal.List.response'
+        type: array
+    type: object
   handler.GenericDataListResponse-oscal_List_responseCatalog:
     properties:
       data:
@@ -128,6 +136,13 @@ definitions:
           $ref: '#/definitions/service.Subject'
         type: array
     type: object
+  handler.GenericDataResponse-oscal_Get_response:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/oscal.Get.response'
+        description: Items from the list response
+    type: object
   handler.GenericDataResponse-oscal_Get_responseCatalog:
     properties:
       data:
@@ -243,7 +258,21 @@ definitions:
       query:
         $ref: '#/definitions/labelfilter.Query'
     type: object
+  oscal.Get.response:
+    properties:
+      metadata:
+        $ref: '#/definitions/oscalTypes_1_1_3.Metadata'
+      uuid:
+        type: string
+    type: object
   oscal.Get.responseCatalog:
+    properties:
+      metadata:
+        $ref: '#/definitions/oscalTypes_1_1_3.Metadata'
+      uuid:
+        type: string
+    type: object
+  oscal.List.response:
     properties:
       metadata:
         $ref: '#/definitions/oscalTypes_1_1_3.Metadata'
@@ -2627,6 +2656,60 @@ paths:
       summary: Create a new Sub-Group for a Catalog Group
       tags:
       - Oscal
+  /oscal/profiles:
+    get:
+      description: Retrieves all OSCAL profiles
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscal_List_response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: List Profiles
+      tags:
+      - Oscal
+      - Profiles
+  /oscal/profiles/{id}:
+    get:
+      description: Get an OSCAL profile with the uuid provided
+      parameters:
+      - description: Profile ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscal_Get_response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Get Profile
+      tags:
+      - Oscal
+      - Profiles
   /subjects:
     get:
       description: Retrieves a list of all subjects from the database.

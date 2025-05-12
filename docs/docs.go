@@ -2062,6 +2062,87 @@ const docTemplate = `{
                 }
             }
         },
+        "/oscal/profiles": {
+            "get": {
+                "description": "Retrieves all OSCAL profiles",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Oscal",
+                    "Profiles"
+                ],
+                "summary": "List Profiles",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataListResponse-oscal_List_response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/oscal/profiles/{id}": {
+            "get": {
+                "description": "Get an OSCAL profile with the uuid provided",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Oscal",
+                    "Profiles"
+                ],
+                "summary": "Get Profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Profile ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscal_Get_response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/subjects": {
             "get": {
                 "description": "Retrieves a list of all subjects from the database.",
@@ -2262,6 +2343,18 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/oscalTypes_1_1_3.Group"
+                    }
+                }
+            }
+        },
+        "handler.GenericDataListResponse-oscal_List_response": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Items from the list response",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscal.List.response"
                     }
                 }
             }
@@ -2474,6 +2567,19 @@ const docTemplate = `{
                 }
             }
         },
+        "handler.GenericDataResponse-oscal_Get_response": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Items from the list response",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/oscal.Get.response"
+                        }
+                    ]
+                }
+            }
+        },
         "handler.GenericDataResponse-oscal_Get_responseCatalog": {
             "type": "object",
             "properties": {
@@ -2617,7 +2723,29 @@ const docTemplate = `{
                 }
             }
         },
+        "oscal.Get.response": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "$ref": "#/definitions/oscalTypes_1_1_3.Metadata"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
         "oscal.Get.responseCatalog": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "$ref": "#/definitions/oscalTypes_1_1_3.Metadata"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscal.List.response": {
             "type": "object",
             "properties": {
                 "metadata": {
