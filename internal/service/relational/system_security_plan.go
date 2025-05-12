@@ -11,8 +11,8 @@ import (
 
 type SystemSecurityPlan struct {
 	UUIDModel
-	Metadata   Metadata   `json:"metadata" gorm:"polymorphic:Parent;"`
-	BackMatter BackMatter `json:"back-matter" gorm:"polymorphic:Parent;"`
+	Metadata   Metadata    `json:"metadata" gorm:"polymorphic:Parent;"`
+	BackMatter *BackMatter `json:"back-matter" gorm:"polymorphic:Parent;"`
 
 	ImportProfile         datatypes.JSONType[ImportProfile] `json:"import-profile"`
 	SystemCharacteristics SystemCharacteristics             `json:"system-characteristics"`
@@ -24,9 +24,6 @@ func (s *SystemSecurityPlan) UnmarshalOscal(os oscalTypes_1_1_3.SystemSecurityPl
 	id := uuid.MustParse(os.UUID)
 	metadata := Metadata{}
 	metadata.UnmarshalOscal(os.Metadata)
-
-	backMatter := BackMatter{}
-	backMatter.UnmarshalOscal(*os.BackMatter)
 
 	importProfile := ImportProfile{}
 	importProfile.UnmarshalOscal(os.ImportProfile)
@@ -45,11 +42,16 @@ func (s *SystemSecurityPlan) UnmarshalOscal(os oscalTypes_1_1_3.SystemSecurityPl
 			ID: &id,
 		},
 		Metadata:              metadata,
-		BackMatter:            backMatter,
 		ImportProfile:         datatypes.NewJSONType[ImportProfile](importProfile),
 		SystemCharacteristics: systemCharacteristics,
 		SystemImplementation:  systemImplementation,
 		ControlImplementation: controlImplementation,
+	}
+
+	if os.BackMatter != nil {
+		backMatter := &BackMatter{}
+		backMatter.UnmarshalOscal(*os.BackMatter)
+		s.BackMatter = backMatter
 	}
 
 	return s
@@ -61,6 +63,13 @@ func (s *SystemSecurityPlan) MarshalOscal() *oscalTypes_1_1_3.SystemSecurityPlan
 		Metadata: *s.Metadata.MarshalOscal(),
 	}
 
+	importProfile := s.ImportProfile.Data()
+	plan.ImportProfile = *importProfile.MarshalOscal()
+
+	if s.BackMatter != nil {
+		plan.BackMatter = s.BackMatter.MarshalOscal()
+	}
+
 	return plan
 }
 
@@ -69,6 +78,11 @@ type ImportProfile oscalTypes_1_1_3.ImportProfile
 func (ip *ImportProfile) UnmarshalOscal(oip oscalTypes_1_1_3.ImportProfile) *ImportProfile {
 	*ip = ImportProfile(oip)
 	return ip
+}
+
+func (ip *ImportProfile) MarshalOscal() *oscalTypes_1_1_3.ImportProfile {
+	p := oscalTypes_1_1_3.ImportProfile(*ip)
+	return &p
 }
 
 type SystemCharacteristics struct {
@@ -942,7 +956,7 @@ func (cir *ControlImplementationResponsibility) MarshalOscal() *oscalTypes_1_1_3
 }
 
 type InheritedControlImplementation struct {
-	UUIDModel //required
+	UUIDModel                                             //required
 	ProvidedUuid     uuid.UUID                            `json:"provided-uuid"`
 	Description      string                               `json:"description"` //required
 	Links            datatypes.JSONSlice[Link]            `json:"links"`
