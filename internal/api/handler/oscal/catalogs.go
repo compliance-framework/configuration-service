@@ -2,11 +2,12 @@ package oscal
 
 import (
 	"errors"
+	"net/http"
+	"time"
+
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/defenseunicorns/go-oscal/src/pkg/versioning"
 	oscalTypes_1_1_3 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
-	"net/http"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"

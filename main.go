@@ -3,19 +3,17 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
-	"github.com/compliance-framework/configuration-service/internal/service"
-	"log"
-	"os"
-
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/api/handler"
 	"github.com/compliance-framework/configuration-service/internal/api/handler/oscal"
+	"github.com/compliance-framework/configuration-service/internal/service/relational"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	gormLogger "gorm.io/gorm/logger"
-	"gorm.io/driver/postgres"
-	logging "github.com/compliance-framework/configuration-service/internal/logging" // adjust as needed
+	"log"
+	"os"
 
 	"github.com/joho/godotenv"
 
@@ -26,14 +24,11 @@ import (
 const (
 	DefaultMongoURI = "mongodb://localhost:27017"
 	DefaultPort     = ":8080"
-	DefaultDBDriver = "postgres"
 )
 
 type Config struct {
-	MongoURI           string
-	AppPort            string
-	DBDriver           string
-	DBConnectionString string
+	MongoURI string
+	AppPort  string
 }
 
 // @title						Continuous Compliance Framework API
@@ -48,11 +43,21 @@ type Config struct {
 func main() {
 	ctx := context.Background()
 
-	zapLogger, err := zap.NewProduction()
+	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatalf("Can't initialize zap logger: %v", err)
 	}
-	sugar := zapLogger.Sugar()
+	sugar := logger.Sugar()
+
+	// Check if database initialization is requested via flag or environment variable
+	var initDB bool
+	flag.BoolVar(&initDB, "init-db", false, "Initialize the database with test data")
+	flag.Parse()
+
+	// Check environment variable if flag is not set
+	if !initDB && os.Getenv("INIT_DB") == "true" {
+		initDB = true
+	}
 
 	config := loadConfig()
 
@@ -66,32 +71,25 @@ func main() {
 
 	handler.RegisterHandlers(server, mongoDatabase, sugar)
 
-	var gormLogLevel gormLogger.LogLevel
-	if os.Getenv("CCF_DB_DEBUG") == "1" {
-		gormLogLevel = gormLogger.Info
-	} else {
-		gormLogLevel = gormLogger.Warn
-	}
-
-	//TODO: farm this out to specific function/file
-	var db *gorm.DB
-	switch config.DBDriver {
-	case "postgres":
-		db, err = gorm.Open(postgres.Open(config.DBConnectionString), &gorm.Config{
-			DisableForeignKeyConstraintWhenMigrating: true,
-			Logger: logging.NewZapGormLogger(sugar, gormLogLevel),
-		})
-	default:
-		panic("unsupported DB driver: " + config.DBDriver)
-	}
+	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
 	if err != nil {
-		sugar.Fatal("Failed to open database", "err", err)
+		panic("failed to connect database")
 	}
 
-	err = service.MigrateUp(db)
+	err = migrateDB(db)
 	if err != nil {
 		sugar.Fatal("Failed to migrate database", "err", err)
 	}
+
+	// Initialize database with test data if requested
+	if initDB {
+		sugar.Info("Initializing database with test data...")
+		if err := InitLocalDB(); err != nil {
+			sugar.Fatal("Failed to initialize database with test data", "err", err)
+		}
+		sugar.Info("Database initialization completed successfully")
+	}
+
 	oscal.RegisterHandlers(server, sugar, db)
 
 	server.PrintRoutes()
@@ -114,6 +112,54 @@ func connectMongo(ctx context.Context, clientOptions *options.ClientOptions, dat
 	return client.Database(databaseName), nil
 }
 
+func migrateDB(db *gorm.DB) error {
+	err := db.AutoMigrate(
+		&relational.Location{},
+		&relational.Party{},
+		&relational.BackMatterResource{},
+		&relational.BackMatter{},
+		&relational.Role{},
+		&relational.Revision{},
+		&relational.Control{},
+		&relational.Group{},
+		&relational.ResponsibleParty{},
+		&relational.Action{},
+		&relational.Metadata{},
+		&relational.Catalog{},
+		&relational.ControlStatementImplementation{},
+		&relational.ImplementedRequirementControlImplementation{},
+		&relational.ControlImplementationSet{},
+		&relational.ComponentDefinition{},
+		&relational.Capability{},
+		&relational.DefinedComponent{},
+		&relational.Diagram{},
+		&relational.DataFlow{},
+		&relational.NetworkArchitecture{},
+		&relational.AuthorizationBoundary{},
+		&relational.InformationType{},
+		&relational.SystemInformation{},
+		&relational.SystemCharacteristics{},
+		&relational.AuthorizedPrivilege{},
+		&relational.SystemUser{},
+		&relational.LeveragedAuthorization{},
+		&relational.SystemComponent{},
+		&relational.ImplementedComponent{},
+		&relational.InventoryItem{},
+		&relational.SystemImplementation{},
+		&relational.ControlImplementationResponsibility{},
+		&relational.ProvidedControlImplementation{},
+		&relational.SatisfiedControlImplementationResponsibility{},
+		&relational.Export{},
+		&relational.InheritedControlImplementation{},
+		&relational.ByComponent{},
+		&relational.Statement{},
+		&relational.ImplementedRequirement{},
+		&relational.ControlImplementation{},
+		&relational.SystemSecurityPlan{},
+	)
+	return err
+}
+
 func loadConfig() (config Config) {
 	if err := godotenv.Load(".env"); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
@@ -132,30 +178,10 @@ func loadConfig() (config Config) {
 		port = fmt.Sprintf(":%s", appPort)
 	}
 
-	dbDriver := os.Getenv("CCF_DB_DRIVER")
-	if dbDriver == "" {
-		dbDriver = DefaultDBDriver
-	}
-
-	dbConnectionString, ok := os.LookupEnv("CCF_DB_CONNECTION")
-	if !ok {
-		switch dbDriver {
-		case "postgres":
-			dbConnectionString = "host=db user=postgres password=postgres dbname=ccf port=5432 sslmode=disable"
-		default:
-			log.Fatalf("Unrecognised db driver: %s", dbDriver)
-		}
-	}
-
-	log.Printf("dbConnectionString: %s", dbConnectionString)
-
 	config = Config{
-		MongoURI:           mongoURI,
-		AppPort:            port,
-		DBDriver:           dbDriver,
-		DBConnectionString: dbConnectionString,
+		MongoURI: mongoURI,
+		AppPort:  port,
 	}
-
 	return config
 }
 

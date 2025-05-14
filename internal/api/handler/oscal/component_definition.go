@@ -1,6 +1,7 @@
 package oscal
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/compliance-framework/configuration-service/internal/api"
@@ -28,11 +29,9 @@ func NewComponentDefinitionHandler(sugar *zap.SugaredLogger, db *gorm.DB) *Compo
 }
 
 func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
-	api.GET("/api/oscal/component-definitions", h.List)
-	// api.GET("/component-definitions/:id", h.Get)
-	// api.POST("/component-definitions", h.Create)
-	// api.PUT("/component-definitions/:id", h.Update)
-	// api.DELETE("/component-definitions/:id", h.Delete)
+	api.GET("", h.List)
+	// api.POST("", h.Create)
+	api.GET("/:id", h.Get)
 }
 
 // List godoc
@@ -66,4 +65,45 @@ func (h *ComponentDefinitionHandler) List(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ComponentDefinition]{Data: oscalComponentDefinitions})
+}
+
+// Get godoc
+//
+//	@Summary		Get a component definition
+//	@Description	Retrieves a single component definition by its unique ID.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id	path		string	true	"Component Definition ID"
+//	@Success		200	{object}	handler.GenericDataResponse[oscal.Get.responseComponentDefinition]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/component-definitions/{id} [get]
+func (h *ComponentDefinitionHandler) Get(ctx echo.Context) error {
+	type responseComponentDefinition struct {
+		UUID     uuid.UUID                 `json:"uuid"`
+		Metadata oscalTypes_1_1_3.Metadata `json:"metadata"`
+	}
+
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var componentDefinition relational.ComponentDefinition
+	if err := h.db.
+		Preload("Metadata").
+		Preload("Metadata.Revisions").
+		First(&componentDefinition, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.sugar.Warnw("Component definition not found", "id", idParam)
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.ComponentDefinition]{Data: *componentDefinition.MarshalOscal()})
 }

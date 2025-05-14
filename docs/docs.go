@@ -2094,52 +2094,20 @@ const docTemplate = `{
                 }
             }
         },
-        "/oscal/parties": {
+        "/oscal/component-definitions/{id}": {
             "get": {
-                "description": "Retrieves all parties.",
+                "description": "Retrieves a single component definition by its unique ID.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Oscal"
                 ],
-                "summary": "List parties",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_Party"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/parties/{id}": {
-            "get": {
-                "description": "Retrieves a single Party by its unique ID.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "Get a Party",
+                "summary": "Get a component definition",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Party ID",
+                        "description": "Component Definition ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -2149,7 +2117,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Party"
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscal_Get_responseComponentDefinition"
                         }
                     },
                     "400": {
@@ -2173,147 +2141,17 @@ const docTemplate = `{
                 }
             }
         },
-        "/oscal/profiles": {
+        "/oscal/ssp/{id}/back-matter": {
             "get": {
-                "description": "Retrieves all OSCAL profiles",
-                "produces": [
-                    "application/json"
-                ],
+                "description": "Retrieves the back-matter for a given System Security Plan by the specified param ID in the path",
                 "tags": [
-                    "Oscal",
-                    "Profiles"
+                    "Oscal System Security Plan"
                 ],
-                "summary": "List Profiles",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-oscal_ProfileHandler"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Creates a new OSCAL Profile.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal",
-                    "Profiles"
-                ],
-                "summary": "Create a new OSCAL Profile",
-                "parameters": [
-                    {
-                        "description": "Profile object",
-                        "name": "profile",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/oscalTypes_1_1_3.Profile"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Profile"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/profiles/{id}": {
-            "get": {
-                "description": "Get an OSCAL profile with the uuid provided",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal",
-                    "Profiles"
-                ],
-                "summary": "Get Profile",
+                "summary": "Get back-matter for a System Security Plan",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Profile ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscal_ProfileHandler"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/profiles/{id}/back-matter": {
-            "get": {
-                "description": "Get the BackMatter for a specific profile",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal",
-                    "Profiles"
-                ],
-                "summary": "Get Backmatter",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Profile ID",
+                        "description": "System Security Plan ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -2324,1165 +2162,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_BackMatter"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/profiles/{id}/full": {
-            "get": {
-                "description": "Retrieves the full OSCAL Profile, including all nested content.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal",
-                    "Profiles"
-                ],
-                "summary": "Get full Profile",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Profile ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Profile"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/profiles/{id}/imports": {
-            "get": {
-                "description": "List imports for a specific profile",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal",
-                    "Profiles"
-                ],
-                "summary": "List Imports",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Profile ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_Import"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/profiles/{id}/merge": {
-            "get": {
-                "description": "Retrieves the merge section for a specific profile.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal",
-                    "Profiles"
-                ],
-                "summary": "Get merge section",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Profile ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Merge"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/profiles/{id}/modify": {
-            "get": {
-                "description": "Retrieves the modify section for a specific profile.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal",
-                    "Profiles"
-                ],
-                "summary": "Get modify section",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Profile ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Modify"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/profiles/{id}/resolve": {
-            "post": {
-                "description": "Resolves a Profiled identified by the \"profile ID\" param and stores a new catalog in the database",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal",
-                    "Profiles"
-                ],
-                "summary": "Resolves a Profile as a stored catalog",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Profile ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscal_ProfileHandler"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/roles": {
-            "get": {
-                "description": "Retrieves all roles.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "List roles",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_Role"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/roles/{id}": {
-            "get": {
-                "description": "Retrieves a single Role by its unique ID.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "Get a Role",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Party ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Role"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/system-security-plans": {
-            "get": {
-                "description": "Retrieves all System Security Plans.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "List System Security Plans",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_SystemSecurityPlan"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Creates a System Security Plan from input.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "Create a System Security Plan",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_SystemSecurityPlan"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/system-security-plans/{id}": {
-            "get": {
-                "description": "Retrieves a single System Security Plan by its unique ID.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "Get a System Security Plan",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "System Security Plan ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_SystemSecurityPlan"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/system-security-plans/{id}/control-implementation": {
-            "get": {
-                "description": "Retrieves the Control Implementation for a given System Security Plan.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "Get Control Implementation",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "System Security Plan ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_ControlImplementation"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/system-security-plans/{id}/system-characteristics": {
-            "get": {
-                "description": "Retrieves the System Characteristics for a given System Security Plan.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "Get System Characteristics",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "System Security Plan ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_SystemCharacteristics"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "description": "Updates the System Characteristics for a given System Security Plan.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "Update System Characteristics",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "System Security Plan ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated System Characteristics object",
-                        "name": "characteristics",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/oscalTypes_1_1_3.SystemCharacteristics"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_SystemCharacteristics"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/system-security-plans/{id}/system-characteristics/authorization-boundary": {
-            "get": {
-                "description": "Retrieves the Authorization Boundary for a given System Security Plan.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "Get Authorization Boundary",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "System Security Plan ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_AuthorizationBoundary"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/system-security-plans/{id}/system-characteristics/authorization-boundary/diagrams/{diagram}": {
-            "put": {
-                "description": "Updates a specific Diagram under the Authorization Boundary of a System Security Plan.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "Update an Authorization Boundary Diagram",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "System Security Plan ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Diagram ID",
-                        "name": "diagram",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated Diagram object",
-                        "name": "diagram",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/oscalTypes_1_1_3.Diagram"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Diagram"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/system-security-plans/{id}/system-characteristics/data-flow": {
-            "get": {
-                "description": "Retrieves the Data Flow for a given System Security Plan.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "Get Data Flow",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "System Security Plan ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_DataFlow"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/system-security-plans/{id}/system-characteristics/data-flow/diagrams/{diagram}": {
-            "put": {
-                "description": "Updates a specific Diagram under the Data Flow of a System Security Plan.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "Update a Data Flow Diagram",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "System Security Plan ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Diagram ID",
-                        "name": "diagram",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated Diagram object",
-                        "name": "diagram",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/oscalTypes_1_1_3.Diagram"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Diagram"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/system-security-plans/{id}/system-characteristics/network-architecture": {
-            "get": {
-                "description": "Retrieves the Network Architecture for a given System Security Plan.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "Get Network Architecture",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "System Security Plan ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_NetworkArchitecture"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/system-security-plans/{id}/system-characteristics/network-architecture/diagrams/{diagram}": {
-            "put": {
-                "description": "Updates a specific Diagram under the Network Architecture of a System Security Plan.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "Update a Network Architecture Diagram",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "System Security Plan ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Diagram ID",
-                        "name": "diagram",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated Diagram object",
-                        "name": "diagram",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/oscalTypes_1_1_3.Diagram"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Diagram"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/system-security-plans/{id}/system-implementation": {
-            "get": {
-                "description": "Retrieves the System Implementation for a given System Security Plan.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "Get System Implementation",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "System Security Plan ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_SystemImplementation"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/system-security-plans/{id}/system-implementation/components": {
-            "get": {
-                "description": "Retrieves components in the System Implementation for a given System Security Plan.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "List System Implementation Components",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "System Security Plan ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_SystemComponent"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/system-security-plans/{id}/system-implementation/inventory-items": {
-            "get": {
-                "description": "Retrieves inventory items in the System Implementation for a given System Security Plan.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "List System Implementation Inventory Items",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "System Security Plan ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_InventoryItem"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/system-security-plans/{id}/system-implementation/leveraged-authorizations": {
-            "get": {
-                "description": "Retrieves leveraged authorizations in the System Implementation for a given System Security Plan.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "List System Implementation Leveraged Authorizations",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "System Security Plan ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_LeveragedAuthorization"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/system-security-plans/{id}/system-implementation/users": {
-            "get": {
-                "description": "Retrieves users in the System Implementation for a given System Security Plan.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "List System Implementation Users",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "System Security Plan ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_SystemUser"
                         }
                     },
                     "400": {
@@ -3710,98 +2389,14 @@ const docTemplate = `{
                 }
             }
         },
-        "handler.GenericDataListResponse-oscalTypes_1_1_3_Import": {
+        "handler.GenericDataListResponse-oscal_List_response": {
             "type": "object",
             "properties": {
                 "data": {
                     "description": "Items from the list response",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Import"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataListResponse-oscalTypes_1_1_3_InventoryItem": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.InventoryItem"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataListResponse-oscalTypes_1_1_3_LeveragedAuthorization": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.LeveragedAuthorization"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataListResponse-oscalTypes_1_1_3_Party": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Party"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataListResponse-oscalTypes_1_1_3_Role": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Role"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataListResponse-oscalTypes_1_1_3_SystemComponent": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.SystemComponent"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataListResponse-oscalTypes_1_1_3_SystemSecurityPlan": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.SystemSecurityPlan"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataListResponse-oscalTypes_1_1_3_SystemUser": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.SystemUser"
+                        "$ref": "#/definitions/oscal.List.response"
                     }
                 }
             }
@@ -3826,18 +2421,6 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/oscal.List.responseComponentDefinition"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataListResponse-oscal_ProfileHandler": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscal.ProfileHandler"
                     }
                 }
             }
@@ -3986,19 +2569,6 @@ const docTemplate = `{
                 }
             }
         },
-        "handler.GenericDataResponse-oscalTypes_1_1_3_AuthorizationBoundary": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/oscalTypes_1_1_3.AuthorizationBoundary"
-                        }
-                    ]
-                }
-            }
-        },
         "handler.GenericDataResponse-oscalTypes_1_1_3_BackMatter": {
             "type": "object",
             "properties": {
@@ -4038,45 +2608,6 @@ const docTemplate = `{
                 }
             }
         },
-        "handler.GenericDataResponse-oscalTypes_1_1_3_ControlImplementation": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/oscalTypes_1_1_3.ControlImplementation"
-                        }
-                    ]
-                }
-            }
-        },
-        "handler.GenericDataResponse-oscalTypes_1_1_3_DataFlow": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/oscalTypes_1_1_3.DataFlow"
-                        }
-                    ]
-                }
-            }
-        },
-        "handler.GenericDataResponse-oscalTypes_1_1_3_Diagram": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/oscalTypes_1_1_3.Diagram"
-                        }
-                    ]
-                }
-            }
-        },
         "handler.GenericDataResponse-oscalTypes_1_1_3_Group": {
             "type": "object",
             "properties": {
@@ -4085,84 +2616,6 @@ const docTemplate = `{
                     "allOf": [
                         {
                             "$ref": "#/definitions/oscalTypes_1_1_3.Group"
-                        }
-                    ]
-                }
-            }
-        },
-        "handler.GenericDataResponse-oscalTypes_1_1_3_Merge": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/oscalTypes_1_1_3.Merge"
-                        }
-                    ]
-                }
-            }
-        },
-        "handler.GenericDataResponse-oscalTypes_1_1_3_Modify": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/oscalTypes_1_1_3.Modify"
-                        }
-                    ]
-                }
-            }
-        },
-        "handler.GenericDataResponse-oscalTypes_1_1_3_NetworkArchitecture": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/oscalTypes_1_1_3.NetworkArchitecture"
-                        }
-                    ]
-                }
-            }
-        },
-        "handler.GenericDataResponse-oscalTypes_1_1_3_Party": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/oscalTypes_1_1_3.Party"
-                        }
-                    ]
-                }
-            }
-        },
-        "handler.GenericDataResponse-oscalTypes_1_1_3_Profile": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/oscalTypes_1_1_3.Profile"
-                        }
-                    ]
-                }
-            }
-        },
-        "handler.GenericDataResponse-oscalTypes_1_1_3_Role": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/oscalTypes_1_1_3.Role"
                         }
                     ]
                 }
@@ -4181,27 +2634,14 @@ const docTemplate = `{
                 }
             }
         },
-        "handler.GenericDataResponse-oscalTypes_1_1_3_SystemImplementation": {
+        "handler.GenericDataResponse-oscal_Get_response": {
             "type": "object",
             "properties": {
                 "data": {
                     "description": "Items from the list response",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/oscalTypes_1_1_3.SystemImplementation"
-                        }
-                    ]
-                }
-            }
-        },
-        "handler.GenericDataResponse-oscalTypes_1_1_3_SystemSecurityPlan": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/oscalTypes_1_1_3.SystemSecurityPlan"
+                            "$ref": "#/definitions/oscal.Get.response"
                         }
                     ]
                 }
@@ -4220,14 +2660,14 @@ const docTemplate = `{
                 }
             }
         },
-        "handler.GenericDataResponse-oscal_ProfileHandler": {
+        "handler.GenericDataResponse-oscal_Get_responseComponentDefinition": {
             "type": "object",
             "properties": {
                 "data": {
                     "description": "Items from the list response",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/oscal.ProfileHandler"
+                            "$ref": "#/definitions/oscal.Get.responseComponentDefinition"
                         }
                     ]
                 }
@@ -4363,7 +2803,40 @@ const docTemplate = `{
                 }
             }
         },
+        "oscal.Get.response": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "$ref": "#/definitions/oscalTypes_1_1_3.Metadata"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
         "oscal.Get.responseCatalog": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "$ref": "#/definitions/oscalTypes_1_1_3.Metadata"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscal.Get.responseComponentDefinition": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "$ref": "#/definitions/oscalTypes_1_1_3.Metadata"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscal.List.response": {
             "type": "object",
             "properties": {
                 "metadata": {
@@ -4395,9 +2868,6 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
-        },
-        "oscal.ProfileHandler": {
-            "type": "object"
         },
         "oscalTypes_1_1_3.Action": {
             "type": "object",
@@ -4437,44 +2907,6 @@ const docTemplate = `{
                 }
             }
         },
-        "oscalTypes_1_1_3.Addition": {
-            "type": "object",
-            "properties": {
-                "by-id": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "params": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Parameter"
-                    }
-                },
-                "parts": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Part"
-                    }
-                },
-                "position": {
-                    "type": "string"
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
         "oscalTypes_1_1_3.Address": {
             "type": "object",
             "properties": {
@@ -4498,26 +2930,6 @@ const docTemplate = `{
                 },
                 "type": {
                     "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.Alteration": {
-            "type": "object",
-            "properties": {
-                "adds": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Addition"
-                    }
-                },
-                "control-id": {
-                    "type": "string"
-                },
-                "removes": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Removal"
-                    }
                 }
             }
         },
@@ -4550,23 +2962,6 @@ const docTemplate = `{
                 }
             }
         },
-        "oscalTypes_1_1_3.AuthorizedPrivilege": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "functions-performed": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
         "oscalTypes_1_1_3.BackMatter": {
             "type": "object",
             "properties": {
@@ -4588,65 +2983,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "value": {
-                    "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.ByComponent": {
-            "type": "object",
-            "properties": {
-                "component-uuid": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "export": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.Export"
-                },
-                "implementation-status": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.ImplementationStatus"
-                },
-                "inherited": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.InheritedControlImplementation"
-                    }
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "responsible-roles": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.ResponsibleRole"
-                    }
-                },
-                "satisfied": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.SatisfiedControlImplementationResponsibility"
-                    }
-                },
-                "set-parameters": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.SetParameter"
-                    }
-                },
-                "uuid": {
                     "type": "string"
                 }
             }
@@ -4703,14 +3039,6 @@ const docTemplate = `{
                 }
             }
         },
-        "oscalTypes_1_1_3.CombinationRule": {
-            "type": "object",
-            "properties": {
-                "method": {
-                    "type": "string"
-                }
-            }
-        },
         "oscalTypes_1_1_3.ConstraintTest": {
             "type": "object",
             "properties": {
@@ -4736,128 +3064,6 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "params": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Parameter"
-                    }
-                },
-                "parts": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Part"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.ControlImplementation": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "implemented-requirements": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.ImplementedRequirement"
-                    }
-                },
-                "set-parameters": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.SetParameter"
-                    }
-                }
-            }
-        },
-        "oscalTypes_1_1_3.ControlImplementationResponsibility": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "provided-uuid": {
-                    "type": "string"
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "responsible-roles": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.ResponsibleRole"
-                    }
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.CustomGrouping": {
-            "type": "object",
-            "properties": {
-                "groups": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.CustomGroupingGroup"
-                    }
-                },
-                "insert-controls": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.InsertControls"
-                    }
-                }
-            }
-        },
-        "oscalTypes_1_1_3.CustomGroupingGroup": {
-            "type": "object",
-            "properties": {
-                "class": {
-                    "type": "string"
-                },
-                "groups": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.CustomGroupingGroup"
-                    }
-                },
-                "id": {
-                    "type": "string"
-                },
-                "insert-controls": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.InsertControls"
-                    }
                 },
                 "links": {
                     "type": "array",
@@ -4957,45 +3163,6 @@ const docTemplate = `{
                 }
             }
         },
-        "oscalTypes_1_1_3.Export": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "provided": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.ProvidedControlImplementation"
-                    }
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "responsibilities": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.ControlImplementationResponsibility"
-                    }
-                }
-            }
-        },
-        "oscalTypes_1_1_3.FlatWithoutGrouping": {
-            "type": "object",
-            "additionalProperties": true
-        },
         "oscalTypes_1_1_3.Group": {
             "type": "object",
             "properties": {
@@ -5083,134 +3250,6 @@ const docTemplate = `{
                 }
             }
         },
-        "oscalTypes_1_1_3.ImplementationStatus": {
-            "type": "object",
-            "properties": {
-                "remarks": {
-                    "type": "string"
-                },
-                "state": {
-                    "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.ImplementedComponent": {
-            "type": "object",
-            "properties": {
-                "component-uuid": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "responsible-parties": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.ResponsibleParty"
-                    }
-                }
-            }
-        },
-        "oscalTypes_1_1_3.ImplementedRequirement": {
-            "type": "object",
-            "properties": {
-                "by-components": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.ByComponent"
-                    }
-                },
-                "control-id": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "responsible-roles": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.ResponsibleRole"
-                    }
-                },
-                "set-parameters": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.SetParameter"
-                    }
-                },
-                "statements": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Statement"
-                    }
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.Import": {
-            "type": "object",
-            "properties": {
-                "exclude-controls": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.SelectControlById"
-                    }
-                },
-                "href": {
-                    "type": "string"
-                },
-                "include-all": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.IncludeAll"
-                },
-                "include-controls": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.SelectControlById"
-                    }
-                }
-            }
-        },
-        "oscalTypes_1_1_3.ImportProfile": {
-            "type": "object",
-            "properties": {
-                "href": {
-                    "type": "string"
-                },
-                "remarks": {
-                    "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.IncludeAll": {
-            "type": "object",
-            "additionalProperties": true
-        },
         "oscalTypes_1_1_3.InformationType": {
             "type": "object",
             "properties": {
@@ -5262,131 +3301,6 @@ const docTemplate = `{
                     }
                 },
                 "system": {
-                    "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.InheritedControlImplementation": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "provided-uuid": {
-                    "type": "string"
-                },
-                "responsible-roles": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.ResponsibleRole"
-                    }
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.InsertControls": {
-            "type": "object",
-            "properties": {
-                "exclude-controls": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.SelectControlById"
-                    }
-                },
-                "include-all": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.IncludeAll"
-                },
-                "include-controls": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.SelectControlById"
-                    }
-                },
-                "order": {
-                    "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.InventoryItem": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "implemented-components": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.ImplementedComponent"
-                    }
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "responsible-parties": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.ResponsibleParty"
-                    }
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.LeveragedAuthorization": {
-            "type": "object",
-            "properties": {
-                "date-authorized": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "party-uuid": {
-                    "type": "string"
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "uuid": {
                     "type": "string"
                 }
             }
@@ -5455,31 +3369,6 @@ const docTemplate = `{
                 },
                 "uuid": {
                     "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.Matching": {
-            "type": "object",
-            "properties": {
-                "pattern": {
-                    "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.Merge": {
-            "type": "object",
-            "properties": {
-                "as-is": {
-                    "type": "boolean"
-                },
-                "combine": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.CombinationRule"
-                },
-                "custom": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.CustomGrouping"
-                },
-                "flat": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.FlatWithoutGrouping"
                 }
             }
         },
@@ -5557,23 +3446,6 @@ const docTemplate = `{
                 },
                 "version": {
                     "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.Modify": {
-            "type": "object",
-            "properties": {
-                "alters": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Alteration"
-                    }
-                },
-                "set-parameters": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.ParameterSetting"
-                    }
                 }
             }
         },
@@ -5698,59 +3570,6 @@ const docTemplate = `{
                 }
             }
         },
-        "oscalTypes_1_1_3.ParameterSetting": {
-            "type": "object",
-            "properties": {
-                "class": {
-                    "type": "string"
-                },
-                "constraints": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.ParameterConstraint"
-                    }
-                },
-                "depends-on": {
-                    "type": "string"
-                },
-                "guidelines": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.ParameterGuideline"
-                    }
-                },
-                "label": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "param-id": {
-                    "type": "string"
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "select": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.ParameterSelection"
-                },
-                "usage": {
-                    "type": "string"
-                },
-                "values": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
         "oscalTypes_1_1_3.Part": {
             "type": "object",
             "properties": {
@@ -5871,46 +3690,6 @@ const docTemplate = `{
                 }
             }
         },
-        "oscalTypes_1_1_3.PortRange": {
-            "type": "object",
-            "properties": {
-                "end": {
-                    "type": "integer"
-                },
-                "start": {
-                    "type": "integer"
-                },
-                "transport": {
-                    "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.Profile": {
-            "type": "object",
-            "properties": {
-                "back-matter": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.BackMatter"
-                },
-                "imports": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Import"
-                    }
-                },
-                "merge": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.Merge"
-                },
-                "metadata": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.Metadata"
-                },
-                "modify": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.Modify"
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
         "oscalTypes_1_1_3.Property": {
             "type": "object",
             "properties": {
@@ -5933,78 +3712,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "value": {
-                    "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.Protocol": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "port-ranges": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.PortRange"
-                    }
-                },
-                "title": {
-                    "type": "string"
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.ProvidedControlImplementation": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "responsible-roles": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.ResponsibleRole"
-                    }
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.Removal": {
-            "type": "object",
-            "properties": {
-                "by-class": {
-                    "type": "string"
-                },
-                "by-id": {
-                    "type": "string"
-                },
-                "by-item-name": {
-                    "type": "string"
-                },
-                "by-name": {
-                    "type": "string"
-                },
-                "by-ns": {
                     "type": "string"
                 }
             }
@@ -6068,35 +3775,6 @@ const docTemplate = `{
             }
         },
         "oscalTypes_1_1_3.ResponsibleParty": {
-            "type": "object",
-            "properties": {
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "party-uuids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "role-id": {
-                    "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.ResponsibleRole": {
             "type": "object",
             "properties": {
                 "links": {
@@ -6192,41 +3870,6 @@ const docTemplate = `{
                 }
             }
         },
-        "oscalTypes_1_1_3.SatisfiedControlImplementationResponsibility": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "responsibility-uuid": {
-                    "type": "string"
-                },
-                "responsible-roles": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.ResponsibleRole"
-                    }
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
         "oscalTypes_1_1_3.SecurityImpactLevel": {
             "type": "object",
             "properties": {
@@ -6237,81 +3880,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "security-objective-integrity": {
-                    "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.SelectControlById": {
-            "type": "object",
-            "properties": {
-                "matching": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Matching"
-                    }
-                },
-                "with-child-controls": {
-                    "type": "string"
-                },
-                "with-ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "oscalTypes_1_1_3.SetParameter": {
-            "type": "object",
-            "properties": {
-                "param-id": {
-                    "type": "string"
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "values": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "oscalTypes_1_1_3.Statement": {
-            "type": "object",
-            "properties": {
-                "by-components": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.ByComponent"
-                    }
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "responsible-roles": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.ResponsibleRole"
-                    }
-                },
-                "statement-id": {
-                    "type": "string"
-                },
-                "uuid": {
                     "type": "string"
                 }
             }
@@ -6392,67 +3960,6 @@ const docTemplate = `{
                 }
             }
         },
-        "oscalTypes_1_1_3.SystemComponent": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "protocols": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Protocol"
-                    }
-                },
-                "purpose": {
-                    "type": "string"
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "responsible-roles": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.ResponsibleRole"
-                    }
-                },
-                "status": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.SystemComponentStatus"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.SystemComponentStatus": {
-            "type": "object",
-            "properties": {
-                "remarks": {
-                    "type": "string"
-                },
-                "state": {
-                    "type": "string"
-                }
-            }
-        },
         "oscalTypes_1_1_3.SystemId": {
             "type": "object",
             "properties": {
@@ -6461,50 +3968,6 @@ const docTemplate = `{
                 },
                 "identifier-type": {
                     "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.SystemImplementation": {
-            "type": "object",
-            "properties": {
-                "components": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.SystemComponent"
-                    }
-                },
-                "inventory-items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.InventoryItem"
-                    }
-                },
-                "leveraged-authorizations": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.LeveragedAuthorization"
-                    }
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "users": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.SystemUser"
-                    }
                 }
             }
         },
@@ -6528,76 +3991,6 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/oscalTypes_1_1_3.Property"
                     }
-                }
-            }
-        },
-        "oscalTypes_1_1_3.SystemSecurityPlan": {
-            "type": "object",
-            "properties": {
-                "back-matter": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.BackMatter"
-                },
-                "control-implementation": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.ControlImplementation"
-                },
-                "import-profile": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.ImportProfile"
-                },
-                "metadata": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.Metadata"
-                },
-                "system-characteristics": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.SystemCharacteristics"
-                },
-                "system-implementation": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.SystemImplementation"
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
-        "oscalTypes_1_1_3.SystemUser": {
-            "type": "object",
-            "properties": {
-                "authorized-privileges": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.AuthorizedPrivilege"
-                    }
-                },
-                "description": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "role-ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "short-name": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "uuid": {
-                    "type": "string"
                 }
             }
         },
