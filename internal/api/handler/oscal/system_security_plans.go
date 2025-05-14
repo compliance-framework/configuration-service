@@ -31,10 +31,18 @@ func (h *SystemSecurityPlanHandler) Register(api *echo.Group) {
 	api.GET("", h.List)
 	api.GET("/:id", h.Get)
 	api.GET("/:id/system-characteristics", h.GetCharacteristics)
-	api.GET("/:id/back-matter", h.GetBackMatter)
 }
 
-//	@Success	200	{object}	handler.GenericDataListResponse[oscal.List.response]
+// List godoc
+//
+// @Summary List System Security Plans
+// @Description Retrieves all System Security Plans.
+// @Tags Oscal
+// @Produce json
+// @Success 200 {object} handler.GenericDataListResponse[oscalTypes_1_1_3.SystemSecurityPlan]
+// @Failure 400 {object} api.Error
+// @Failure 500 {object} api.Error
+// @Router /oscal/system-security-plans [get]
 func (h *SystemSecurityPlanHandler) List(ctx echo.Context) error {
 	type response struct {
 		UUID     uuid.UUID                 `json:"uuid"`
@@ -59,7 +67,18 @@ func (h *SystemSecurityPlanHandler) List(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.SystemSecurityPlan]{Data: oscalSSP})
 }
 
-//	@Success	200	{object}	handler.GenericDataResponse[oscal.Get.response]
+// Get godoc
+//
+// @Summary Get a System Security Plan
+// @Description Retrieves a single System Security Plan by its unique ID.
+// @Tags Oscal
+// @Produce json
+// @Param id path string true "System Security Plan ID"
+// @Success 200 {object} handler.GenericDataResponse[*oscalTypes_1_1_3.SystemSecurityPlan]
+// @Failure 400 {object} api.Error
+// @Failure 404 {object} api.Error
+// @Failure 500 {object} api.Error
+// @Router /oscal/system-security-plans/{id} [get]
 func (h *SystemSecurityPlanHandler) Get(ctx echo.Context) error {
 	type response struct {
 		UUID     uuid.UUID                 `json:"uuid"`
@@ -88,7 +107,18 @@ func (h *SystemSecurityPlanHandler) Get(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[*oscalTypes_1_1_3.SystemSecurityPlan]{Data: ssp.MarshalOscal()})
 }
 
-//	@Success	200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.SystemCharacteristics]
+// GetCharacteristics godoc
+//
+// @Summary Get System Characteristics
+// @Description Retrieves the System Characteristics for a given System Security Plan.
+// @Tags Oscal
+// @Produce json
+// @Param id path string true "System Security Plan ID"
+// @Success 200 {object} handler.GenericDataResponse[oscalTypes_1_1_3.SystemCharacteristics]
+// @Failure 400 {object} api.Error
+// @Failure 404 {object} api.Error
+// @Failure 500 {object} api.Error
+// @Router /oscal/system-security-plans/{id}/system-characteristics [get]
 func (h *SystemSecurityPlanHandler) GetCharacteristics(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -99,7 +129,6 @@ func (h *SystemSecurityPlanHandler) GetCharacteristics(ctx echo.Context) error {
 
 	var ssp relational.SystemSecurityPlan
 	if err := h.db.
-		Preload("Metadata").
 		Preload("SystemCharacteristics").
 		First(&ssp, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -110,41 +139,4 @@ func (h *SystemSecurityPlanHandler) GetCharacteristics(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.SystemCharacteristics]{Data: ssp.MarshalOscal().SystemCharacteristics})
-}
-
-// GetBackMatter godoc
-//
-//	@Summary		Get back-matter for a System Security Plan
-//	@Description	Retrieves the back-matter for a given System Security Plan by the specified param ID in the path
-//	@Tags			Oscal System Security Plan
-//	@Product		json
-//	@Param			id							path		string	true	"System Security Plan ID"
-//	@Success		200							{object}	handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]
-//	@Failure		400							{object}	api.Error
-//	@Failure		404							{object}	api.Error
-//	@Failure		500							{object}	api.Error
-//	@Router			/oscal/ssp/{id}/back-matter	[get]
-func (h *SystemSecurityPlanHandler) GetBackMatter(ctx echo.Context) error {
-	idParam := ctx.Param("id")
-	id, err := uuid.Parse(idParam)
-	if err != nil {
-		h.sugar.Warnw("Invalid SSP id", "id", idParam, "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-	}
-
-	var ssp relational.SystemSecurityPlan
-	if err := h.db.
-		Preload("BackMatter").
-		Preload("BackMatter.Resources").
-		First(&ssp, "id = ?", id).Error; err != nil {
-
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(err))
-		}
-
-		h.sugar.Warnw("Failed to load SSP", "id", id, "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-	}
-
-	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[*oscalTypes_1_1_3.BackMatter]{Data: ssp.BackMatter.MarshalOscal()})
 }
