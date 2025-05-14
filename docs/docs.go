@@ -2094,6 +2094,53 @@ const docTemplate = `{
                 }
             }
         },
+        "/oscal/component-definitions/{id}": {
+            "get": {
+                "description": "Retrieves a single component definition by its unique ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Oscal"
+                ],
+                "summary": "Get a component definition",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Component Definition ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscal_Get_responseComponentDefinition"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/oscal/ssp/{id}/back-matter": {
             "get": {
                 "description": "Retrieves the back-matter for a given System Security Plan by the specified param ID in the path",
@@ -2613,6 +2660,19 @@ const docTemplate = `{
                 }
             }
         },
+        "handler.GenericDataResponse-oscal_Get_responseComponentDefinition": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Items from the list response",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/oscal.Get.responseComponentDefinition"
+                        }
+                    ]
+                }
+            }
+        },
         "handler.GenericDataResponse-service_Catalog": {
             "type": "object",
             "properties": {
@@ -2755,6 +2815,17 @@ const docTemplate = `{
             }
         },
         "oscal.Get.responseCatalog": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "$ref": "#/definitions/oscalTypes_1_1_3.Metadata"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscal.Get.responseComponentDefinition": {
             "type": "object",
             "properties": {
                 "metadata": {

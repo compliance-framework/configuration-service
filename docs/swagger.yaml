@@ -158,6 +158,13 @@ definitions:
         - $ref: '#/definitions/oscal.Get.responseCatalog'
         description: Items from the list response
     type: object
+  handler.GenericDataResponse-oscal_Get_responseComponentDefinition:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/oscal.Get.responseComponentDefinition'
+        description: Items from the list response
+    type: object
   handler.GenericDataResponse-oscalTypes_1_1_3_BackMatter:
     properties:
       data:
@@ -281,6 +288,13 @@ definitions:
         type: string
     type: object
   oscal.Get.responseCatalog:
+    properties:
+      metadata:
+        $ref: '#/definitions/oscalTypes_1_1_3.Metadata'
+      uuid:
+        type: string
+    type: object
+  oscal.Get.responseComponentDefinition:
     properties:
       metadata:
         $ref: '#/definitions/oscalTypes_1_1_3.Metadata'
@@ -2907,6 +2921,37 @@ paths:
           schema:
             $ref: '#/definitions/api.Error'
       summary: List component definitions
+      tags:
+      - Oscal
+  /oscal/component-definitions/{id}:
+    get:
+      description: Retrieves a single component definition by its unique ID.
+      parameters:
+      - description: Component Definition ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscal_Get_responseComponentDefinition'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Get a component definition
       tags:
       - Oscal
   /oscal/ssp/{id}/back-matter:
