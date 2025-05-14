@@ -164,7 +164,6 @@ func (sc *SystemCharacteristics) UnmarshalOscal(osc oscalTypes_1_1_3.SystemChara
 
 	if osc.DateAuthorized != "" {
 		if len(osc.DateAuthorized) > 0 {
-			// Todo: Assume that a timezone is attached as per the spec - https://pages.nist.gov/metaschema/specification/datatypes/#date
 			parsed, err := time.Parse(time.DateOnly, osc.DateAuthorized)
 			if err != nil {
 				panic(err)
