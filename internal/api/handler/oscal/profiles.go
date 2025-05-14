@@ -28,6 +28,8 @@ func NewProfileHandler(sugar *zap.SugaredLogger, db *gorm.DB) *ProfileHandler {
 func (h *ProfileHandler) Register(api *echo.Group) {
 	api.GET("", h.List)
 	api.GET("/:id", h.Get)
+	api.GET("/:id/imports", h.ListImports)
+	api.GET("/:id/back-matter", h.GetBackmatter)
 }
 
 // List godoc
@@ -50,6 +52,7 @@ func (h *ProfileHandler) List(ctx echo.Context) error {
 	if err := h.db.
 		Preload("Metadata").
 		Preload("Metadata.Revisions").
+		Preload("Metadata.Roles").
 		Find(&profiles).Error; err != nil {
 		h.sugar.Errorw("error listing profiles", "error", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
@@ -111,4 +114,53 @@ func (h *ProfileHandler) Get(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[response]{Data: responseProfile})
+}
+
+func (h *ProfileHandler) ListImports(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("error parsing UUID", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	var profile relational.Profile
+	if err := h.db.
+		Preload("Imports").Preload("Imports.IncludeControls").Preload("Imports.ExcludeControls").
+		Where("id = ?", id).First(&profile).Error; err != nil {
+		h.sugar.Errorw("error listing imports", "id", idParam, "error", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	imports := make([]oscalTypes_1_1_3.Import, len(profile.Imports))
+	for i, imp := range profile.Imports {
+		imports[i] = imp.MarshalOscal()
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.Import]{Data: imports})
+}
+
+func (h *ProfileHandler) GetBackmatter(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("error parsing UUID", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	var profile relational.Profile
+
+	if err := h.db.Preload("BackMatter").Preload("BackMatter.Resources").Where("id = ?", id).First(&profile).Error; err != nil {
+		h.sugar.Errorw("error getting profile", "id", idParam, "error", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	oscalBackmatter := *profile.BackMatter.MarshalOscal()
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]{Data: oscalBackmatter})
 }

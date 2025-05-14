@@ -24442,6 +24442,10 @@
             {
               "href": "NIST_SP-800-53_rev5_catalog.json",
               "media-type": "application/oscal+json"
+            },
+            {
+              "href": "http://localhost:8080/api/oscal/catalogs/<UUID>/full",
+
             }
           ]
         }
