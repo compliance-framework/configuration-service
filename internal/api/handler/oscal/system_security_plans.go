@@ -2,6 +2,7 @@ package oscal
 
 import (
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"net/http"
 
@@ -31,6 +32,7 @@ func (h *SystemSecurityPlanHandler) Register(api *echo.Group) {
 	api.GET("", h.List)
 	api.GET("/:id", h.Get)
 	api.GET("/:id/system-characteristics", h.GetCharacteristics)
+	api.PUT("/:id/system-characteristics", h.UpdateCharacteristics)
 }
 
 // List godoc
@@ -139,4 +141,56 @@ func (h *SystemSecurityPlanHandler) GetCharacteristics(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.SystemCharacteristics]{Data: ssp.MarshalOscal().SystemCharacteristics})
+}
+
+// UpdateCharacteristics godoc
+//
+// @Summary Update System Characteristics
+// @Description Updates the System Characteristics for a given System Security Plan.
+// @Tags Oscal
+// @Accept json
+// @Produce json
+// @Param id path string true "System Security Plan ID"
+// @Param characteristics body oscalTypes_1_1_3.SystemCharacteristics true "Updated System Characteristics object"
+// @Success 200 {object} handler.GenericDataResponse[oscalTypes_1_1_3.SystemCharacteristics]
+// @Failure 400 {object} api.Error
+// @Failure 404 {object} api.Error
+// @Failure 500 {object} api.Error
+// @Router /oscal/system-security-plans/{id}/system-characteristics [put]
+func (h *SystemSecurityPlanHandler) UpdateCharacteristics(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid system security plan id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+	var oscalSC oscalTypes_1_1_3.SystemCharacteristics
+	if err := ctx.Bind(&oscalSC); err != nil {
+		h.sugar.Warnw("Invalid update system characteristics request", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	fmt.Println(oscalSC.Description)
+
+	var ssp relational.SystemSecurityPlan
+	if err := h.db.
+		Preload("SystemCharacteristics").
+		First(&ssp, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load system security plan", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+	sc := &relational.SystemCharacteristics{}
+	sc.UnmarshalOscal(oscalSC)
+	fmt.Println(oscalSC.Description)
+	sc.SystemSecurityPlanId = *ssp.ID
+	sc.ID = ssp.SystemCharacteristics.ID
+
+	if err = h.db.Model(&sc).Save(&sc).Error; err != nil {
+		h.sugar.Errorf("Failed to update system characteristics: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.SystemCharacteristics]{Data: *sc.MarshalOscal()})
 }
