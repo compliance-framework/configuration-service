@@ -34,7 +34,7 @@ func (h *SystemSecurityPlanHandler) Register(api *echo.Group) {
 	api.GET("/:id/back-matter", h.GetBackMatter)
 }
 
-// @Success		200	{object}	handler.GenericDataListResponse[oscal.List.response]
+//	@Success	200	{object}	handler.GenericDataListResponse[oscal.List.response]
 func (h *SystemSecurityPlanHandler) List(ctx echo.Context) error {
 	type response struct {
 		UUID     uuid.UUID                 `json:"uuid"`
@@ -59,7 +59,7 @@ func (h *SystemSecurityPlanHandler) List(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.SystemSecurityPlan]{Data: oscalSSP})
 }
 
-// @Success		200	{object}	handler.GenericDataResponse[oscal.Get.response]
+//	@Success	200	{object}	handler.GenericDataResponse[oscal.Get.response]
 func (h *SystemSecurityPlanHandler) Get(ctx echo.Context) error {
 	type response struct {
 		UUID     uuid.UUID                 `json:"uuid"`
@@ -88,7 +88,7 @@ func (h *SystemSecurityPlanHandler) Get(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[*oscalTypes_1_1_3.SystemSecurityPlan]{Data: ssp.MarshalOscal()})
 }
 
-// @Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.SystemCharacteristics]
+//	@Success	200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.SystemCharacteristics]
 func (h *SystemSecurityPlanHandler) GetCharacteristics(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
