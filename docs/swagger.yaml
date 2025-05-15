@@ -64,6 +64,14 @@ definitions:
           $ref: '#/definitions/oscalTypes_1_1_3.Group'
         type: array
     type: object
+  handler.GenericDataListResponse-oscalTypes_1_1_3_ResponsibleRole:
+    properties:
+      data:
+        description: Items from the list response
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.ResponsibleRole'
+        type: array
+    type: object
   handler.GenericDataListResponse-service_Catalog:
     properties:
       data:
@@ -3361,6 +3369,42 @@ paths:
           schema:
             $ref: '#/definitions/api.Error'
       summary: Get components for a component definition
+      tags:
+      - Oscal
+  /oscal/component-definitions/{id}/components/{componentId}/responsible-roles:
+    get:
+      description: Retrieves all responsible roles for a given component.
+      parameters:
+      - description: Component Definition ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Component ID
+        in: path
+        name: componentId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_ResponsibleRole'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Get responsible roles for a component
       tags:
       - Oscal
   /oscal/component-definitions/{id}/full:
