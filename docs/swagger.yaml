@@ -64,6 +64,14 @@ definitions:
           $ref: '#/definitions/oscalTypes_1_1_3.Group'
         type: array
     type: object
+  handler.GenericDataListResponse-oscalTypes_1_1_3_ImportComponentDefinition:
+    properties:
+      data:
+        description: Items from the list response
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.ImportComponentDefinition'
+        type: array
+    type: object
   handler.GenericDataListResponse-service_Catalog:
     properties:
       data:
@@ -3393,6 +3401,38 @@ paths:
           schema:
             $ref: '#/definitions/api.Error'
       summary: Get a complete Component Definition
+      tags:
+      - Oscal
+  /oscal/component-definitions/{id}/import-component-definitions:
+    get:
+      description: Retrieves all import component definitions for a given component
+        definition.
+      parameters:
+      - description: Component Definition ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_ImportComponentDefinition'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Get import component definitions for a component definition
       tags:
       - Oscal
   /oscal/ssp/{id}/back-matter:
