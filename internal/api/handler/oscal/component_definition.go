@@ -39,7 +39,6 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.GET("/:id/back-matter", h.GetBackMatter)
 	api.GET("/:id/components", h.GetComponents)
 	api.GET("/:id/capabilities", h.GetCapabilities)
-	api.GET("/:id/import-component-definitions", h.GetImportComponentDefinitions)
 }
 
 // List godoc
@@ -336,42 +335,4 @@ func (h *ComponentDefinitionHandler) GetCapabilities(ctx echo.Context) error {
 		oscalCapabilities[i] = *capability.MarshalOscal()
 	}
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.Capability]{Data: oscalCapabilities})
-}
-
-// GetImportComponentDefinitions godoc
-//
-//	@Summary		Get import component definitions for a component definition
-//	@Description	Retrieves all import component definitions for a given component definition.
-//	@Tags			Oscal
-//	@Produce		json
-//	@Param			id	path		string	true	"Component Definition ID"
-//	@Success		200	{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.ImportComponentDefinition]
-//	@Failure		400	{object}	api.Error
-//	@Failure		404	{object}	api.Error
-//	@Failure		500	{object}	api.Error
-//	@Router			/oscal/component-definitions/{id}/import-component-definitions [get]
-func (h *ComponentDefinitionHandler) GetImportComponentDefinitions(ctx echo.Context) error {
-	idParam := ctx.Param("id")
-	id, err := uuid.Parse(idParam)
-	if err != nil {
-		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-	}
-
-	var componentDefinition relational.ComponentDefinition
-	if err := h.db.
-		Preload("ImportComponentDefinitions").
-		First(&componentDefinition, "id = ?", id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(err))
-		}
-		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-	}
-
-	oscalImportComponentDefinitions := make([]oscalTypes_1_1_3.ImportComponentDefinition, len(componentDefinition.ImportComponentDefinitions))
-	for i, importComponentDefinition := range componentDefinition.ImportComponentDefinitions {
-		oscalImportComponentDefinitions[i] = *importComponentDefinition.MarshalOscal()
-	}
-	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ImportComponentDefinition]{Data: oscalImportComponentDefinitions})
 }
