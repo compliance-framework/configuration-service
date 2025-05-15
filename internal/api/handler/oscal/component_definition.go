@@ -34,6 +34,8 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.GET("", h.List)
 	api.POST("", h.Create)
 	api.GET("/:id", h.Get)
+	api.PUT("/:id", h.Update)
+	api.GET("/:id/full", h.Full)
 	api.GET("/:id/back-matter", h.GetBackMatter)
 }
 
@@ -220,4 +222,39 @@ func (h *ComponentDefinitionHandler) GetBackMatter(ctx echo.Context) error {
 	//		}]{}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[*oscalTypes_1_1_3.BackMatter]{Data: componentDefinition.BackMatter.MarshalOscal()})
+}
+
+// Full godoc
+//
+//	@Summary		Get a complete Component Definition
+//	@Description	Retrieves a complete Component Definition by its ID, including all metadata and revisions.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id	path		string	true	"Component Definition ID"
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.ComponentDefinition]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/component-definitions/{id}/full [get]
+func (h *ComponentDefinitionHandler) Full(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var componentDefinition relational.ComponentDefinition
+	if err := h.db.
+		Preload("Metadata").
+		Preload("Metadata.Revisions").
+		First(&componentDefinition, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.ComponentDefinition]{Data: *componentDefinition.MarshalOscal()})
 }
