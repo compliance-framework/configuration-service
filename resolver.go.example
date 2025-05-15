@@ -1,0 +1,122 @@
+package main
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/compliance-framework/configuration-service/internal/service/relational"
+	"github.com/google/uuid"
+	"github.com/labstack/gommon/log"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"strings"
+)
+
+func main() {
+	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	profile, err := FindProfile(db, "512149a6-7f04-4c01-bb1b-78eafd6a950d")
+	if err != nil {
+		panic(err)
+	}
+
+	log.Info("Found catalog: ", profile.ID.String())
+
+	catalog := NewCatalog()
+	log.Info("New catalog: ", catalog.ID.String())
+
+	//var foundCatalog relational.Catalog
+	//var controlIds []string
+	var allControls []relational.Control
+
+	for _, imports := range profile.Imports {
+		var controls []relational.Control
+		subControlIds := GatherControlIds(imports)
+		catalogUuid, err := FindOscalCatalogFromBackMatter(profile, imports.Href)
+		if err != nil {
+			panic(err)
+		}
+
+		if err := db.Preload("Controls").Find(&controls, "catalog_id = ? AND id IN ?", catalogUuid, subControlIds).Error; err != nil {
+			panic(err)
+		}
+
+		allControls = append(allControls, controls...)
+
+	}
+
+	catalog.Metadata = profile.Metadata
+	catalog.Controls = append(catalog.Controls, allControls...)
+
+	outputJson, err := json.Marshal(catalog.MarshalOscal())
+	fmt.Println(string(outputJson))
+}
+
+func FindOscalCatalogFromBackMatter(profile *relational.Profile, ref string) (uuid.UUID, error) {
+	if strings.HasPrefix(ref, "#") {
+		ref = strings.TrimPrefix(ref, "#")
+	}
+
+	resources := profile.BackMatter.Resources
+	for _, resource := range resources {
+		if resource.UUIDModel.ID.String() == ref {
+			for _, link := range resource.RLinks {
+				if link.MediaType == "application/ccf+oscal+json" {
+					return uuid.Parse(link.Href)
+				}
+			}
+		}
+	}
+	return uuid.Nil, errors.New("No valid catalog UUID was found within the backmatter. Ref: " + ref)
+}
+
+func GatherControlIds(imports relational.Import) []string {
+	var controlIds []string
+	seen := map[string]bool{}
+
+	for _, includedControls := range imports.IncludeControls {
+		for _, value := range includedControls.WithIds {
+			if _, ok := seen[value]; !ok {
+				seen[value] = true
+				controlIds = append(controlIds, value)
+			}
+		}
+	}
+	return controlIds
+}
+
+func FindProfile(db *gorm.DB, profileId string) (*relational.Profile, error) {
+	id, err := uuid.Parse(profileId)
+	if err != nil {
+		return nil, err
+	}
+
+	var profile relational.Profile
+	if err := db.
+		Preload("Metadata").
+		Preload("Metadata.Revisions").
+		Preload("Imports").
+		Preload("Imports.IncludeControls").
+		Preload("Imports.ExcludeControls").
+		Preload("Merge").
+		Preload("Modify").
+		Preload("Modify.SetParameters").
+		Preload("Modify.Alters").
+		Preload("BackMatter").
+		Preload("BackMatter.Resources").
+		Find(&profile, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+
+	return &profile, nil
+}
+
+func NewCatalog() *relational.Catalog {
+	catalog := relational.Catalog{}
+	id, _ := uuid.NewUUID()
+	catalog.UUIDModel.ID = &id
+	return &catalog
+}

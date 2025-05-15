@@ -16,3 +16,4 @@ __debug_*
 *.db
 
 local.go
+resolver.go

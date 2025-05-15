@@ -24444,8 +24444,12 @@
               "media-type": "application/oscal+json"
             },
             {
-              "href": "http://localhost:8080/api/oscal/catalogs/<UUID>/full",
-
+              "href": "#9b0c9c43-2722-4bbb-b132-13d34fb94d45",
+              "media-type": "application/ccf+oscal+json"
+            },
+            {
+              "href": "https://ccf.example.com/catalogs/9b0c9c43-2722-4bbb-b132-13d34fb94d45",
+              "media-type": "application/ccf+oscal+json"
             }
           ]
         }
