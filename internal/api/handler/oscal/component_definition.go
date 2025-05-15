@@ -38,7 +38,9 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.GET("/:id/full", h.Full)
 	api.GET("/:id/back-matter", h.GetBackMatter)
 	api.GET("/:id/components", h.GetComponents)
+	api.GET("/:id/components/:componentId/responsible-roles", h.GetResponsibleRoles)
 	api.GET("/:id/capabilities", h.GetCapabilities)
+
 }
 
 // List godoc
@@ -335,4 +337,51 @@ func (h *ComponentDefinitionHandler) GetCapabilities(ctx echo.Context) error {
 		oscalCapabilities[i] = *capability.MarshalOscal()
 	}
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.Capability]{Data: oscalCapabilities})
+}
+
+// GetResponsibleRoles godoc
+//
+//	@Summary		Get responsible roles for a component
+//	@Description	Retrieves all responsible roles for a given component.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id			path		string	true	"Component Definition ID"
+//	@Param			componentId	path		string	true	"Component ID"
+//	@Success		200			{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.ResponsibleRole]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Router			/oscal/component-definitions/{id}/components/{componentId}/responsible-roles [get]
+func (h *ComponentDefinitionHandler) GetResponsibleRoles(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	componentDefId, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	componentIdParam := ctx.Param("componentId")
+	componentId, err := uuid.Parse(componentIdParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component id", "id", componentIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var component relational.DefinedComponent
+	if err := h.db.
+		Preload("ResponsibleRoles").
+		Where("id = ? AND component_definition_id = ?", componentId, componentDefId).
+		First(&component).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load component", "id", componentIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	oscalResponsibleRoles := make([]oscalTypes_1_1_3.ResponsibleRole, len(component.ResponsibleRoles))
+	for i, responsibleRole := range component.ResponsibleRoles {
+		oscalResponsibleRoles[i] = *responsibleRole.MarshalOscal()
+	}
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ResponsibleRole]{Data: oscalResponsibleRoles})
 }
