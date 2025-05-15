@@ -179,6 +179,13 @@ definitions:
         - $ref: '#/definitions/oscalTypes_1_1_3.Catalog'
         description: Items from the list response
     type: object
+  handler.GenericDataResponse-oscalTypes_1_1_3_ComponentDefinition:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/oscalTypes_1_1_3.ComponentDefinition'
+        description: Items from the list response
+    type: object
   handler.GenericDataResponse-oscalTypes_1_1_3_Control:
     properties:
       data:
@@ -399,6 +406,33 @@ definitions:
       value:
         type: string
     type: object
+  oscalTypes_1_1_3.Capability:
+    properties:
+      control-implementations:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.ControlImplementationSet'
+        type: array
+      description:
+        type: string
+      incorporates-components:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.IncorporatesComponent'
+        type: array
+      links:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Link'
+        type: array
+      name:
+        type: string
+      props:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Property'
+        type: array
+      remarks:
+        type: string
+      uuid:
+        type: string
+    type: object
   oscalTypes_1_1_3.Catalog:
     properties:
       back-matter:
@@ -431,6 +465,27 @@ definitions:
           $ref: '#/definitions/oscalTypes_1_1_3.Property'
         type: array
       text:
+        type: string
+    type: object
+  oscalTypes_1_1_3.ComponentDefinition:
+    properties:
+      back-matter:
+        $ref: '#/definitions/oscalTypes_1_1_3.BackMatter'
+      capabilities:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Capability'
+        type: array
+      components:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.DefinedComponent'
+        type: array
+      import-component-definitions:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.ImportComponentDefinition'
+        type: array
+      metadata:
+        $ref: '#/definitions/oscalTypes_1_1_3.Metadata'
+      uuid:
         type: string
     type: object
   oscalTypes_1_1_3.ConstraintTest:
@@ -469,6 +524,54 @@ definitions:
       title:
         type: string
     type: object
+  oscalTypes_1_1_3.ControlImplementationSet:
+    properties:
+      description:
+        type: string
+      implemented-requirements:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.ImplementedRequirementControlImplementation'
+        type: array
+      links:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Link'
+        type: array
+      props:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Property'
+        type: array
+      set-parameters:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.SetParameter'
+        type: array
+      source:
+        type: string
+      uuid:
+        type: string
+    type: object
+  oscalTypes_1_1_3.ControlStatementImplementation:
+    properties:
+      description:
+        type: string
+      links:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Link'
+        type: array
+      props:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Property'
+        type: array
+      remarks:
+        type: string
+      responsible-roles:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.ResponsibleRole'
+        type: array
+      statement-id:
+        type: string
+      uuid:
+        type: string
+    type: object
   oscalTypes_1_1_3.DataFlow:
     properties:
       description:
@@ -486,6 +589,41 @@ definitions:
           $ref: '#/definitions/oscalTypes_1_1_3.Property'
         type: array
       remarks:
+        type: string
+    type: object
+  oscalTypes_1_1_3.DefinedComponent:
+    properties:
+      control-implementations:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.ControlImplementationSet'
+        type: array
+      description:
+        type: string
+      links:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Link'
+        type: array
+      props:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Property'
+        type: array
+      protocols:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Protocol'
+        type: array
+      purpose:
+        type: string
+      remarks:
+        type: string
+      responsible-roles:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.ResponsibleRole'
+        type: array
+      title:
+        type: string
+      type:
+        type: string
+      uuid:
         type: string
     type: object
   oscalTypes_1_1_3.Diagram:
@@ -569,6 +707,49 @@ definitions:
           $ref: '#/definitions/oscalTypes_1_1_3.Property'
         type: array
       selected:
+        type: string
+    type: object
+  oscalTypes_1_1_3.ImplementedRequirementControlImplementation:
+    properties:
+      control-id:
+        type: string
+      description:
+        type: string
+      links:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Link'
+        type: array
+      props:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Property'
+        type: array
+      remarks:
+        type: string
+      responsible-roles:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.ResponsibleRole'
+        type: array
+      set-parameters:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.SetParameter'
+        type: array
+      statements:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.ControlStatementImplementation'
+        type: array
+      uuid:
+        type: string
+    type: object
+  oscalTypes_1_1_3.ImportComponentDefinition:
+    properties:
+      href:
+        type: string
+    type: object
+  oscalTypes_1_1_3.IncorporatesComponent:
+    properties:
+      component-uuid:
+        type: string
+      description:
         type: string
     type: object
   oscalTypes_1_1_3.InformationType:
@@ -860,6 +1041,15 @@ definitions:
       scheme:
         type: string
     type: object
+  oscalTypes_1_1_3.PortRange:
+    properties:
+      end:
+        type: integer
+      start:
+        type: integer
+      transport:
+        type: string
+    type: object
   oscalTypes_1_1_3.Property:
     properties:
       class:
@@ -875,6 +1065,19 @@ definitions:
       uuid:
         type: string
       value:
+        type: string
+    type: object
+  oscalTypes_1_1_3.Protocol:
+    properties:
+      name:
+        type: string
+      port-ranges:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.PortRange'
+        type: array
+      title:
+        type: string
+      uuid:
         type: string
     type: object
   oscalTypes_1_1_3.Resource:
@@ -916,6 +1119,25 @@ definitions:
         type: string
     type: object
   oscalTypes_1_1_3.ResponsibleParty:
+    properties:
+      links:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Link'
+        type: array
+      party-uuids:
+        items:
+          type: string
+        type: array
+      props:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Property'
+        type: array
+      remarks:
+        type: string
+      role-id:
+        type: string
+    type: object
+  oscalTypes_1_1_3.ResponsibleRole:
     properties:
       links:
         items:
@@ -986,6 +1208,17 @@ definitions:
         type: string
       security-objective-integrity:
         type: string
+    type: object
+  oscalTypes_1_1_3.SetParameter:
+    properties:
+      param-id:
+        type: string
+      remarks:
+        type: string
+      values:
+        items:
+          type: string
+        type: array
     type: object
   oscalTypes_1_1_3.Status:
     properties:
@@ -2923,6 +3156,35 @@ paths:
       summary: List component definitions
       tags:
       - Oscal
+    post:
+      consumes:
+      - application/json
+      description: Creates a new component definition.
+      parameters:
+      - description: Component Definition
+        in: body
+        name: componentDefinition
+        required: true
+        schema:
+          $ref: '#/definitions/oscalTypes_1_1_3.ComponentDefinition'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_ComponentDefinition'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Create a component definition
+      tags:
+      - Oscal
   /oscal/component-definitions/{id}:
     get:
       description: Retrieves a single component definition by its unique ID.
@@ -2952,6 +3214,44 @@ paths:
           schema:
             $ref: '#/definitions/api.Error'
       summary: Get a component definition
+      tags:
+      - Oscal
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing component definition.
+      parameters:
+      - description: Component Definition ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated Component Definition object
+        in: body
+        name: componentDefinition
+        required: true
+        schema:
+          $ref: '#/definitions/oscalTypes_1_1_3.ComponentDefinition'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_ComponentDefinition'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Update a component definition
       tags:
       - Oscal
   /oscal/ssp/{id}/back-matter:
