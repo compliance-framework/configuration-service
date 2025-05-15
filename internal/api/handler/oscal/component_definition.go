@@ -3,8 +3,10 @@ package oscal
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/compliance-framework/configuration-service/internal/api"
+	"github.com/defenseunicorns/go-oscal/src/pkg/versioning"
 	oscalTypes_1_1_3 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 
 	"github.com/google/uuid"
@@ -30,7 +32,7 @@ func NewComponentDefinitionHandler(sugar *zap.SugaredLogger, db *gorm.DB) *Compo
 
 func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.GET("", h.List)
-	// api.POST("", h.Create)
+	api.POST("", h.Create)
 	api.GET("/:id", h.Get)
 }
 
@@ -106,4 +108,75 @@ func (h *ComponentDefinitionHandler) Get(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.ComponentDefinition]{Data: *componentDefinition.MarshalOscal()})
+}
+
+// Create godoc
+//
+//	@Summary		Create a component definition
+//	@Description	Creates a new component definition.
+//	@Tags			Oscal
+//	@Accept			json
+//	@Produce		json
+//	@Param			componentDefinition	body		oscalTypes_1_1_3.ComponentDefinition	true	"Component Definition"
+//	@Success		201					{object}	handler.GenericDataResponse[oscalTypes_1_1_3.ComponentDefinition]
+//	@Failure		400					{object}	api.Error
+//	@Failure		500					{object}	api.Error
+//	@Router			/oscal/component-definitions [post]
+func (h *ComponentDefinitionHandler) Create(ctx echo.Context) error {
+	now := time.Now()
+
+	var oscalCat oscalTypes_1_1_3.ComponentDefinition
+	if err := ctx.Bind(&oscalCat); err != nil {
+		h.sugar.Warnw("Invalid create component definition request", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+	relCat := &relational.ComponentDefinition{}
+	relCat.UnmarshalOscal(oscalCat)
+	relCat.Metadata.LastModified = &now
+	relCat.Metadata.OscalVersion = versioning.GetLatestSupportedVersion()
+	if err := h.db.Create(relCat).Error; err != nil {
+		h.sugar.Errorf("Failed to create component definition: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[oscalTypes_1_1_3.ComponentDefinition]{Data: *relCat.MarshalOscal()})
+}
+
+// Update godoc
+//
+//	@Summary		Update a component definition
+//	@Description	Updates an existing component definition.
+//	@Tags			Oscal
+//	@Accept			json
+//	@Produce		json
+//	@Param			id					path		string									true	"Component Definition ID"
+//	@Param			componentDefinition	body		oscalTypes_1_1_3.ComponentDefinition	true	"Updated Component Definition object"
+//	@Success		200					{object}	handler.GenericDataResponse[oscalTypes_1_1_3.ComponentDefinition]
+//	@Failure		400					{object}	api.Error
+//	@Failure		404					{object}	api.Error
+//	@Failure		500					{object}	api.Error
+//	@Router			/oscal/component-definitions/{id} [put]
+func (h *ComponentDefinitionHandler) Update(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var oscalCat oscalTypes_1_1_3.ComponentDefinition
+	if err := ctx.Bind(&oscalCat); err != nil {
+		h.sugar.Warnw("Invalid update component definition request", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	now := time.Now()
+	relCat := &relational.ComponentDefinition{}
+	relCat.UnmarshalOscal(oscalCat)
+	relCat.Metadata.LastModified = &now
+	relCat.Metadata.OscalVersion = versioning.GetLatestSupportedVersion()
+	if err := h.db.Where("id = ?", id).Updates(relCat).Error; err != nil {
+		h.sugar.Errorf("Failed to update component definition: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.ComponentDefinition]{Data: *relCat.MarshalOscal()})
 }

@@ -2086,6 +2086,50 @@
                         }
                     }
                 }
+            },
+            "post": {
+                "description": "Creates a new component definition.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Oscal"
+                ],
+                "summary": "Create a component definition",
+                "parameters": [
+                    {
+                        "description": "Component Definition",
+                        "name": "componentDefinition",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/oscalTypes_1_1_3.ComponentDefinition"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_ComponentDefinition"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
             }
         },
         "/oscal/component-definitions/{id}": {
@@ -2112,6 +2156,63 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/handler.GenericDataResponse-oscal_Get_responseComponentDefinition"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Updates an existing component definition.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Oscal"
+                ],
+                "summary": "Update a component definition",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Component Definition ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated Component Definition object",
+                        "name": "componentDefinition",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/oscalTypes_1_1_3.ComponentDefinition"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_ComponentDefinition"
                         }
                     },
                     "400": {
@@ -2589,6 +2690,19 @@
                 }
             }
         },
+        "handler.GenericDataResponse-oscalTypes_1_1_3_ComponentDefinition": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Items from the list response",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/oscalTypes_1_1_3.ComponentDefinition"
+                        }
+                    ]
+                }
+            }
+        },
         "handler.GenericDataResponse-oscalTypes_1_1_3_Control": {
             "type": "object",
             "properties": {
@@ -2981,6 +3095,47 @@
                 }
             }
         },
+        "oscalTypes_1_1_3.Capability": {
+            "type": "object",
+            "properties": {
+                "control-implementations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.ControlImplementationSet"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "incorporates-components": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.IncorporatesComponent"
+                    }
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
         "oscalTypes_1_1_3.Catalog": {
             "type": "object",
             "properties": {
@@ -3029,6 +3184,38 @@
                     }
                 },
                 "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.ComponentDefinition": {
+            "type": "object",
+            "properties": {
+                "back-matter": {
+                    "$ref": "#/definitions/oscalTypes_1_1_3.BackMatter"
+                },
+                "capabilities": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Capability"
+                    }
+                },
+                "components": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.DefinedComponent"
+                    }
+                },
+                "import-component-definitions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.ImportComponentDefinition"
+                    }
+                },
+                "metadata": {
+                    "$ref": "#/definitions/oscalTypes_1_1_3.Metadata"
+                },
+                "uuid": {
                     "type": "string"
                 }
             }
@@ -3088,6 +3275,79 @@
                 }
             }
         },
+        "oscalTypes_1_1_3.ControlImplementationSet": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "implemented-requirements": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.ImplementedRequirementControlImplementation"
+                    }
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
+                },
+                "set-parameters": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.SetParameter"
+                    }
+                },
+                "source": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.ControlStatementImplementation": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "responsible-roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.ResponsibleRole"
+                    }
+                },
+                "statement-id": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
         "oscalTypes_1_1_3.DataFlow": {
             "type": "object",
             "properties": {
@@ -3113,6 +3373,59 @@
                     }
                 },
                 "remarks": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.DefinedComponent": {
+            "type": "object",
+            "properties": {
+                "control-implementations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.ControlImplementationSet"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
+                },
+                "protocols": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Protocol"
+                    }
+                },
+                "purpose": {
+                    "type": "string"
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "responsible-roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.ResponsibleRole"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "uuid": {
                     "type": "string"
                 }
             }
@@ -3240,6 +3553,72 @@
                     }
                 },
                 "selected": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.ImplementedRequirementControlImplementation": {
+            "type": "object",
+            "properties": {
+                "control-id": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "responsible-roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.ResponsibleRole"
+                    }
+                },
+                "set-parameters": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.SetParameter"
+                    }
+                },
+                "statements": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.ControlStatementImplementation"
+                    }
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.ImportComponentDefinition": {
+            "type": "object",
+            "properties": {
+                "href": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.IncorporatesComponent": {
+            "type": "object",
+            "properties": {
+                "component-uuid": {
+                    "type": "string"
+                },
+                "description": {
                     "type": "string"
                 }
             }
@@ -3684,6 +4063,20 @@
                 }
             }
         },
+        "oscalTypes_1_1_3.PortRange": {
+            "type": "object",
+            "properties": {
+                "end": {
+                    "type": "integer"
+                },
+                "start": {
+                    "type": "integer"
+                },
+                "transport": {
+                    "type": "string"
+                }
+            }
+        },
         "oscalTypes_1_1_3.Property": {
             "type": "object",
             "properties": {
@@ -3706,6 +4099,26 @@
                     "type": "string"
                 },
                 "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.Protocol": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "port-ranges": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.PortRange"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "uuid": {
                     "type": "string"
                 }
             }
@@ -3769,6 +4182,35 @@
             }
         },
         "oscalTypes_1_1_3.ResponsibleParty": {
+            "type": "object",
+            "properties": {
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "party-uuids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "role-id": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.ResponsibleRole": {
             "type": "object",
             "properties": {
                 "links": {
@@ -3875,6 +4317,23 @@
                 },
                 "security-objective-integrity": {
                     "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.SetParameter": {
+            "type": "object",
+            "properties": {
+                "param-id": {
+                    "type": "string"
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
