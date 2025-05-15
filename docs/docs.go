@@ -2062,6 +2062,38 @@ const docTemplate = `{
                 }
             }
         },
+        "/oscal/component-definitions": {
+            "get": {
+                "description": "Retrieves all component definitions.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Oscal"
+                ],
+                "summary": "List component definitions",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataListResponse-oscal_List_responseComponentDefinition"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/oscal/profiles": {
             "get": {
                 "description": "Retrieves all OSCAL profiles",
@@ -2120,6 +2152,50 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/handler.GenericDataResponse-oscal_Get_response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/oscal/ssp/{id}/back-matter": {
+            "get": {
+                "description": "Retrieves the back-matter for a given System Security Plan by the specified param ID in the path",
+                "tags": [
+                    "Oscal System Security Plan"
+                ],
+                "summary": "Get back-matter for a System Security Plan",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "System Security Plan ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_BackMatter"
                         }
                     },
                     "400": {
@@ -2371,6 +2447,18 @@ const docTemplate = `{
                 }
             }
         },
+        "handler.GenericDataListResponse-oscal_List_responseComponentDefinition": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Items from the list response",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscal.List.responseComponentDefinition"
+                    }
+                }
+            }
+        },
         "handler.GenericDataListResponse-service_Catalog": {
             "type": "object",
             "properties": {
@@ -2562,6 +2650,19 @@ const docTemplate = `{
                     "allOf": [
                         {
                             "$ref": "#/definitions/oscalTypes_1_1_3.Group"
+                        }
+                    ]
+                }
+            }
+        },
+        "handler.GenericDataResponse-oscalTypes_1_1_3_SystemCharacteristics": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Items from the list response",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/oscalTypes_1_1_3.SystemCharacteristics"
                         }
                     ]
                 }
@@ -2767,6 +2868,17 @@ const docTemplate = `{
                 }
             }
         },
+        "oscal.List.responseComponentDefinition": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "$ref": "#/definitions/oscalTypes_1_1_3.Metadata"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
         "oscalTypes_1_1_3.Action": {
             "type": "object",
             "properties": {
@@ -2827,6 +2939,35 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.AuthorizationBoundary": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "diagrams": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Diagram"
+                    }
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
+                },
+                "remarks": {
                     "type": "string"
                 }
             }
@@ -2963,6 +3104,64 @@ const docTemplate = `{
                 }
             }
         },
+        "oscalTypes_1_1_3.DataFlow": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "diagrams": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Diagram"
+                    }
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
+                },
+                "remarks": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.Diagram": {
+            "type": "object",
+            "properties": {
+                "caption": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
         "oscalTypes_1_1_3.DocumentId": {
             "type": "object",
             "properties": {
@@ -3031,6 +3230,87 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.Impact": {
+            "type": "object",
+            "properties": {
+                "adjustment-justification": {
+                    "type": "string"
+                },
+                "base": {
+                    "type": "string"
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
+                },
+                "selected": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.InformationType": {
+            "type": "object",
+            "properties": {
+                "availability-impact": {
+                    "$ref": "#/definitions/oscalTypes_1_1_3.Impact"
+                },
+                "categorizations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.InformationTypeCategorization"
+                    }
+                },
+                "confidentiality-impact": {
+                    "$ref": "#/definitions/oscalTypes_1_1_3.Impact"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "integrity-impact": {
+                    "$ref": "#/definitions/oscalTypes_1_1_3.Impact"
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.InformationTypeCategorization": {
+            "type": "object",
+            "properties": {
+                "information-type-ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "system": {
                     "type": "string"
                 }
             }
@@ -3175,6 +3455,35 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.NetworkArchitecture": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "diagrams": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Diagram"
+                    }
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
+                },
+                "remarks": {
                     "type": "string"
                 }
             }
@@ -3568,6 +3877,130 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.SecurityImpactLevel": {
+            "type": "object",
+            "properties": {
+                "security-objective-availability": {
+                    "type": "string"
+                },
+                "security-objective-confidentiality": {
+                    "type": "string"
+                },
+                "security-objective-integrity": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.Status": {
+            "type": "object",
+            "properties": {
+                "remarks": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.SystemCharacteristics": {
+            "type": "object",
+            "properties": {
+                "authorization-boundary": {
+                    "$ref": "#/definitions/oscalTypes_1_1_3.AuthorizationBoundary"
+                },
+                "data-flow": {
+                    "$ref": "#/definitions/oscalTypes_1_1_3.DataFlow"
+                },
+                "date-authorized": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "network-architecture": {
+                    "$ref": "#/definitions/oscalTypes_1_1_3.NetworkArchitecture"
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "responsible-parties": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.ResponsibleParty"
+                    }
+                },
+                "security-impact-level": {
+                    "$ref": "#/definitions/oscalTypes_1_1_3.SecurityImpactLevel"
+                },
+                "security-sensitivity-level": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/oscalTypes_1_1_3.Status"
+                },
+                "system-ids": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.SystemId"
+                    }
+                },
+                "system-information": {
+                    "$ref": "#/definitions/oscalTypes_1_1_3.SystemInformation"
+                },
+                "system-name": {
+                    "type": "string"
+                },
+                "system-name-short": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.SystemId": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "identifier-type": {
+                    "type": "string"
+                }
+            }
+        },
+        "oscalTypes_1_1_3.SystemInformation": {
+            "type": "object",
+            "properties": {
+                "information-types": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.InformationType"
+                    }
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
                 }
             }
         },
