@@ -3254,6 +3254,37 @@ paths:
       summary: Update a component definition
       tags:
       - Oscal
+  /oscal/component-definitions/{id}/back-matter:
+    get:
+      description: Retrieves the back-matter for a given Catalog.
+      parameters:
+      - description: Catalog ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_BackMatter'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Get back-matter for a Catalog
+      tags:
+      - Oscal
   /oscal/ssp/{id}/back-matter:
     get:
       description: Retrieves the back-matter for a given System Security Plan by the

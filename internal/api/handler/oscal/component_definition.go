@@ -34,6 +34,7 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.GET("", h.List)
 	api.POST("", h.Create)
 	api.GET("/:id", h.Get)
+	api.GET("/:id/back-matter", h.GetBackMatter)
 }
 
 // List godoc
@@ -179,4 +180,44 @@ func (h *ComponentDefinitionHandler) Update(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.ComponentDefinition]{Data: *relCat.MarshalOscal()})
+}
+
+// GetBackMatter godoc
+//
+//	@Summary		Get back-matter for a Catalog
+//	@Description	Retrieves the back-matter for a given Catalog.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id	path		string	true	"Catalog ID"
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/component-definitions/{id}/back-matter [get]
+func (h *ComponentDefinitionHandler) GetBackMatter(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var componentDefinition relational.ComponentDefinition
+	if err := h.db.
+		Preload("BackMatter").
+		Preload("BackMatter.Resources").
+		First(&componentDefinition, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	//handler.GenericDataResponse[struct {
+	//			UUID     uuid.UUID           `json:"uuid"`
+	//			Metadata relational.Metadata `json:"metadata"`
+	//		}]{}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[*oscalTypes_1_1_3.BackMatter]{Data: componentDefinition.BackMatter.MarshalOscal()})
 }
