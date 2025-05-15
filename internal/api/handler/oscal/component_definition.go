@@ -37,6 +37,7 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.PUT("/:id", h.Update)
 	api.GET("/:id/full", h.Full)
 	api.GET("/:id/back-matter", h.GetBackMatter)
+	api.GET("/:id/components", h.GetComponents)
 }
 
 // List godoc
@@ -257,4 +258,42 @@ func (h *ComponentDefinitionHandler) Full(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.ComponentDefinition]{Data: *componentDefinition.MarshalOscal()})
+}
+
+// GetComponents godoc
+//
+//	@Summary		Get components for a component definition
+//	@Description	Retrieves all components for a given component definition.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id	path		string	true	"Component Definition ID"
+//	@Success		200	{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.DefinedComponent]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/component-definitions/{id}/components [get]
+func (h *ComponentDefinitionHandler) GetComponents(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var componentDefinition relational.ComponentDefinition
+	if err := h.db.
+		Preload("Components").
+		First(&componentDefinition, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	oscalComponents := make([]oscalTypes_1_1_3.DefinedComponent, len(componentDefinition.Components))
+	for i, component := range componentDefinition.Components {
+		oscalComponents[i] = *component.MarshalOscal()
+	}
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.DefinedComponent]{Data: oscalComponents})
 }
