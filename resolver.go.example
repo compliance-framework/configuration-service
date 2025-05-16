@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/compliance-framework/configuration-service/internal/service/relational"
@@ -10,6 +11,9 @@ import (
 	"strings"
 )
 
+// main is the entry point of the configuration service.
+// It opens the database, loads the full profile, resolves controls into an OSCAL catalog,
+// and assembles the catalog back matter for output.
 func main() {
 	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
 	if err != nil {
@@ -24,10 +28,9 @@ func main() {
 	catalog := NewCatalog()
 
 	catalogUUids, allControls := ResolveControls(profile, db)
-	fmt.Println(catalogUUids)
 
 	catalog.Metadata = profile.Metadata
-	catalog.Controls = append(catalog.Controls, allControls...)
+	catalog.Controls = append(catalog.Controls, *allControls...)
 
 	backmatters, err := GetCatalogBackmatter(db, catalogUUids)
 	if err != nil {
@@ -36,19 +39,21 @@ func main() {
 
 	catalog.BackMatter = CombineBackmatter(backmatters)
 
-	//outputJson, err := json.Marshal(catalog.MarshalOscal())
-	//fmt.Println(string(outputJson))
+	outputJson, err := json.Marshal(catalog.MarshalOscal())
+	fmt.Println(string(outputJson))
 }
 
+// CombineBackmatter merges multiple BackMatter slices into a single BackMatter by concatenating all resources.
 func CombineBackmatter(backmatters *[]relational.BackMatter) *relational.BackMatter {
 	backmatter := relational.BackMatter{}
-	fmt.Println("length of backnatters", len(*backmatters))
 	for _, data := range *backmatters {
 		backmatter.Resources = append(backmatter.Resources, data.Resources...)
 	}
 	return &backmatter
 }
 
+// GetCatalogBackmatter retrieves back matter records for the given catalog UUIDs,
+// preloading associated resources from the database.
 func GetCatalogBackmatter(db *gorm.DB, uuids []uuid.UUID) (*[]relational.BackMatter, error) {
 	var backmatters *[]relational.BackMatter
 	if err := db.Preload("Resources").Find(&backmatters, "parent_id IN ? AND parent_type = 'catalogs'", uuids).Error; err != nil {
@@ -57,6 +62,8 @@ func GetCatalogBackmatter(db *gorm.DB, uuids []uuid.UUID) (*[]relational.BackMat
 	return backmatters, nil
 }
 
+// findPartRecursive performs a depth-first search through a slice of Parts
+// to locate a Part with the specified targetID, returning a pointer or nil if not found.
 func findPartRecursive(parts []relational.Part, targetID string) *relational.Part {
 	for i := range parts {
 		if parts[i].ID == targetID {
@@ -71,7 +78,7 @@ func findPartRecursive(parts []relational.Part, targetID string) *relational.Par
 	return nil
 }
 
-// buildSetParams constructs a map from parameter IDs to their settings.
+// buildSetParams creates a map from parameter IDs to their settings for quick lookup.
 func buildSetParams(settings []relational.ParameterSetting) map[string]relational.ParameterSetting {
 	m := make(map[string]relational.ParameterSetting, len(settings))
 	for _, s := range settings {
@@ -80,7 +87,7 @@ func buildSetParams(settings []relational.ParameterSetting) map[string]relationa
 	return m
 }
 
-// buildAdditions constructs a map from control IDs to their list of additions.
+// buildAdditions groups all Alteration additions by control ID into a map for efficient access.
 func buildAdditions(alters []relational.Alteration) map[string][]relational.Addition {
 	m := make(map[string][]relational.Addition)
 	for _, alt := range alters {
@@ -89,7 +96,7 @@ func buildAdditions(alters []relational.Alteration) map[string][]relational.Addi
 	return m
 }
 
-// applySetParameters applies parameter constraints to a control.
+// applySetParameters updates the Params slice of a control based on provided ParameterSetting constraints.
 func applySetParameters(ctrl relational.Control, setParams map[string]relational.ParameterSetting) relational.Control {
 	for i, param := range ctrl.Params {
 		if sp, ok := setParams[param.ID]; ok {
@@ -100,7 +107,7 @@ func applySetParameters(ctrl relational.Control, setParams map[string]relational
 	return ctrl
 }
 
-// applyAdditions applies additions to a control or its nested parts.
+// applyAdditions applies a list of additions to a control and its nested parts, modifying titles, props, params, links, and parts.
 func applyAdditions(ctrl relational.Control, additions []relational.Addition) relational.Control {
 	for _, addition := range additions {
 		if ctrl.ID == addition.ByID {
@@ -120,6 +127,8 @@ func applyAdditions(ctrl relational.Control, additions []relational.Addition) re
 	return ctrl
 }
 
+// applyAdditionsToPart applies a single Addition to the specified Part at the given position ("starting" or "ending"),
+// recursively descending into its child parts.
 func applyAdditionsToPart(part *relational.Part, addition relational.Addition, position string) {
 	if addition.Title != "" {
 		part.Title = addition.Title
@@ -147,6 +156,8 @@ func applyAdditionsToPart(part *relational.Part, addition relational.Addition, p
 	}
 }
 
+// applyAdditionsToControl applies a single Addition to the specified Control at the given position,
+// then recurses into its Parts to apply the same addition where needed.
 func applyAdditionsToControl(ctrl *relational.Control, addition relational.Addition, position string) {
 	if addition.Title != "" {
 		ctrl.Title = addition.Title
@@ -181,7 +192,8 @@ func applyAdditionsToControl(ctrl *relational.Control, addition relational.Addit
 	}
 }
 
-// processImport loads controls for an import and applies all updates.
+// processImport loads controls of a given import from the database, applies parameter settings and additions,
+// and returns the catalog UUID along with the modified controls.
 func processImport(db *gorm.DB, profile *relational.Profile, imp relational.Import, setParams map[string]relational.ParameterSetting, additions map[string][]relational.Addition) (uuid.UUID, []relational.Control) {
 	ids := GatherControlIds(imp)
 	catalogID, err := FindOscalCatalogFromBackMatter(profile, imp.Href)
@@ -203,7 +215,9 @@ func processImport(db *gorm.DB, profile *relational.Profile, imp relational.Impo
 	return catalogID, controls
 }
 
-func ResolveControls(profile *relational.Profile, db *gorm.DB) ([]uuid.UUID, []relational.Control) {
+// ResolveControls orchestrates control resolution for all imports in the profile,
+// returning the list of catalog UUIDs and the fully processed controls.
+func ResolveControls(profile *relational.Profile, db *gorm.DB) ([]uuid.UUID, *[]relational.Control) {
 	setParams := buildSetParams(profile.Modify.SetParameters)
 	additions := buildAdditions(profile.Modify.Alters)
 
@@ -217,9 +231,11 @@ func ResolveControls(profile *relational.Profile, db *gorm.DB) ([]uuid.UUID, []r
 		uuids[i] = uuid
 	}
 
-	return uuids, allControls
+	return uuids, &allControls
 }
 
+// FindOscalCatalogFromBackMatter searches the profile’s BackMatter for a resource matching the reference string
+// and returns its catalog UUID if found.
 func FindOscalCatalogFromBackMatter(profile *relational.Profile, ref string) (uuid.UUID, error) {
 	if strings.HasPrefix(ref, "#") {
 		ref = strings.TrimPrefix(ref, "#")
@@ -238,6 +254,7 @@ func FindOscalCatalogFromBackMatter(profile *relational.Profile, ref string) (uu
 	return uuid.Nil, errors.New("No valid catalog UUID was found within the backmatter. Ref: " + ref)
 }
 
+// GatherControlIds extracts unique control IDs from an Import’s IncludeControls, avoiding duplicates.
 func GatherControlIds(imports relational.Import) []string {
 	var controlIds []string
 	seen := map[string]bool{}
@@ -253,6 +270,8 @@ func GatherControlIds(imports relational.Import) []string {
 	return controlIds
 }
 
+// FindFullProfile loads a Profile by its UUID string from the database,
+// preloading all related entities such as metadata, imports, merges, modifications, and back matter.
 func FindFullProfile(db *gorm.DB, profileId string) (*relational.Profile, error) {
 	id, err := uuid.Parse(profileId)
 	if err != nil {
@@ -280,6 +299,7 @@ func FindFullProfile(db *gorm.DB, profileId string) (*relational.Profile, error)
 	return &profile, nil
 }
 
+// NewCatalog creates a new Catalog instance with a generated UUID, ready for population.
 func NewCatalog() *relational.Catalog {
 	catalog := relational.Catalog{}
 	id, _ := uuid.NewUUID()
