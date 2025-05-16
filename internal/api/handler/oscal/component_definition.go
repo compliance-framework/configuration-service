@@ -406,9 +406,7 @@ func (h *ComponentDefinitionHandler) GetControlImplementations(ctx echo.Context)
 	}
 
 	var componentDefinition relational.ComponentDefinition
-	if err := h.db.
-		Preload("Components").
-		First(&componentDefinition, "id = ?", id).Error; err != nil {
+	if err := h.db.First(&componentDefinition, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
 		}
@@ -426,9 +424,45 @@ func (h *ComponentDefinitionHandler) GetControlImplementations(ctx echo.Context)
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	oscalControlImplementations := make([]oscalTypes_1_1_3.ControlImplementationSet, len(definedComponent.ControlImplementations))
-	for i, controlImplementation := range definedComponent.ControlImplementations {
-		oscalControlImplementations[i] = *controlImplementation.MarshalOscal()
+	// Get the control implementation set IDs from the join table
+	var controlImplSetIDs []string
+	if err := h.db.Table("defined_components_control_implementation_sets").
+		Where("defined_component_id = ?", definedComponentID).
+		Pluck("control_implementation_set_id", &controlImplSetIDs).Error; err != nil {
+		h.sugar.Warnw("Failed to load control implementation set IDs", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
-	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ControlImplementationSet]{Data: oscalControlImplementations})
+
+	// Create a result array for valid control implementation sets
+	var oscalControlImplementations []oscalTypes_1_1_3.ControlImplementationSet
+
+	// For each control implementation set ID, try to load and marshal it
+	for _, controlImplSetID := range controlImplSetIDs {
+		var controlImplSet relational.ControlImplementationSet
+		
+		// Try to get the control implementation set and preload its implemented requirements
+		if err := h.db.
+			Preload("ImplementedRequirements").
+			Preload("ImplementedRequirements.Statements").
+			First(&controlImplSet, "id = ?", controlImplSetID).Error; err != nil {
+			// Log the error but continue with other control implementation sets
+			h.sugar.Warnw("Failed to load control implementation set", "id", controlImplSetID, "error", err)
+			continue
+		}
+		
+		// Try to marshal it to OSCAL format
+		oscalImpl := controlImplSet.MarshalOscal()
+		if oscalImpl != nil {
+			oscalControlImplementations = append(oscalControlImplementations, *oscalImpl)
+		}
+	}
+
+	// Ensure we always return an array, even if empty
+	if oscalControlImplementations == nil {
+		oscalControlImplementations = []oscalTypes_1_1_3.ControlImplementationSet{}
+	}
+	
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ControlImplementationSet]{
+		Data: oscalControlImplementations,
+	})
 }
