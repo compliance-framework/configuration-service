@@ -39,7 +39,7 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.GET("/:id/back-matter", h.GetBackMatter)
 	api.GET("/:id/components", h.GetComponents)
 	api.GET("/:id/capabilities", h.GetCapabilities)
-
+	api.GET("/:id/components/:defined-component", h.GetDefinedComponent)
 }
 
 // List godoc
@@ -336,4 +336,49 @@ func (h *ComponentDefinitionHandler) GetCapabilities(ctx echo.Context) error {
 		oscalCapabilities[i] = *capability.MarshalOscal()
 	}
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.Capability]{Data: oscalCapabilities})
+}
+
+// GetDefinedComponent godoc
+//
+//	@Summary		Get a defined component for a component definition
+//	@Description	Retrieves a defined component for a given component definition.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id					path		string	true	"Component Definition ID"
+//	@Param			defined-component	path		string	true	"Defined Component ID"
+//	@Success		200					{object}	handler.GenericDataResponse[oscalTypes_1_1_3.DefinedComponent]
+//	@Failure		400					{object}	api.Error
+//	@Failure		404					{object}	api.Error
+//	@Failure		500					{object}	api.Error
+//	@Router			/oscal/component-definitions/{id}/components/{defined-component} [get]
+func (h *ComponentDefinitionHandler) GetDefinedComponent(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var componentDefinition relational.ComponentDefinition
+	if err := h.db.
+		Preload("Components").
+		First(&componentDefinition, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	definedComponentID := ctx.Param("defined-component")
+	var definedComponent relational.DefinedComponent
+	if err := h.db.First(&definedComponent, "id = ?", definedComponentID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load defined component", "id", definedComponentID, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.DefinedComponent]{Data: *definedComponent.MarshalOscal()})
 }
