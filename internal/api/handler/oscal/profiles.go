@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type ProfileHandler struct {
@@ -227,7 +228,9 @@ func (h *ProfileHandler) Resolve(ctx echo.Context) error {
 
 	catalogUUids, allControls := ResolveControls(profile, h.db)
 
+	now := time.Now()
 	catalog.Metadata = profile.Metadata
+	catalog.Metadata.LastModified = &now
 	catalog.Controls = append(catalog.Controls, *allControls...)
 
 	backmatters, err := GetCatalogBackmatter(h.db, catalogUUids)
