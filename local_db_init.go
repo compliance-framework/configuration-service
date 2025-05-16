@@ -1,0 +1,274 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+
+	"github.com/compliance-framework/configuration-service/internal/service/relational"
+	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+)
+
+// InitLocalDB initializes the SQLite database by dropping existing tables,
+// running migrations, and loading test data from JSON files. It's used for
+// development and testing purposes to populate the database with sample data.
+func InitLocalDB() error {
+	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+	if err != nil {
+		return fmt.Errorf("failed to connect database: %w", err)
+	}
+
+	err = db.Migrator().DropTable(
+		&relational.Location{},
+		&relational.Party{},
+		&relational.BackMatterResource{},
+		&relational.BackMatter{},
+		&relational.Role{},
+		&relational.Revision{},
+		&relational.Control{},
+		&relational.Group{},
+		&relational.ResponsibleParty{},
+		&relational.Action{},
+		&relational.Metadata{},
+		&relational.Catalog{},
+		&relational.ControlStatementImplementation{},
+		&relational.ImplementedRequirementControlImplementation{},
+		&relational.ControlImplementationSet{},
+		&relational.ComponentDefinition{},
+		&relational.Capability{},
+		&relational.DefinedComponent{},
+		&relational.Diagram{},
+		&relational.DataFlow{},
+		&relational.NetworkArchitecture{},
+		&relational.AuthorizationBoundary{},
+		&relational.InformationType{},
+		&relational.SystemInformation{},
+		&relational.SystemCharacteristics{},
+		&relational.AuthorizedPrivilege{},
+		&relational.SystemUser{},
+		&relational.LeveragedAuthorization{},
+		&relational.SystemComponent{},
+		&relational.ImplementedComponent{},
+		&relational.InventoryItem{},
+		&relational.SystemImplementation{},
+		&relational.ControlImplementationResponsibility{},
+		&relational.ProvidedControlImplementation{},
+		&relational.SatisfiedControlImplementationResponsibility{},
+		&relational.Export{},
+		&relational.InheritedControlImplementation{},
+		&relational.ByComponent{},
+		&relational.Statement{},
+		&relational.ImplementedRequirement{},
+		&relational.ControlImplementation{},
+		&relational.SystemSecurityPlan{},
+		&relational.SelectControlById{},
+		&relational.Import{},
+		&relational.Merge{},
+		&relational.Profile{},
+		"metadata_responsible_parties",
+		"party_locations",
+		"party_member_of_organisations",
+		"responsible_party_parties",
+		"action_responsible_parties",
+		"capability_control_implementation_sets",
+		"defined_components_control_implementation_sets",
+		"authorization_boundary_diagrams",
+		"network_architecture_diagrams",
+		"data_flow_diagrams",
+	)
+	if err != nil {
+		return fmt.Errorf("failed to drop tables: %w", err)
+	}
+
+	// Migrate the schema
+	err = db.AutoMigrate(
+		&relational.Location{},
+		&relational.Party{},
+		&relational.BackMatterResource{},
+		&relational.BackMatter{},
+		&relational.Role{},
+		&relational.Revision{},
+		&relational.Control{},
+		&relational.Group{},
+		&relational.ResponsibleParty{},
+		&relational.Action{},
+		&relational.Metadata{},
+		&relational.Catalog{},
+		&relational.ControlStatementImplementation{},
+		&relational.ImplementedRequirementControlImplementation{},
+		&relational.ControlImplementationSet{},
+		&relational.ComponentDefinition{},
+		&relational.Capability{},
+		&relational.DefinedComponent{},
+		&relational.Diagram{},
+		&relational.DataFlow{},
+		&relational.NetworkArchitecture{},
+		&relational.AuthorizationBoundary{},
+		&relational.InformationType{},
+		&relational.SystemInformation{},
+		&relational.SystemCharacteristics{},
+		&relational.AuthorizedPrivilege{},
+		&relational.SystemUser{},
+		&relational.LeveragedAuthorization{},
+		&relational.SystemComponent{},
+		&relational.ImplementedComponent{},
+		&relational.InventoryItem{},
+		&relational.SystemImplementation{},
+		&relational.ControlImplementationResponsibility{},
+		&relational.ProvidedControlImplementation{},
+		&relational.SatisfiedControlImplementationResponsibility{},
+		&relational.Export{},
+		&relational.InheritedControlImplementation{},
+		&relational.ByComponent{},
+		&relational.Statement{},
+		&relational.ImplementedRequirement{},
+		&relational.ControlImplementation{},
+		&relational.SystemSecurityPlan{},
+		&relational.SelectControlById{},
+		&relational.Import{},
+		&relational.Merge{},
+		&relational.Profile{},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to migrate schema: %w", err)
+	}
+
+	files := []string{
+		//"testdata/NIST_SP-800_218_catalog.json",
+		//"testdata/OWASP_DSOMM_3.28.2.json",
+		//"testdata/SAMA_CSF_1.0_catalog.json",
+		//"testdata/SAMA_ITGF_1.0_catalog.json",
+
+		"testdata/basic-catalog.json",
+		"testdata/sp800_53_catalog.json",
+		"testdata/sp800_53_component_definition_sample.json",
+		"testdata/example-ssp.json",
+		"testdata/sp800_53_profile.json",
+	}
+
+	for _, f := range files {
+		jsonFile, err := os.Open(f)
+		if err != nil {
+			return fmt.Errorf("failed to open file %s: %w", f, err)
+		}
+
+		defer jsonFile.Close()
+		input := &struct {
+			ComponentDefinition *oscaltypes113.ComponentDefinition `json:"component-definition"`
+			Catalog             *oscaltypes113.Catalog             `json:"catalog"`
+			SystemSecurityPlan  *oscaltypes113.SystemSecurityPlan  `json:"system-security-plan"`
+			Profile             *oscaltypes113.Profile             `json:"profile"`
+		}{}
+
+		err = json.NewDecoder(jsonFile).Decode(input)
+		if err != nil {
+			return fmt.Errorf("failed to decode JSON from file %s: %w", f, err)
+		}
+
+		if input.Catalog != nil {
+			def := &relational.Catalog{}
+			def.UnmarshalOscal(*input.Catalog)
+			out := db.Create(def)
+			if out.Error != nil {
+				return fmt.Errorf("failed to create catalog from file %s: %w", f, out.Error)
+			}
+			fmt.Println("Successfully Created Catalog", f)
+			continue
+		}
+
+		if input.ComponentDefinition != nil {
+			def := &relational.ComponentDefinition{}
+			def.UnmarshalOscal(*input.ComponentDefinition)
+			out := db.Create(def)
+			if out.Error != nil {
+				return fmt.Errorf("failed to create component definition from file %s: %w", f, out.Error)
+			}
+			fmt.Println("Successfully Created ComponentDefinition", f)
+			continue
+		}
+
+		if input.SystemSecurityPlan != nil {
+			def := &relational.SystemSecurityPlan{}
+			def.UnmarshalOscal(*input.SystemSecurityPlan)
+			out := db.Create(def)
+			if out.Error != nil {
+				return fmt.Errorf("failed to create system security plan from file %s: %w", f, out.Error)
+			}
+			fmt.Println("Successfully Created SystemSecurityPlan", f)
+			continue
+		}
+
+		if input.Profile != nil {
+			def := &relational.Profile{}
+			def.UnmarshalOscal(*input.Profile)
+			out := db.Create(def)
+			if out.Error != nil {
+				return fmt.Errorf("failed to create profile from file %s: %w", f, out.Error)
+			}
+			fmt.Println("Successfully Created Profile", f)
+			continue
+		}
+
+		return fmt.Errorf("file content wasn't understood or mapped: %s", f)
+	}
+	
+	return nil
+}
+
+func LoadComponentDefinitionDataFromJSON(db *gorm.DB, jsonPath string) error {
+	jsonFile, err := os.Open(jsonPath)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Successfully Opened Component Definition")
+	defer jsonFile.Close()
+	input := &struct {
+		ComponentDefinition *oscaltypes113.ComponentDefinition `json:"component-definition"`
+	}{}
+
+	err = json.NewDecoder(jsonFile).Decode(input)
+	if err != nil {
+		return err
+	}
+
+	// First, the catalog
+	def := &relational.ComponentDefinition{}
+	def.UnmarshalOscal(*input.ComponentDefinition)
+	out := db.Create(def)
+	if out.Error != nil {
+		return out.Error
+	}
+
+	return nil
+}
+
+func LoadCatalogDataFromJSON(db *gorm.DB, jsonPath string) error {
+	jsonFile, err := os.Open(jsonPath)
+	// if we os.Open returns an error then handle it
+	if err != nil {
+		return err
+	}
+	fmt.Println("Successfully Opened Catalog")
+	// defer the closing of our jsonFile so that we can parse it later on
+	defer jsonFile.Close()
+
+	input := &struct {
+		Catalog *oscaltypes113.Catalog
+	}{}
+	err = json.NewDecoder(jsonFile).Decode(input)
+	if err != nil {
+		return err
+	}
+
+	// First, the catalog
+	catalog := &relational.Catalog{}
+	catalog.UnmarshalOscal(*input.Catalog)
+	out := db.Create(catalog)
+	if out.Error != nil {
+		return out.Error
+	}
+
+	return nil
+}
