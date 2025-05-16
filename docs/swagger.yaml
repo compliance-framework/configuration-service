@@ -2066,6 +2066,38 @@ paths:
       summary: Search findings grouped by subject
       tags:
       - Findings
+  /findings/by-component/{component_id}:
+    get:
+      summary: Get findings by component ID
+      description: Fetches all findings that share the same component ID.
+      tags:
+        - Findings
+      parameters:
+        - name: component_id
+          in: path
+          required: true
+          description: Component ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/handler.GenericDataListResponse-service_Finding'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.Error'
   /groups/catalog/{catalog}:
     get:
       description: Retrieves catalog groups that belong to a catalog, identified by
@@ -3053,6 +3085,23 @@ paths:
       summary: Update a subject's title and/or remarks
       tags:
       - Subjects
+  /components:
+    get:
+      summary: List all component IDs
+      description: Retrieves all component IDs from the components table.
+      tags:
+        - Components
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-string'
+        '500':
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
 produces:
 - application/json
 swagger: "2.0"
