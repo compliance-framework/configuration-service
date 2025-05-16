@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/compliance-framework/configuration-service/internal/service/relational"
 	"github.com/google/uuid"
-	"github.com/labstack/gommon/log"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"strings"
@@ -23,14 +22,50 @@ func main() {
 		panic(err)
 	}
 
-	log.Info("Found catalog: ", profile.ID.String())
+	//log.Info("Found catalog: ", profile.ID.String())
 
 	catalog := NewCatalog()
-	log.Info("New catalog: ", catalog.ID.String())
+	//log.Info("New catalog: ", catalog.ID.String())
 
 	//var foundCatalog relational.Catalog
 	//var controlIds []string
 	var allControls []relational.Control
+
+	allControls = Resolve(profile, db, allControls)
+
+	catalog.Metadata = profile.Metadata
+	catalog.Controls = append(catalog.Controls, allControls...)
+
+	outputJson, err := json.Marshal(catalog.MarshalOscal())
+	fmt.Println(string(outputJson))
+}
+
+func findPartRecursive(parts []relational.Part, targetID string) *relational.Part {
+	for i := range parts {
+		if parts[i].ID == targetID {
+			return &parts[i]
+		}
+		if strings.HasPrefix(targetID, parts[i].ID) {
+			if p := findPartRecursive(parts[i].Parts, targetID); p != nil {
+				return p
+			}
+		}
+	}
+	return nil
+}
+
+func Resolve(profile *relational.Profile, db *gorm.DB, allControls []relational.Control) []relational.Control {
+
+	setParams := map[string]relational.ParameterSetting{}
+	additions := map[string][]relational.Addition{}
+
+	for _, updateParam := range profile.Modify.SetParameters {
+		setParams[updateParam.ParamID] = updateParam
+	}
+
+	for _, alteration := range profile.Modify.Alters {
+		additions[alteration.ControlID] = alteration.Adds
+	}
 
 	for _, imports := range profile.Imports {
 		var controls []relational.Control
@@ -44,15 +79,68 @@ func main() {
 			panic(err)
 		}
 
+		for i, control := range controls {
+
+			// Set Params
+			for j, param := range control.Params {
+				setParam, ok := setParams[param.ID]
+				if !ok {
+					continue
+				}
+
+				param.Constraints = setParam.Constraints
+				control.Params[j] = param
+			}
+
+			additionsList, ok := additions[control.ID]
+			if ok {
+				for _, addition := range additionsList {
+					if control.ID == addition.ByID {
+						if addition.Title != "" {
+							control.Title = addition.Title
+						}
+						if addition.Props != nil {
+							control.Props = append(control.Props, addition.Props...)
+						}
+
+						if addition.Params != nil {
+							control.Params = append(control.Params, addition.Params...)
+						}
+
+						if addition.Links != nil {
+							control.Links = append(control.Links, addition.Links...)
+						}
+
+						if addition.Parts != nil {
+							control.Parts = append(control.Parts, addition.Parts...)
+						}
+					} else {
+						part := findPartRecursive(control.Parts, addition.ByID)
+						if part != nil {
+							if addition.Title != "" {
+								part.Title = addition.Title
+							}
+							if addition.Props != nil {
+								part.Props = append(part.Props, addition.Props...)
+							}
+							if addition.Links != nil {
+								part.Links = append(part.Links, addition.Links...)
+							}
+							if addition.Parts != nil {
+								part.Parts = append(part.Parts, addition.Parts...)
+							}
+						}
+					}
+				}
+			}
+
+			controls[i] = control
+		}
+
 		allControls = append(allControls, controls...)
 
 	}
-
-	catalog.Metadata = profile.Metadata
-	catalog.Controls = append(catalog.Controls, allControls...)
-
-	outputJson, err := json.Marshal(catalog.MarshalOscal())
-	fmt.Println(string(outputJson))
+	return allControls
 }
 
 func FindOscalCatalogFromBackMatter(profile *relational.Profile, ref string) (uuid.UUID, error) {
@@ -105,6 +193,7 @@ func FindProfile(db *gorm.DB, profileId string) (*relational.Profile, error) {
 		Preload("Modify").
 		Preload("Modify.SetParameters").
 		Preload("Modify.Alters").
+		Preload("Modify.Alters.Adds").
 		Preload("BackMatter").
 		Preload("BackMatter.Resources").
 		Find(&profile, "id = ?", id).Error; err != nil {
