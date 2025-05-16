@@ -2238,18 +2238,18 @@
         },
         "/oscal/component-definitions/{id}/back-matter": {
             "get": {
-                "description": "Retrieves the back-matter for a given Catalog.",
+                "description": "Retrieves the back-matter for a given Component Definition.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Oscal"
                 ],
-                "summary": "Get back-matter for a Catalog",
+                "summary": "Get back-matter for a Component Definition",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Catalog ID",
+                        "description": "Component Definition ID",
                         "name": "id",
                         "in": "path",
                         "required": true
