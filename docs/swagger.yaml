@@ -3279,9 +3279,9 @@ paths:
       - Oscal
   /oscal/component-definitions/{id}/back-matter:
     get:
-      description: Retrieves the back-matter for a given Catalog.
+      description: Retrieves the back-matter for a given Component Definition.
       parameters:
-      - description: Catalog ID
+      - description: Component Definition ID
         in: path
         name: id
         required: true
@@ -3305,7 +3305,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.Error'
-      summary: Get back-matter for a Catalog
+      summary: Get back-matter for a Component Definition
       tags:
       - Oscal
   /oscal/component-definitions/{id}/capabilities:
