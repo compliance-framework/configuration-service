@@ -2175,6 +2175,54 @@ const docTemplate = `{
                 }
             }
         },
+        "/oscal/profiles/{id}/resolve": {
+            "post": {
+                "description": "Resolves a Profiled identified by the \"profile ID\" param and stores a new catalog in the database",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Oscal",
+                    "Profiles"
+                ],
+                "summary": "Resolves a Profile as a stored catalog",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Profile ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscal_ProfileHandler"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/oscal/ssp/{id}/back-matter": {
             "get": {
                 "description": "Retrieves the back-matter for a given System Security Plan by the specified param ID in the path",
@@ -2694,6 +2742,19 @@ const docTemplate = `{
                 }
             }
         },
+        "handler.GenericDataResponse-oscal_ProfileHandler": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Items from the list response",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/oscal.ProfileHandler"
+                        }
+                    ]
+                }
+            }
+        },
         "handler.GenericDataResponse-service_Catalog": {
             "type": "object",
             "properties": {
@@ -2878,6 +2939,9 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "oscal.ProfileHandler": {
+            "type": "object"
         },
         "oscalTypes_1_1_3.Action": {
             "type": "object",

@@ -158,6 +158,13 @@ definitions:
         - $ref: '#/definitions/oscal.Get.responseCatalog'
         description: Items from the list response
     type: object
+  handler.GenericDataResponse-oscal_ProfileHandler:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/oscal.ProfileHandler'
+        description: Items from the list response
+    type: object
   handler.GenericDataResponse-oscalTypes_1_1_3_BackMatter:
     properties:
       data:
@@ -307,6 +314,8 @@ definitions:
         $ref: '#/definitions/oscalTypes_1_1_3.Metadata'
       uuid:
         type: string
+    type: object
+  oscal.ProfileHandler:
     type: object
   oscalTypes_1_1_3.Action:
     properties:
@@ -2960,6 +2969,39 @@ paths:
           schema:
             $ref: '#/definitions/api.Error'
       summary: Get Profile
+      tags:
+      - Oscal
+      - Profiles
+  /oscal/profiles/{id}/resolve:
+    post:
+      description: Resolves a Profiled identified by the "profile ID" param and stores
+        a new catalog in the database
+      parameters:
+      - description: Profile ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscal_ProfileHandler'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Resolves a Profile as a stored catalog
       tags:
       - Oscal
       - Profiles
