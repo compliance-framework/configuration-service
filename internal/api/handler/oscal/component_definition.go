@@ -189,11 +189,11 @@ func (h *ComponentDefinitionHandler) Update(ctx echo.Context) error {
 
 // GetBackMatter godoc
 //
-//	@Summary		Get back-matter for a Catalog
-//	@Description	Retrieves the back-matter for a given Catalog.
+//	@Summary		Get back-matter for a Component Definition
+//	@Description	Retrieves the back-matter for a given Component Definition.
 //	@Tags			Oscal
 //	@Produce		json
-//	@Param			id	path		string	true	"Catalog ID"
+//	@Param			id	path		string	true	"Component Definition ID"
 //	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]
 //	@Failure		400	{object}	api.Error
 //	@Failure		404	{object}	api.Error
