@@ -40,7 +40,7 @@ func (h *ProfileHandler) Register(api *echo.Group) {
 //	@Description	Retrieves all OSCAL profiles
 //	@Tags			Oscal, Profiles
 //	@Produce		json
-//	@Success		200	{object}	handler.GenericDataListResponse[oscal.List.response]
+//	@Success		200	{object}	handler.GenericDataListResponse[oscal.ProfileHandler.List.response]
 //	@Failure		400	{object}	api.Error
 //	@Failure		500	{object}	api.Error
 //	@Router			/oscal/profiles [get]
@@ -78,7 +78,7 @@ func (h *ProfileHandler) List(ctx echo.Context) error {
 //	@Tags			Oscal, Profiles
 //	@Param			id	path	string	true	"Profile ID"
 //	@Produce		json
-//	@Success		200	{object}	handler.GenericDataResponse[oscal.Get.response]
+//	@Success		200	{object}	handler.GenericDataResponse[oscal.ProfileHandler.Get.response]
 //	@Failure		404	{object}	api.Error
 //	@Failure		400	{object}	api.Error
 //	@Failure		500	{object}	api.Error
@@ -118,6 +118,18 @@ func (h *ProfileHandler) Get(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[response]{Data: responseProfile})
 }
 
+// ListImports godoc
+//
+//	@Summary		List Imports
+//	@Description	List imports for a specific profile
+//	@Tags			Oscal, Profiles
+//	@Param			id	path	string	true	"Profile ID"
+//	@Produce		json
+//	@Success		200	{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.Import]
+//	@Failure		404	{object}	api.Error
+//	@Failure		400	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/profiles/{id}/imports [get]
 func (h *ProfileHandler) ListImports(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -145,6 +157,18 @@ func (h *ProfileHandler) ListImports(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.Import]{Data: imports})
 }
 
+// GetBackmatter godoc
+//
+//	@Summary		Get Backmatter
+//	@Description	Get the BackMatter for a specific profile
+//	@Tags			Oscal, Profiles
+//	@Param			id	path	string	true	"Profile ID"
+//	@Produce		json
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]
+//	@Failure		404	{object}	api.Error
+//	@Failure		400	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/profiles/{id}/back-matter [get]
 func (h *ProfileHandler) GetBackmatter(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
