@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/compliance-framework/configuration-service/internal/service/relational"
@@ -17,21 +16,45 @@ func main() {
 		panic("failed to connect database")
 	}
 
-	profile, err := FindProfile(db, "512149a6-7f04-4c01-bb1b-78eafd6a950d")
+	profile, err := FindFullProfile(db, "512149a6-7f04-4c01-bb1b-78eafd6a950d")
 	if err != nil {
 		panic(err)
 	}
 
 	catalog := NewCatalog()
-	var allControls []relational.Control
 
-	allControls = ResolveControls(profile, db, allControls)
+	catalogUUids, allControls := ResolveControls(profile, db)
+	fmt.Println(catalogUUids)
 
 	catalog.Metadata = profile.Metadata
 	catalog.Controls = append(catalog.Controls, allControls...)
 
-	outputJson, err := json.Marshal(catalog.MarshalOscal())
-	fmt.Println(string(outputJson))
+	backmatters, err := GetCatalogBackmatter(db, catalogUUids)
+	if err != nil {
+		panic(err)
+	}
+
+	catalog.BackMatter = CombineBackmatter(backmatters)
+
+	//outputJson, err := json.Marshal(catalog.MarshalOscal())
+	//fmt.Println(string(outputJson))
+}
+
+func CombineBackmatter(backmatters *[]relational.BackMatter) *relational.BackMatter {
+	backmatter := relational.BackMatter{}
+	fmt.Println("length of backnatters", len(*backmatters))
+	for _, data := range *backmatters {
+		backmatter.Resources = append(backmatter.Resources, data.Resources...)
+	}
+	return &backmatter
+}
+
+func GetCatalogBackmatter(db *gorm.DB, uuids []uuid.UUID) (*[]relational.BackMatter, error) {
+	var backmatters *[]relational.BackMatter
+	if err := db.Preload("Resources").Find(&backmatters, "parent_id IN ? AND parent_type = 'catalogs'", uuids).Error; err != nil {
+		return nil, err
+	}
+	return backmatters, nil
 }
 
 func findPartRecursive(parts []relational.Part, targetID string) *relational.Part {
@@ -159,7 +182,7 @@ func applyAdditionsToControl(ctrl *relational.Control, addition relational.Addit
 }
 
 // processImport loads controls for an import and applies all updates.
-func processImport(db *gorm.DB, profile *relational.Profile, imp relational.Import, setParams map[string]relational.ParameterSetting, additions map[string][]relational.Addition) []relational.Control {
+func processImport(db *gorm.DB, profile *relational.Profile, imp relational.Import, setParams map[string]relational.ParameterSetting, additions map[string][]relational.Addition) (uuid.UUID, []relational.Control) {
 	ids := GatherControlIds(imp)
 	catalogID, err := FindOscalCatalogFromBackMatter(profile, imp.Href)
 	if err != nil {
@@ -177,19 +200,24 @@ func processImport(db *gorm.DB, profile *relational.Profile, imp relational.Impo
 			controls[i] = applyAdditions(controls[i], list)
 		}
 	}
-	return controls
+	return catalogID, controls
 }
 
-func ResolveControls(profile *relational.Profile, db *gorm.DB, allControls []relational.Control) []relational.Control {
+func ResolveControls(profile *relational.Profile, db *gorm.DB) ([]uuid.UUID, []relational.Control) {
 	setParams := buildSetParams(profile.Modify.SetParameters)
 	additions := buildAdditions(profile.Modify.Alters)
 
-	for _, imp := range profile.Imports {
-		processed := processImport(db, profile, imp, setParams, additions)
+	var allControls []relational.Control
+
+	uuids := make([]uuid.UUID, len(profile.Imports))
+
+	for i, imp := range profile.Imports {
+		uuid, processed := processImport(db, profile, imp, setParams, additions)
 		allControls = append(allControls, processed...)
+		uuids[i] = uuid
 	}
 
-	return allControls
+	return uuids, allControls
 }
 
 func FindOscalCatalogFromBackMatter(profile *relational.Profile, ref string) (uuid.UUID, error) {
@@ -225,7 +253,7 @@ func GatherControlIds(imports relational.Import) []string {
 	return controlIds
 }
 
-func FindProfile(db *gorm.DB, profileId string) (*relational.Profile, error) {
+func FindFullProfile(db *gorm.DB, profileId string) (*relational.Profile, error) {
 	id, err := uuid.Parse(profileId)
 	if err != nil {
 		return nil, err
