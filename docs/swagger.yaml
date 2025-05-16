@@ -32,6 +32,14 @@ definitions:
           $ref: '#/definitions/oscal.List.responseComponentDefinition'
         type: array
     type: object
+  handler.GenericDataListResponse-oscal_ProfileHandler:
+    properties:
+      data:
+        description: Items from the list response
+        items:
+          $ref: '#/definitions/oscal.ProfileHandler'
+        type: array
+    type: object
   handler.GenericDataListResponse-oscalTypes_1_1_3_Control:
     properties:
       data:
@@ -46,6 +54,14 @@ definitions:
         description: Items from the list response
         items:
           $ref: '#/definitions/oscalTypes_1_1_3.Group'
+        type: array
+    type: object
+  handler.GenericDataListResponse-oscalTypes_1_1_3_Import:
+    properties:
+      data:
+        description: Items from the list response
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Import'
         type: array
     type: object
   handler.GenericDataListResponse-service_Catalog:
@@ -156,6 +172,13 @@ definitions:
       data:
         allOf:
         - $ref: '#/definitions/oscal.Get.responseCatalog'
+        description: Items from the list response
+    type: object
+  handler.GenericDataResponse-oscal_ProfileHandler:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/oscal.ProfileHandler'
         description: Items from the list response
     type: object
   handler.GenericDataResponse-oscalTypes_1_1_3_BackMatter:
@@ -307,6 +330,8 @@ definitions:
         $ref: '#/definitions/oscalTypes_1_1_3.Metadata'
       uuid:
         type: string
+    type: object
+  oscal.ProfileHandler:
     type: object
   oscalTypes_1_1_3.Action:
     properties:
@@ -557,6 +582,24 @@ definitions:
       selected:
         type: string
     type: object
+  oscalTypes_1_1_3.Import:
+    properties:
+      exclude-controls:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.SelectControlById'
+        type: array
+      href:
+        type: string
+      include-all:
+        $ref: '#/definitions/oscalTypes_1_1_3.IncludeAll'
+      include-controls:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.SelectControlById'
+        type: array
+    type: object
+  oscalTypes_1_1_3.IncludeAll:
+    additionalProperties: true
+    type: object
   oscalTypes_1_1_3.InformationType:
     properties:
       availability-impact:
@@ -635,6 +678,11 @@ definitions:
           type: string
         type: array
       uuid:
+        type: string
+    type: object
+  oscalTypes_1_1_3.Matching:
+    properties:
+      pattern:
         type: string
     type: object
   oscalTypes_1_1_3.Metadata:
@@ -972,6 +1020,19 @@ definitions:
         type: string
       security-objective-integrity:
         type: string
+    type: object
+  oscalTypes_1_1_3.SelectControlById:
+    properties:
+      matching:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Matching'
+        type: array
+      with-child-controls:
+        type: string
+      with-ids:
+        items:
+          type: string
+        type: array
     type: object
   oscalTypes_1_1_3.Status:
     properties:
@@ -2909,6 +2970,157 @@ paths:
       summary: List component definitions
       tags:
       - Oscal
+  /oscal/profiles:
+    get:
+      description: Retrieves all OSCAL profiles
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscal_ProfileHandler'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: List Profiles
+      tags:
+      - Oscal
+      - Profiles
+  /oscal/profiles/{id}:
+    get:
+      description: Get an OSCAL profile with the uuid provided
+      parameters:
+      - description: Profile ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscal_ProfileHandler'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Get Profile
+      tags:
+      - Oscal
+      - Profiles
+  /oscal/profiles/{id}/back-matter:
+    get:
+      description: Get the BackMatter for a specific profile
+      parameters:
+      - description: Profile ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_BackMatter'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Get Backmatter
+      tags:
+      - Oscal
+      - Profiles
+  /oscal/profiles/{id}/imports:
+    get:
+      description: List imports for a specific profile
+      parameters:
+      - description: Profile ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_Import'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: List Imports
+      tags:
+      - Oscal
+      - Profiles
+  /oscal/profiles/{id}/resolve:
+    post:
+      description: Resolves a Profiled identified by the "profile ID" param and stores
+        a new catalog in the database
+      parameters:
+      - description: Profile ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscal_ProfileHandler'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Resolves a Profile as a stored catalog
+      tags:
+      - Oscal
+      - Profiles
   /oscal/ssp/{id}/back-matter:
     get:
       description: Retrieves the back-matter for a given System Security Plan by the
