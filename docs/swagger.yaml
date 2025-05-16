@@ -209,6 +209,13 @@ definitions:
         - $ref: '#/definitions/oscalTypes_1_1_3.Control'
         description: Items from the list response
     type: object
+  handler.GenericDataResponse-oscalTypes_1_1_3_DefinedComponent:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/oscalTypes_1_1_3.DefinedComponent'
+        description: Items from the list response
+    type: object
   handler.GenericDataResponse-oscalTypes_1_1_3_Group:
     properties:
       data:
@@ -3361,6 +3368,42 @@ paths:
           schema:
             $ref: '#/definitions/api.Error'
       summary: Get components for a component definition
+      tags:
+      - Oscal
+  /oscal/component-definitions/{id}/components/{defined-component}:
+    get:
+      description: Retrieves a defined component for a given component definition.
+      parameters:
+      - description: Component Definition ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Defined Component ID
+        in: path
+        name: defined-component
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_DefinedComponent'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Get a defined component for a component definition
       tags:
       - Oscal
   /oscal/component-definitions/{id}/full:
