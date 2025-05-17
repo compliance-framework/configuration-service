@@ -43,14 +43,14 @@ func (h *SystemSecurityPlanHandler) Register(api *echo.Group) {
 
 // List godoc
 //
-// @Summary List System Security Plans
-// @Description Retrieves all System Security Plans.
-// @Tags Oscal
-// @Produce json
-// @Success 200 {object} handler.GenericDataListResponse[oscalTypes_1_1_3.SystemSecurityPlan]
-// @Failure 400 {object} api.Error
-// @Failure 500 {object} api.Error
-// @Router /oscal/system-security-plans [get]
+//	@Summary		List System Security Plans
+//	@Description	Retrieves all System Security Plans.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Success		200	{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.SystemSecurityPlan]
+//	@Failure		400	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/system-security-plans [get]
 func (h *SystemSecurityPlanHandler) List(ctx echo.Context) error {
 	type response struct {
 		UUID     uuid.UUID                 `json:"uuid"`
@@ -77,16 +77,16 @@ func (h *SystemSecurityPlanHandler) List(ctx echo.Context) error {
 
 // Get godoc
 //
-// @Summary Get a System Security Plan
-// @Description Retrieves a single System Security Plan by its unique ID.
-// @Tags Oscal
-// @Produce json
-// @Param id path string true "System Security Plan ID"
-// @Success 200 {object} handler.GenericDataResponse[*oscalTypes_1_1_3.SystemSecurityPlan]
-// @Failure 400 {object} api.Error
-// @Failure 404 {object} api.Error
-// @Failure 500 {object} api.Error
-// @Router /oscal/system-security-plans/{id} [get]
+//	@Summary		Get a System Security Plan
+//	@Description	Retrieves a single System Security Plan by its unique ID.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id	path		string	true	"System Security Plan ID"
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.SystemSecurityPlan]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/system-security-plans/{id} [get]
 func (h *SystemSecurityPlanHandler) Get(ctx echo.Context) error {
 	type response struct {
 		UUID     uuid.UUID                 `json:"uuid"`
@@ -117,16 +117,16 @@ func (h *SystemSecurityPlanHandler) Get(ctx echo.Context) error {
 
 // GetCharacteristics godoc
 //
-// @Summary Get System Characteristics
-// @Description Retrieves the System Characteristics for a given System Security Plan.
-// @Tags Oscal
-// @Produce json
-// @Param id path string true "System Security Plan ID"
-// @Success 200 {object} handler.GenericDataResponse[oscalTypes_1_1_3.SystemCharacteristics]
-// @Failure 400 {object} api.Error
-// @Failure 404 {object} api.Error
-// @Failure 500 {object} api.Error
-// @Router /oscal/system-security-plans/{id}/system-characteristics [get]
+//	@Summary		Get System Characteristics
+//	@Description	Retrieves the System Characteristics for a given System Security Plan.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id	path		string	true	"System Security Plan ID"
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.SystemCharacteristics]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/system-security-plans/{id}/system-characteristics [get]
 func (h *SystemSecurityPlanHandler) GetCharacteristics(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -151,16 +151,16 @@ func (h *SystemSecurityPlanHandler) GetCharacteristics(ctx echo.Context) error {
 
 // GetCharacteristicsNetworkArchitecture godoc
 //
-// @Summary Get Network Architecture
-// @Description Retrieves the Network Architecture for a given System Security Plan.
-// @Tags Oscal
-// @Produce json
-// @Param id path string true "System Security Plan ID"
-// @Success 200 {object} handler.GenericDataResponse[*oscalTypes_1_1_3.NetworkArchitecture]
-// @Failure 400 {object} api.Error
-// @Failure 404 {object} api.Error
-// @Failure 500 {object} api.Error
-// @Router /oscal/system-security-plans/{id}/system-characteristics/network-architecture [get]
+//	@Summary		Get Network Architecture
+//	@Description	Retrieves the Network Architecture for a given System Security Plan.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id	path		string	true	"System Security Plan ID"
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.NetworkArchitecture]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/system-security-plans/{id}/system-characteristics/network-architecture [get]
 func (h *SystemSecurityPlanHandler) GetCharacteristicsNetworkArchitecture(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -188,19 +188,19 @@ func (h *SystemSecurityPlanHandler) GetCharacteristicsNetworkArchitecture(ctx ec
 
 // UpdateCharacteristicsNetworkArchitectureDiagram godoc
 //
-// @Summary Update a Network Architecture Diagram
-// @Description Updates a specific Diagram under the Network Architecture of a System Security Plan.
-// @Tags Oscal
-// @Accept json
-// @Produce json
-// @Param id path string true "System Security Plan ID"
-// @Param diagram path string true "Diagram ID"
-// @Param diagram body oscalTypes_1_1_3.Diagram true "Updated Diagram object"
-// @Success 200 {object} handler.GenericDataResponse[*oscalTypes_1_1_3.Diagram]
-// @Failure 400 {object} api.Error
-// @Failure 404 {object} api.Error
-// @Failure 500 {object} api.Error
-// @Router /oscal/system-security-plans/{id}/system-characteristics/network-architecture/diagrams/{diagram} [put]
+//	@Summary		Update a Network Architecture Diagram
+//	@Description	Updates a specific Diagram under the Network Architecture of a System Security Plan.
+//	@Tags			Oscal
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string						true	"System Security Plan ID"
+//	@Param			diagram	path		string						true	"Diagram ID"
+//	@Param			diagram	body		oscalTypes_1_1_3.Diagram	true	"Updated Diagram object"
+//	@Success		200		{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Diagram]
+//	@Failure		400		{object}	api.Error
+//	@Failure		404		{object}	api.Error
+//	@Failure		500		{object}	api.Error
+//	@Router			/oscal/system-security-plans/{id}/system-characteristics/network-architecture/diagrams/{diagram} [put]
 func (h *SystemSecurityPlanHandler) UpdateCharacteristicsNetworkArchitectureDiagram(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	planID, err := uuid.Parse(idParam)
@@ -260,16 +260,16 @@ func (h *SystemSecurityPlanHandler) UpdateCharacteristicsNetworkArchitectureDiag
 
 // GetCharacteristicsDataFlow godoc
 //
-// @Summary Get Data Flow
-// @Description Retrieves the Data Flow for a given System Security Plan.
-// @Tags Oscal
-// @Produce json
-// @Param id path string true "System Security Plan ID"
-// @Success 200 {object} handler.GenericDataResponse[*oscalTypes_1_1_3.DataFlow]
-// @Failure 400 {object} api.Error
-// @Failure 404 {object} api.Error
-// @Failure 500 {object} api.Error
-// @Router /oscal/system-security-plans/{id}/system-characteristics/data-flow [get]
+//	@Summary		Get Data Flow
+//	@Description	Retrieves the Data Flow for a given System Security Plan.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id	path		string	true	"System Security Plan ID"
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.DataFlow]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/system-security-plans/{id}/system-characteristics/data-flow [get]
 func (h *SystemSecurityPlanHandler) GetCharacteristicsDataFlow(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -297,19 +297,19 @@ func (h *SystemSecurityPlanHandler) GetCharacteristicsDataFlow(ctx echo.Context)
 
 // UpdateCharacteristicsDataFlowDiagram godoc
 //
-// @Summary Update a Data Flow Diagram
-// @Description Updates a specific Diagram under the Data Flow of a System Security Plan.
-// @Tags Oscal
-// @Accept json
-// @Produce json
-// @Param id path string true "System Security Plan ID"
-// @Param diagram path string true "Diagram ID"
-// @Param diagram body oscalTypes_1_1_3.Diagram true "Updated Diagram object"
-// @Success 200 {object} handler.GenericDataResponse[*oscalTypes_1_1_3.Diagram]
-// @Failure 400 {object} api.Error
-// @Failure 404 {object} api.Error
-// @Failure 500 {object} api.Error
-// @Router /oscal/system-security-plans/{id}/system-characteristics/data-flow/diagrams/{diagram} [put]
+//	@Summary		Update a Data Flow Diagram
+//	@Description	Updates a specific Diagram under the Data Flow of a System Security Plan.
+//	@Tags			Oscal
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string						true	"System Security Plan ID"
+//	@Param			diagram	path		string						true	"Diagram ID"
+//	@Param			diagram	body		oscalTypes_1_1_3.Diagram	true	"Updated Diagram object"
+//	@Success		200		{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Diagram]
+//	@Failure		400		{object}	api.Error
+//	@Failure		404		{object}	api.Error
+//	@Failure		500		{object}	api.Error
+//	@Router			/oscal/system-security-plans/{id}/system-characteristics/data-flow/diagrams/{diagram} [put]
 func (h *SystemSecurityPlanHandler) UpdateCharacteristicsDataFlowDiagram(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	planID, err := uuid.Parse(idParam)
@@ -369,16 +369,16 @@ func (h *SystemSecurityPlanHandler) UpdateCharacteristicsDataFlowDiagram(ctx ech
 
 // GetCharacteristicsAuthorizationBoundary godoc
 //
-// @Summary Get Authorization Boundary
-// @Description Retrieves the Authorization Boundary for a given System Security Plan.
-// @Tags Oscal
-// @Produce json
-// @Param id path string true "System Security Plan ID"
-// @Success 200 {object} handler.GenericDataResponse[*oscalTypes_1_1_3.AuthorizationBoundary]
-// @Failure 400 {object} api.Error
-// @Failure 404 {object} api.Error
-// @Failure 500 {object} api.Error
-// @Router /oscal/system-security-plans/{id}/system-characteristics/authorization-boundary [get]
+//	@Summary		Get Authorization Boundary
+//	@Description	Retrieves the Authorization Boundary for a given System Security Plan.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id	path		string	true	"System Security Plan ID"
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.AuthorizationBoundary]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/system-security-plans/{id}/system-characteristics/authorization-boundary [get]
 func (h *SystemSecurityPlanHandler) GetCharacteristicsAuthorizationBoundary(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -406,19 +406,19 @@ func (h *SystemSecurityPlanHandler) GetCharacteristicsAuthorizationBoundary(ctx 
 
 // UpdateCharacteristicsAuthorizationBoundaryDiagram godoc
 //
-// @Summary Update an Authorization Boundary Diagram
-// @Description Updates a specific Diagram under the Authorization Boundary of a System Security Plan.
-// @Tags Oscal
-// @Accept json
-// @Produce json
-// @Param id path string true "System Security Plan ID"
-// @Param diagram path string true "Diagram ID"
-// @Param diagram body oscalTypes_1_1_3.Diagram true "Updated Diagram object"
-// @Success 200 {object} handler.GenericDataResponse[*oscalTypes_1_1_3.Diagram]
-// @Failure 400 {object} api.Error
-// @Failure 404 {object} api.Error
-// @Failure 500 {object} api.Error
-// @Router /oscal/system-security-plans/{id}/system-characteristics/authorization-boundary/diagrams/{diagram} [put]
+//	@Summary		Update an Authorization Boundary Diagram
+//	@Description	Updates a specific Diagram under the Authorization Boundary of a System Security Plan.
+//	@Tags			Oscal
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string						true	"System Security Plan ID"
+//	@Param			diagram	path		string						true	"Diagram ID"
+//	@Param			diagram	body		oscalTypes_1_1_3.Diagram	true	"Updated Diagram object"
+//	@Success		200		{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Diagram]
+//	@Failure		400		{object}	api.Error
+//	@Failure		404		{object}	api.Error
+//	@Failure		500		{object}	api.Error
+//	@Router			/oscal/system-security-plans/{id}/system-characteristics/authorization-boundary/diagrams/{diagram} [put]
 func (h *SystemSecurityPlanHandler) UpdateCharacteristicsAuthorizationBoundaryDiagram(ctx echo.Context) error {
 
 	// This is ugly for now, but it's safe and it works.
@@ -482,18 +482,18 @@ func (h *SystemSecurityPlanHandler) UpdateCharacteristicsAuthorizationBoundaryDi
 
 // UpdateCharacteristics godoc
 //
-// @Summary Update System Characteristics
-// @Description Updates the System Characteristics for a given System Security Plan.
-// @Tags Oscal
-// @Accept json
-// @Produce json
-// @Param id path string true "System Security Plan ID"
-// @Param characteristics body oscalTypes_1_1_3.SystemCharacteristics true "Updated System Characteristics object"
-// @Success 200 {object} handler.GenericDataResponse[oscalTypes_1_1_3.SystemCharacteristics]
-// @Failure 400 {object} api.Error
-// @Failure 404 {object} api.Error
-// @Failure 500 {object} api.Error
-// @Router /oscal/system-security-plans/{id}/system-characteristics [put]
+//	@Summary		Update System Characteristics
+//	@Description	Updates the System Characteristics for a given System Security Plan.
+//	@Tags			Oscal
+//	@Accept			json
+//	@Produce		json
+//	@Param			id				path		string									true	"System Security Plan ID"
+//	@Param			characteristics	body		oscalTypes_1_1_3.SystemCharacteristics	true	"Updated System Characteristics object"
+//	@Success		200				{object}	handler.GenericDataResponse[oscalTypes_1_1_3.SystemCharacteristics]
+//	@Failure		400				{object}	api.Error
+//	@Failure		404				{object}	api.Error
+//	@Failure		500				{object}	api.Error
+//	@Router			/oscal/system-security-plans/{id}/system-characteristics [put]
 func (h *SystemSecurityPlanHandler) UpdateCharacteristics(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
