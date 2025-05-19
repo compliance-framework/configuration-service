@@ -231,6 +231,19 @@ func (h *ProfileHandler) Resolve(ctx echo.Context) error {
 	now := time.Now()
 	catalog.Metadata = profile.Metadata
 	catalog.Metadata.LastModified = &now
+
+	generatedProps := []relational.Prop{
+		{
+			Name:  "generated_profile_title",
+			Value: profile.Metadata.Title,
+		},
+		{
+			Name:  "generated_profile_uuid",
+			Value: idParam,
+		},
+	}
+	catalog.Metadata.Props = append(catalog.Metadata.Props, generatedProps...)
+
 	catalog.Controls = append(catalog.Controls, *allControls...)
 
 	backmatters, err := GetCatalogBackmatter(h.db, catalogUUids)
