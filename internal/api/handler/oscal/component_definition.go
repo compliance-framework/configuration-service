@@ -557,6 +557,7 @@ func (h *ComponentDefinitionHandler) GetStatements(ctx echo.Context) error {
 	if err := h.db.
 		Preload("ControlImplementations").
 		Preload("ControlImplementations.ImplementedRequirements").
+		Preload("ControlImplementations.ImplementedRequirements.Statements").
 		First(&definedComponent, "id = ?", definedComponentID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
