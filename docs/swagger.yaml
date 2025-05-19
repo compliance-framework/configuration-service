@@ -3458,7 +3458,7 @@ paths:
       summary: Get control implementations for a defined component
       tags:
       - Oscal
-  /oscal/component-definitions/{id}/components/{defined-component}/implemented-requirements:
+  /oscal/component-definitions/{id}/components/{defined-component}/control-implementations/implemented-requirements:
     get:
       description: Retrieves all implemented requirements for a given defined component.
       parameters:

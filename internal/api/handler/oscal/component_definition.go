@@ -41,7 +41,7 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.GET("/:id/capabilities", h.GetCapabilities)
 	api.GET("/:id/components/:defined-component", h.GetDefinedComponent)
 	api.GET("/:id/components/:defined-component/control-implementations", h.GetControlImplementations)
-	api.GET("/:id/components/:defined-component/implemented-requirements", h.GetImplementedRequirements)
+	api.GET("/:id/components/:defined-component/control-implementations/implemented-requirements", h.GetImplementedRequirements)
 
 }
 
@@ -481,7 +481,7 @@ func (h *ComponentDefinitionHandler) GetControlImplementations(ctx echo.Context)
 //	@Failure		400					{object}	api.Error
 //	@Failure		404					{object}	api.Error
 //	@Failure		500					{object}	api.Error
-//	@Router			/oscal/component-definitions/{id}/components/{defined-component}/implemented-requirements [get]
+//	@Router			/oscal/component-definitions/{id}/components/{defined-component}/control-implementations/implemented-requirements [get]
 func (h *ComponentDefinitionHandler) GetImplementedRequirements(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
