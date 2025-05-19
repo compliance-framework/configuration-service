@@ -229,7 +229,9 @@ func (h *ProfileHandler) Resolve(ctx echo.Context) error {
 	catalogUUids, allControls := ResolveControls(profile, h.db)
 
 	now := time.Now()
+
 	catalog.Metadata = profile.Metadata
+	catalog.Metadata.UUIDModel = relational.UUIDModel{}
 	catalog.Metadata.LastModified = &now
 
 	generatedProps := []relational.Prop{
@@ -464,14 +466,15 @@ func ResolveControls(profile *relational.Profile, db *gorm.DB) ([]uuid.UUID, *[]
 // FindOscalCatalogFromBackMatter searches the profile’s BackMatter for a resource matching the reference string
 // and returns its catalog UUID if found.
 func FindOscalCatalogFromBackMatter(profile *relational.Profile, ref string) (uuid.UUID, error) {
-	ref = strings.TrimPrefix(ref, "#")
+	id := strings.TrimPrefix(ref, "#")
 
 	resources := profile.BackMatter.Resources
 	for _, resource := range resources {
-		if resource.UUIDModel.ID.String() == ref {
+		if resource.UUIDModel.ID.String() == id {
 			for _, link := range resource.RLinks {
 				if link.MediaType == "application/ccf+oscal+json" {
-					return uuid.Parse(link.Href)
+					hrefUUID := strings.TrimPrefix(link.Href, "#")
+					return uuid.Parse(hrefUUID)
 				}
 			}
 		}
