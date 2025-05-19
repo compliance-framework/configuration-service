@@ -41,6 +41,8 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.GET("/:id/capabilities", h.GetCapabilities)
 	api.GET("/:id/components/:defined-component", h.GetDefinedComponent)
 	api.GET("/:id/components/:defined-component/control-implementations", h.GetControlImplementations)
+	api.GET("/:id/components/:defined-component/implemented-requirements", h.GetImplementedRequirements)
+
 }
 
 // List godoc
@@ -439,7 +441,7 @@ func (h *ComponentDefinitionHandler) GetControlImplementations(ctx echo.Context)
 	// For each control implementation set ID, try to load and marshal it
 	for _, controlImplSetID := range controlImplSetIDs {
 		var controlImplSet relational.ControlImplementationSet
-		
+
 		// Try to get the control implementation set and preload its implemented requirements
 		if err := h.db.
 			Preload("ImplementedRequirements").
@@ -449,7 +451,7 @@ func (h *ComponentDefinitionHandler) GetControlImplementations(ctx echo.Context)
 			h.sugar.Warnw("Failed to load control implementation set", "id", controlImplSetID, "error", err)
 			continue
 		}
-		
+
 		// Try to marshal it to OSCAL format
 		oscalImpl := controlImplSet.MarshalOscal()
 		if oscalImpl != nil {
@@ -461,8 +463,60 @@ func (h *ComponentDefinitionHandler) GetControlImplementations(ctx echo.Context)
 	if oscalControlImplementations == nil {
 		oscalControlImplementations = []oscalTypes_1_1_3.ControlImplementationSet{}
 	}
-	
+
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ControlImplementationSet]{
 		Data: oscalControlImplementations,
 	})
+}
+
+// GetImplementedRequirements godoc
+//
+//	@Summary		Get implemented requirements for a defined component
+//	@Description	Retrieves all implemented requirements for a given defined component.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id					path		string	true	"Component Definition ID"
+//	@Param			defined-component	path		string	true	"Defined Component ID"
+//	@Success		200					{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.ImplementedRequirementControlImplementation]
+//	@Failure		400					{object}	api.Error
+//	@Failure		404					{object}	api.Error
+//	@Failure		500					{object}	api.Error
+//	@Router			/oscal/component-definitions/{id}/components/{defined-component}/implemented-requirements [get]
+func (h *ComponentDefinitionHandler) GetImplementedRequirements(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var componentDefinition relational.ComponentDefinition
+	if err := h.db.First(&componentDefinition, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	definedComponentID := ctx.Param("defined-component")
+	var definedComponent relational.DefinedComponent
+	if err := h.db.
+		Preload("ControlImplementations").
+		Preload("ControlImplementations.ImplementedRequirements").
+		First(&definedComponent, "id = ?", definedComponentID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load defined component", "id", definedComponentID, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var oscalImplementedRequirements []oscalTypes_1_1_3.ImplementedRequirementControlImplementation
+	for _, controlImpl := range definedComponent.ControlImplementations {
+		for _, implementedRequirement := range controlImpl.ImplementedRequirements {
+			oscalImplementedRequirements = append(oscalImplementedRequirements, *implementedRequirement.MarshalOscal())
+		}
+	}
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ImplementedRequirementControlImplementation]{Data: oscalImplementedRequirements})
 }
