@@ -2,6 +2,10 @@ package oscal
 
 import (
 	"errors"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/api/handler"
 	"github.com/compliance-framework/configuration-service/internal/service/relational"
@@ -10,9 +14,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"net/http"
-	"strings"
-	"time"
 )
 
 type ProfileHandler struct {
@@ -110,8 +111,7 @@ func (h *ProfileHandler) Get(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	var responseProfile response
-	responseProfile = response{
+	responseProfile := response{
 		UUID:     *profile.UUIDModel.ID,
 		Metadata: *profile.Metadata.MarshalOscal(),
 	}
@@ -464,9 +464,7 @@ func ResolveControls(profile *relational.Profile, db *gorm.DB) ([]uuid.UUID, *[]
 // FindOscalCatalogFromBackMatter searches the profile’s BackMatter for a resource matching the reference string
 // and returns its catalog UUID if found.
 func FindOscalCatalogFromBackMatter(profile *relational.Profile, ref string) (uuid.UUID, error) {
-	if strings.HasPrefix(ref, "#") {
-		ref = strings.TrimPrefix(ref, "#")
-	}
+	ref = strings.TrimPrefix(ref, "#")
 
 	resources := profile.BackMatter.Resources
 	for _, resource := range resources {
