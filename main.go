@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/api/handler"
@@ -48,6 +49,16 @@ func main() {
 	}
 	sugar := logger.Sugar()
 
+	// Check if database initialization is requested via flag or environment variable
+	var initDB bool
+	flag.BoolVar(&initDB, "init-db", false, "Initialize the database with test data")
+	flag.Parse()
+
+	// Check environment variable if flag is not set
+	if !initDB && os.Getenv("INIT_DB") == "true" {
+		initDB = true
+	}
+
 	config := loadConfig()
 
 	mongoDatabase, err := connectMongo(ctx, options.Client().ApplyURI(config.MongoURI), "cf")
@@ -68,6 +79,15 @@ func main() {
 	err = migrateDB(db)
 	if err != nil {
 		sugar.Fatal("Failed to migrate database", "err", err)
+	}
+
+	// Initialize database with test data if requested
+	if initDB {
+		sugar.Info("Initializing database with test data...")
+		if err := InitLocalDB(); err != nil {
+			sugar.Fatal("Failed to initialize database with test data", "err", err)
+		}
+		sugar.Info("Database initialization completed successfully")
 	}
 
 	oscal.RegisterHandlers(server, sugar, db)
