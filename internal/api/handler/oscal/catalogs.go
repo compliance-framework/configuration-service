@@ -333,7 +333,7 @@ func (h *CatalogHandler) GetGroupSubGroups(ctx echo.Context) error {
 	groupID := ctx.Param("group")
 	var group relational.Group
 	if err := h.db.
-		Preload("Groups").
+		Preload("Groups", "catalog_id = ?", id).
 		Where("id = ? AND catalog_id = ?", groupID, id).
 		First(&group).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
