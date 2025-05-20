@@ -43,6 +43,7 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.GET("/:id/components/:defined-component/control-implementations/implemented-requirements", h.GetImplementedRequirements)
 	api.GET("/:id/components/:defined-component/control-implementations/statements", h.GetStatements)
 	api.GET("/:id/capabilities", h.GetCapabilities)
+	api.GET("/:id/capabilities/incorporates-components", h.GetIncorporatesComponents)
 	api.GET("/:id/back-matter", h.GetBackMatter)
 
 }
@@ -613,4 +614,39 @@ func (h *ComponentDefinitionHandler) GetImportComponentDefinitions(ctx echo.Cont
 		oscalImportComponentDefinitions = append(oscalImportComponentDefinitions, *importComponentDefinition.MarshalOscal())
 	}
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ImportComponentDefinition]{Data: oscalImportComponentDefinitions})
+}
+
+// GetIncorporatesComponents godoc
+//
+//	@Summary		Get incorporates components for a component definition
+//	@Description	Retrieves all incorporates components for a given component definition.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id	path		string	true	"Component Definition ID"
+//	@Success		200	{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.IncorporatesComponent]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/component-definitions/{id}/capabilities/incorporates-components [get]
+func (h *ComponentDefinitionHandler) GetIncorporatesComponents(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var componentDefinition relational.ComponentDefinition
+	if err := h.db.First(&componentDefinition, "id = ?", id).Error; err != nil {
+		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var oscalIncorporatesComponents []oscalTypes_1_1_3.IncorporatesComponent
+	for _, capability := range componentDefinition.Capabilities {
+		for _, component := range capability.IncorporatesComponents {
+			oscalIncorporatesComponents = append(oscalIncorporatesComponents, oscalTypes_1_1_3.IncorporatesComponent(component))
+		}
+	}
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.IncorporatesComponent]{Data: oscalIncorporatesComponents})
 }
