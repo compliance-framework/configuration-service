@@ -372,7 +372,7 @@ func (h *CatalogHandler) GetGroupControls(ctx echo.Context) error {
 	groupID := ctx.Param("group")
 	var group relational.Group
 	if err := h.db.
-		Preload("Controls").
+		Preload("Controls", "catalog_id = ?", id).
 		Where("id = ? AND catalog_id = ?", groupID, id).
 		First(&group).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
