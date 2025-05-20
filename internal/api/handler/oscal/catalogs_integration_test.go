@@ -209,3 +209,94 @@ func (suite *CatalogApiIntegrationSuite) TestDuplicateCatalogControlID() {
 	suite.Len(response.Data, 1)
 	suite.Equal(response.Data[0].Title, "Control 2.1")
 }
+
+// TestDuplicateCatalogChildControlID ensures that when multiple catalogs have control children with the same ID,
+// their children endpoints only returned the relevant controls.
+// This is to prevent a future regression where searching for child controls in a catalog, would return all the controls
+// with a matching ID, rather than only the ones which belong to a catalog.
+func (suite *CatalogApiIntegrationSuite) TestDuplicateCatalogChildControlID() {
+	logger, _ := zap.NewDevelopment()
+
+	err := suite.Migrator.Refresh()
+	suite.Require().NoError(err)
+
+	server := api.NewServer(context.Background(), logger.Sugar())
+	RegisterHandlers(server, logger.Sugar(), suite.DB)
+
+	// Create two catalogs with the same group ID structure
+	catalogs := []oscaltypes.Catalog{
+		{
+			UUID: "D20DB907-B87D-4D12-8760-D36FDB7A1B31",
+			Metadata: oscaltypes.Metadata{
+				Title: "Catalog 1",
+			},
+			Controls: &[]oscaltypes.Control{
+				{
+					ID:    "G-1",
+					Title: "Group 1",
+					Controls: &[]oscaltypes.Control{
+						{
+							ID:    "G-1.1",
+							Title: "Control 1.1",
+						},
+					},
+				},
+			},
+		},
+		{
+			UUID: "D20DB907-B87D-4D12-8760-D36FDB7A1B32",
+			Metadata: oscaltypes.Metadata{
+				Title: "Catalog 2",
+			},
+			Controls: &[]oscaltypes.Control{
+				{
+					ID:    "G-1",
+					Title: "Group 1",
+					Controls: &[]oscaltypes.Control{
+						{
+							ID:    "G-1.1",
+							Title: "Control 2.1",
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, catalog := range catalogs {
+		rec := httptest.NewRecorder()
+		reqBody, _ := json.Marshal(catalog)
+		req := httptest.NewRequest(http.MethodPost, "/api/oscal/catalogs", bytes.NewReader(reqBody))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		server.E().ServeHTTP(rec, req)
+		assert.Equal(suite.T(), http.StatusCreated, rec.Code)
+		response := &handler.GenericDataResponse[oscaltypes.Catalog]{}
+		err = json.Unmarshal(rec.Body.Bytes(), response)
+		suite.Require().NoError(err)
+	}
+
+	// Now if we call to check the children for each catalogs' first group, we should only see 1 item
+
+	// The first catalog's group should have the Title Group 1
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/oscal/catalogs/D20DB907-B87D-4D12-8760-D36FDB7A1B31/controls/G-1/controls", bytes.NewReader([]byte{}))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	server.E().ServeHTTP(rec, req)
+	assert.Equal(suite.T(), http.StatusOK, rec.Code)
+	response := &handler.GenericDataListResponse[oscaltypes.Control]{}
+	err = json.Unmarshal(rec.Body.Bytes(), response)
+	suite.Require().NoError(err)
+	suite.Len(response.Data, 1)
+	suite.Equal(response.Data[0].Title, "Control 1.1")
+
+	// The second catalog's group should have the Title Group 1
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/api/oscal/catalogs/D20DB907-B87D-4D12-8760-D36FDB7A1B32/controls/G-1/controls", bytes.NewReader([]byte{}))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	server.E().ServeHTTP(rec, req)
+	assert.Equal(suite.T(), http.StatusOK, rec.Code)
+	response = &handler.GenericDataListResponse[oscaltypes.Control]{}
+	err = json.Unmarshal(rec.Body.Bytes(), response)
+	suite.Require().NoError(err)
+	suite.Len(response.Data, 1)
+	suite.Equal(response.Data[0].Title, "Control 2.1")
+}
