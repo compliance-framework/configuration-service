@@ -43,7 +43,7 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.GET("/:id/components/:defined-component/control-implementations", h.GetControlImplementations)
 	api.GET("/:id/components/:defined-component/control-implementations/implemented-requirements", h.GetImplementedRequirements)
 	api.GET("/:id/components/:defined-component/control-implementations/statements", h.GetStatements)
-
+	api.GET("/:id/components/:defined-component/import-component-definitions", h.GetImportComponentDefinitions)
 }
 
 // List godoc
@@ -575,4 +575,41 @@ func (h *ComponentDefinitionHandler) GetStatements(ctx echo.Context) error {
 		}
 	}
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ControlStatementImplementation]{Data: oscalStatements})
+}
+
+// GetImportComponentDefinitions godoc
+//
+//	@Summary		Get import component definitions for a defined component
+//	@Description	Retrieves all import component definitions for a given defined component.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id					path		string	true	"Component Definition ID"
+//	@Param			defined-component	path		string	true	"Defined Component ID"
+//	@Success		200					{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.ImportComponentDefinition]
+//	@Failure		400					{object}	api.Error
+//	@Failure		404					{object}	api.Error
+//	@Failure		500					{object}	api.Error
+//	@Router			/oscal/component-definitions/{id}/components/{defined-component}/import-component-definitions [get]
+func (h *ComponentDefinitionHandler) GetImportComponentDefinitions(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var componentDefinition relational.ComponentDefinition
+	if err := h.db.First(&componentDefinition, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var oscalImportComponentDefinitions []oscalTypes_1_1_3.ImportComponentDefinition
+	for _, importComponentDefinition := range componentDefinition.ImportComponentDefinitions {
+		oscalImportComponentDefinitions = append(oscalImportComponentDefinitions, *importComponentDefinition.MarshalOscal())
+	}
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ImportComponentDefinition]{Data: oscalImportComponentDefinitions})
 }
