@@ -107,4 +107,17 @@ func (suite *CatalogApiIntegrationSuite) TestDuplicateCatalogGroupID() {
 	err = json.Unmarshal(rec.Body.Bytes(), response)
 	suite.Require().NoError(err)
 	suite.Len(response.Data, 1)
+	suite.Equal(response.Data[0].Title, "Group 1.1")
+
+	// The second catalog's group should have the Title Group 1
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/api/oscal/catalogs/D20DB907-B87D-4D12-8760-D36FDB7A1B32/groups/G-1/groups", bytes.NewReader([]byte{}))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	server.E().ServeHTTP(rec, req)
+	assert.Equal(suite.T(), http.StatusOK, rec.Code)
+	response = &handler.GenericDataListResponse[oscaltypes.Group]{}
+	err = json.Unmarshal(rec.Body.Bytes(), response)
+	suite.Require().NoError(err)
+	suite.Len(response.Data, 1)
+	suite.Equal(response.Data[0].Title, "Group 2.1")
 }
