@@ -36,14 +36,15 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.GET("/:id", h.Get)
 	api.PUT("/:id", h.Update)
 	api.GET("/:id/full", h.Full)
-	api.GET("/:id/back-matter", h.GetBackMatter)
+	api.GET("/:id/import-component-definitions", h.GetImportComponentDefinitions)
 	api.GET("/:id/components", h.GetComponents)
-	api.GET("/:id/capabilities", h.GetCapabilities)
 	api.GET("/:id/components/:defined-component", h.GetDefinedComponent)
 	api.GET("/:id/components/:defined-component/control-implementations", h.GetControlImplementations)
 	api.GET("/:id/components/:defined-component/control-implementations/implemented-requirements", h.GetImplementedRequirements)
 	api.GET("/:id/components/:defined-component/control-implementations/statements", h.GetStatements)
-	api.GET("/:id/components/:defined-component/import-component-definitions", h.GetImportComponentDefinitions)
+	api.GET("/:id/capabilities", h.GetCapabilities)
+	api.GET("/:id/back-matter", h.GetBackMatter)
+
 }
 
 // List godoc
@@ -589,7 +590,7 @@ func (h *ComponentDefinitionHandler) GetStatements(ctx echo.Context) error {
 //	@Failure		400					{object}	api.Error
 //	@Failure		404					{object}	api.Error
 //	@Failure		500					{object}	api.Error
-//	@Router			/oscal/component-definitions/{id}/components/{defined-component}/import-component-definitions [get]
+//	@Router			/oscal/component-definitions/{id}/import-component-definitions [get]
 func (h *ComponentDefinitionHandler) GetImportComponentDefinitions(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
