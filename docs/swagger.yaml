@@ -3546,7 +3546,39 @@ paths:
       summary: Get statements for a defined component
       tags:
       - Oscal
-  /oscal/component-definitions/{id}/components/{defined-component}/import-component-definitions:
+  /oscal/component-definitions/{id}/full:
+    get:
+      description: Retrieves a complete Component Definition by its ID, including
+        all metadata and revisions.
+      parameters:
+      - description: Component Definition ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_ComponentDefinition'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Get a complete Component Definition
+      tags:
+      - Oscal
+  /oscal/component-definitions/{id}/import-component-definitions:
     get:
       description: Retrieves all import component definitions for a given defined
         component.
@@ -3581,38 +3613,6 @@ paths:
           schema:
             $ref: '#/definitions/api.Error'
       summary: Get import component definitions for a defined component
-      tags:
-      - Oscal
-  /oscal/component-definitions/{id}/full:
-    get:
-      description: Retrieves a complete Component Definition by its ID, including
-        all metadata and revisions.
-      parameters:
-      - description: Component Definition ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_ComponentDefinition'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Get a complete Component Definition
       tags:
       - Oscal
   /oscal/ssp/{id}/back-matter:

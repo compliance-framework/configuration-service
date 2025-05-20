@@ -2593,7 +2593,54 @@
                 }
             }
         },
-        "/oscal/component-definitions/{id}/components/{defined-component}/import-component-definitions": {
+        "/oscal/component-definitions/{id}/full": {
+            "get": {
+                "description": "Retrieves a complete Component Definition by its ID, including all metadata and revisions.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Oscal"
+                ],
+                "summary": "Get a complete Component Definition",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Component Definition ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_ComponentDefinition"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/oscal/component-definitions/{id}/import-component-definitions": {
             "get": {
                 "description": "Retrieves all import component definitions for a given defined component.",
                 "produces": [
@@ -2624,53 +2671,6 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_ImportComponentDefinition"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/oscal/component-definitions/{id}/full": {
-            "get": {
-                "description": "Retrieves a complete Component Definition by its ID, including all metadata and revisions.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "Get a complete Component Definition",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Component Definition ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_ComponentDefinition"
                         }
                     },
                     "400": {
