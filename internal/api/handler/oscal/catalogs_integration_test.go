@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-func TestPlanApi(t *testing.T) {
+func TestOscalCatalogApi(t *testing.T) {
 	suite.Run(t, new(CatalogApiIntegrationSuite))
 }
 
