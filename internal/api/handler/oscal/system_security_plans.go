@@ -543,6 +543,7 @@ func (h *SystemSecurityPlanHandler) UpdateCharacteristics(ctx echo.Context) erro
 		h.sugar.Warnw("Invalid system security plan id", "id", idParam, "error", err)
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
+
 	var oscalSC oscalTypes_1_1_3.SystemCharacteristics
 	if err := ctx.Bind(&oscalSC); err != nil {
 		h.sugar.Warnw("Invalid update system characteristics request", "error", err)
@@ -565,7 +566,8 @@ func (h *SystemSecurityPlanHandler) UpdateCharacteristics(ctx echo.Context) erro
 	sc.SystemSecurityPlanId = *ssp.ID
 	sc.ID = ssp.SystemCharacteristics.ID
 
-	if err = h.db.Model(&sc).Save(&sc).Error; err != nil {
+	// We do not want to update these subcomponents here.
+	if err = h.db.Model(&sc).Omit("AuthorizationBoundary", "NetworkArchitecture", "DataFlow").Updates(&sc).Error; err != nil {
 		h.sugar.Errorf("Failed to update system characteristics: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
