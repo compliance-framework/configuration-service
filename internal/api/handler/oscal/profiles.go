@@ -2,6 +2,7 @@ package oscal
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -223,10 +224,15 @@ func (h *ProfileHandler) Resolve(ctx echo.Context) error {
 		h.sugar.Errorw("error finding profile", "id", idParam, "error", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
+	newID, _ := uuid.NewUUID()
+	catalog := relational.Catalog{
+		UUIDModel: relational.UUIDModel{
+			ID: &newID,
+		},
+	}
 
-	catalog := relational.Catalog{}
-
-	catalogUUids, allControls := ResolveControls(profile, h.db)
+	fmt.Println("New catalog ID generated: ", newID)
+	catalogUUids, allControls := ResolveControls(profile, h.db, newID)
 
 	now := time.Now()
 
@@ -423,7 +429,7 @@ func applyAdditionsToControl(ctrl *relational.Control, addition relational.Addit
 
 // processImport loads controls of a given import from the database, applies parameter settings and additions,
 // and returns the catalog UUID along with the modified controls.
-func processImport(db *gorm.DB, profile *relational.Profile, imp relational.Import, setParams map[string]relational.ParameterSetting, additions map[string][]relational.Addition) (uuid.UUID, []relational.Control) {
+func processImport(db *gorm.DB, profile *relational.Profile, imp relational.Import, setParams map[string]relational.ParameterSetting, additions map[string][]relational.Addition, newCatalogId uuid.UUID) (uuid.UUID, []relational.Control) {
 	ids := GatherControlIds(imp)
 	catalogID, err := FindOscalCatalogFromBackMatter(profile, imp.Href)
 	if err != nil {
@@ -435,18 +441,25 @@ func processImport(db *gorm.DB, profile *relational.Profile, imp relational.Impo
 		panic(err)
 	}
 
+	newControls := make([]relational.Control, len(controls))
+
 	for i := range controls {
-		controls[i] = applySetParameters(controls[i], setParams)
+		ctrl := relational.Control{}
+		fmt.Println("New catalogId: ", newCatalogId)
+		ctrl.UnmarshalOscal(*controls[i].MarshalOscal(), newCatalogId)
+
+		ctrl = applySetParameters(ctrl, setParams)
 		if list, ok := additions[controls[i].ID]; ok {
-			controls[i] = applyAdditions(controls[i], list)
+			ctrl = applyAdditions(ctrl, list)
 		}
+		newControls[i] = ctrl
 	}
-	return catalogID, controls
+	return catalogID, newControls
 }
 
 // ResolveControls orchestrates control resolution for all imports in the profile,
 // returning the list of catalog UUIDs and the fully processed controls.
-func ResolveControls(profile *relational.Profile, db *gorm.DB) ([]uuid.UUID, *[]relational.Control) {
+func ResolveControls(profile *relational.Profile, db *gorm.DB, catalogId uuid.UUID) ([]uuid.UUID, *[]relational.Control) {
 	setParams := buildSetParams(profile.Modify.SetParameters)
 	additions := buildAdditions(profile.Modify.Alters)
 
@@ -455,7 +468,7 @@ func ResolveControls(profile *relational.Profile, db *gorm.DB) ([]uuid.UUID, *[]
 	uuids := make([]uuid.UUID, len(profile.Imports))
 
 	for i, imp := range profile.Imports {
-		uuid, processed := processImport(db, profile, imp, setParams, additions)
+		uuid, processed := processImport(db, profile, imp, setParams, additions, catalogId)
 		allControls = append(allControls, processed...)
 		uuids[i] = uuid
 	}
