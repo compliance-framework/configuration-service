@@ -221,8 +221,8 @@ func (h *ComponentDefinitionHandler) Update(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(errors.New("Metadata.Title is required")))
 	}
 
-	// Update the component definition
-	if err := tx.Model(&existingComponent).Updates(relCat).Error; err != nil {
+	// Update component definition with import_component_definitions
+	if err := tx.Model(&existingComponent).Where("id = ?", id).Update("import_component_definitions", relCat.ImportComponentDefinitions).Error; err != nil {
 		tx.Rollback()
 		h.sugar.Errorf("Failed to update component definition: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
@@ -233,7 +233,7 @@ func (h *ComponentDefinitionHandler) Update(ctx echo.Context) error {
 		"last_modified": now,
 		"oscal_version": versioning.GetLatestSupportedVersion(),
 	}
-	if err := tx.Model(&existingComponent.Metadata).Updates(metadataUpdates).Error; err != nil {
+	if err := tx.Model(&relational.Metadata{}).Where("id = ?", existingComponent.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
 		tx.Rollback()
 		h.sugar.Errorf("Failed to update metadata: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
@@ -411,9 +411,12 @@ func (h *ComponentDefinitionHandler) UpdateComponents(ctx echo.Context) error {
 		relationalComponent.UnmarshalOscal(oscalComponent)
 		relationalComponent.ComponentDefinitionID = id
 
-		// If the component exists, update it; otherwise create it
-		if err := tx.Model(&relationalComponent).Where("id = ?", relationalComponent.ID).Updates(relationalComponent).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
+		// Check if the component exists first
+		var existingComponent relational.DefinedComponent
+		result := tx.First(&existingComponent, "id = ?", relationalComponent.ID)
+		
+		if result.Error != nil {
+			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 				// Component doesn't exist, create it
 				if err := tx.Create(&relationalComponent).Error; err != nil {
 					tx.Rollback()
@@ -421,6 +424,36 @@ func (h *ComponentDefinitionHandler) UpdateComponents(ctx echo.Context) error {
 					return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 				}
 			} else {
+				tx.Rollback()
+				h.sugar.Errorf("Failed to check if component exists: %v", result.Error)
+				return ctx.JSON(http.StatusInternalServerError, api.NewError(result.Error))
+			}
+		} else {
+			// Component exists, update it using a map instead of struct to handle zero values
+			updateFields := map[string]interface{}{
+				"component_definition_id": id,
+				"title": relationalComponent.Title,
+				"description": relationalComponent.Description,
+				"purpose": relationalComponent.Purpose,
+				"type": relationalComponent.Type,
+				"remarks": relationalComponent.Remarks,
+			}
+			
+			// Include related elements if they exist
+			if relationalComponent.Props != nil {
+				updateFields["props"] = relationalComponent.Props
+			}
+			if relationalComponent.Links != nil {
+				updateFields["links"] = relationalComponent.Links
+			}
+			if relationalComponent.ResponsibleRoles != nil {
+				updateFields["responsible_roles"] = relationalComponent.ResponsibleRoles
+			}
+			if relationalComponent.Protocols != nil {
+				updateFields["protocols"] = relationalComponent.Protocols
+			}
+			
+			if err := tx.Model(&relational.DefinedComponent{}).Where("id = ?", relationalComponent.ID).Updates(updateFields).Error; err != nil {
 				tx.Rollback()
 				h.sugar.Errorf("Failed to update component: %v", err)
 				return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
@@ -434,7 +467,7 @@ func (h *ComponentDefinitionHandler) UpdateComponents(ctx echo.Context) error {
 		"last_modified": now,
 		"oscal_version": versioning.GetLatestSupportedVersion(),
 	}
-	if err := tx.Model(&componentDefinition.Metadata).Updates(metadataUpdates).Error; err != nil {
+	if err := tx.Model(&relational.Metadata{}).Where("id = ?", componentDefinition.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
 		tx.Rollback()
 		h.sugar.Errorf("Failed to update metadata: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
@@ -593,12 +626,33 @@ func (h *ComponentDefinitionHandler) UpdateDefinedComponent(ctx echo.Context) er
 	definedComponent.UnmarshalOscal(oscalDefinedComponent)
 	definedComponent.ComponentDefinitionID = id // Ensure proper association
 
-	// Use Updates instead of Save to only update non-zero fields
-	if err := tx.Model(&definedComponent).Updates(definedComponent).Error; err != nil {
+	// Convert struct to map for updates to properly handle zero values
+	updateFields := map[string]interface{}{
+		"component_definition_id": id,
+		"title": definedComponent.Title,
+		"description": definedComponent.Description,
+		"purpose": definedComponent.Purpose,
+		"type": definedComponent.Type,
+		"remarks": definedComponent.Remarks,
+	}
+	
+	// Include related elements if they exist
+	if definedComponent.Props != nil {
+		updateFields["props"] = definedComponent.Props
+	}
+	if definedComponent.Links != nil {
+		updateFields["links"] = definedComponent.Links
+	}
+	if definedComponent.ResponsibleRoles != nil {
+		updateFields["responsible_roles"] = definedComponent.ResponsibleRoles
+	}
+	if definedComponent.Protocols != nil {
+		updateFields["protocols"] = definedComponent.Protocols
+	}
+	
+	// Use explicit WHERE clause with the primary key
+	if err := tx.Model(&relational.DefinedComponent{}).Where("id = ?", definedComponentID).Updates(updateFields).Error; err != nil {
 		tx.Rollback()
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(err))
-		}
 		h.sugar.Errorf("Failed to update defined component: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
