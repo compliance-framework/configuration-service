@@ -3737,6 +3737,45 @@ paths:
       summary: Get import component definitions for a defined component
       tags:
       - Oscal
+    post:
+      description: Creates new import component definitions for a given component
+        definition.
+      parameters:
+      - description: Component Definition ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Import Component Definitions
+        in: body
+        name: import-component-definitions
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/oscalTypes_1_1_3.ImportComponentDefinition'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_ImportComponentDefinition'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Create import component definitions for a component definition
+      tags:
+      - Oscal
     put:
       description: Updates the import component definitions for a given component
         definition.

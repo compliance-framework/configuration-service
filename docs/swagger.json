@@ -2920,6 +2920,63 @@
                         }
                     }
                 }
+            },
+            "post": {
+                "description": "Creates new import component definitions for a given component definition.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Oscal"
+                ],
+                "summary": "Create import component definitions for a component definition",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Component Definition ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Import Component Definitions",
+                        "name": "import-component-definitions",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/oscalTypes_1_1_3.ImportComponentDefinition"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_ImportComponentDefinition"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
             }
         },
         "/oscal/ssp/{id}/back-matter": {
