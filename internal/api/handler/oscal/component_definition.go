@@ -50,10 +50,13 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.GET("/:id/components/:defined-component/control-implementations/implemented-requirements", h.GetImplementedRequirements)
 	api.POST("/:id/components/:defined-component/control-implementations/implemented-requirements", h.CreateImplementedRequirements)
 	api.GET("/:id/components/:defined-component/control-implementations/statements", h.GetStatements)
+	api.POST("/:id/components/:defined-component/control-implementations/statements", h.CreateStatements)
 	api.GET("/:id/capabilities", h.GetCapabilities)
+	api.POST("/:id/capabilities", h.CreateCapabilities)
 	api.GET("/:id/capabilities/incorporates-components", h.GetIncorporatesComponents)
+	api.POST("/:id/capabilities/incorporates-components", h.CreateIncorporatesComponents)
 	api.GET("/:id/back-matter", h.GetBackMatter)
-
+	api.POST("/:id/back-matter", h.CreateBackMatter)
 }
 
 // List godoc
@@ -291,6 +294,79 @@ func (h *ComponentDefinitionHandler) GetBackMatter(ctx echo.Context) error {
 	//		}]{}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[*oscalTypes_1_1_3.BackMatter]{Data: componentDefinition.BackMatter.MarshalOscal()})
+}
+
+// CreateBackMatter godoc
+//
+//	@Summary		Create back-matter for a component definition
+//	@Description	Creates new back-matter for a given component definition.
+//	@Tags			Oscal
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string						true	"Component Definition ID"
+//	@Param			back-matter	body		oscalTypes_1_1_3.BackMatter	true	"Back Matter"
+//	@Success		200			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Router			/oscal/component-definitions/{id}/back-matter [post]
+func (h *ComponentDefinitionHandler) CreateBackMatter(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var componentDefinition relational.ComponentDefinition
+	if err := h.db.First(&componentDefinition, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var backMatter oscalTypes_1_1_3.BackMatter
+	if err := ctx.Bind(&backMatter); err != nil {
+		h.sugar.Warnw("Failed to bind back-matter", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Begin a transaction
+	tx := h.db.Begin()
+	if tx.Error != nil {
+		h.sugar.Errorf("Failed to begin transaction: %v", tx.Error)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(tx.Error))
+	}
+
+	// Convert to relational model
+	relationalBackMatter := relational.BackMatter{}
+	relationalBackMatter.UnmarshalOscal(backMatter)
+
+	// Create the back-matter
+	if err := tx.Create(&relationalBackMatter).Error; err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to create back-matter: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update the component definition with the new back-matter
+	if err := tx.Model(&componentDefinition).Update("back_matter", relationalBackMatter).Error; err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to update component definition with back-matter: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		h.sugar.Errorf("Failed to commit transaction: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]{
+		Data: backMatter,
+	})
 }
 
 // Full godoc
@@ -611,6 +687,79 @@ func (h *ComponentDefinitionHandler) GetCapabilities(ctx echo.Context) error {
 		oscalCapabilities[i] = *capability.MarshalOscal()
 	}
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.Capability]{Data: oscalCapabilities})
+}
+
+// CreateCapabilities godoc
+//
+//	@Summary		Create capabilities for a component definition
+//	@Description	Creates new capabilities for a given component definition.
+//	@Tags			Oscal
+//	@Accept			json
+//	@Produce		json
+//	@Param			id				path		string							true	"Component Definition ID"
+//	@Param			capabilities	body		[]oscalTypes_1_1_3.Capability	true	"Capabilities"
+//	@Success		200				{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.Capability]
+//	@Failure		400				{object}	api.Error
+//	@Failure		404				{object}	api.Error
+//	@Failure		500				{object}	api.Error
+//	@Router			/oscal/component-definitions/{id}/capabilities [post]
+func (h *ComponentDefinitionHandler) CreateCapabilities(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var componentDefinition relational.ComponentDefinition
+	if err := h.db.First(&componentDefinition, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var capabilities []oscalTypes_1_1_3.Capability
+	if err := ctx.Bind(&capabilities); err != nil {
+		h.sugar.Warnw("Failed to bind capabilities", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Begin a transaction
+	tx := h.db.Begin()
+	if tx.Error != nil {
+		h.sugar.Errorf("Failed to begin transaction: %v", tx.Error)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(tx.Error))
+	}
+
+	// Convert to relational model
+	var newCapabilities []relational.Capability
+	for _, capability := range capabilities {
+		relationalCapability := relational.Capability{}
+		relationalCapability.UnmarshalOscal(capability)
+		relationalCapability.ComponentDefinitionId = id
+		newCapabilities = append(newCapabilities, relationalCapability)
+	}
+
+	// Create the capabilities
+	for _, capability := range newCapabilities {
+		if err := tx.Create(&capability).Error; err != nil {
+			tx.Rollback()
+			h.sugar.Errorf("Failed to create capability: %v", err)
+			return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		}
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		h.sugar.Errorf("Failed to commit transaction: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.Capability]{
+		Data: capabilities,
+	})
 }
 
 // GetDefinedComponent godoc
@@ -1201,6 +1350,89 @@ func (h *ComponentDefinitionHandler) GetStatements(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ControlStatementImplementation]{Data: oscalStatements})
 }
 
+// CreateStatements godoc
+//
+//	@Summary		Create statements for a control implementation
+//	@Description	Creates new statements for a given control implementation.
+//	@Tags			Oscal
+//	@Accept			json
+//	@Produce		json
+//	@Param			id					path		string												true	"Component Definition ID"
+//	@Param			defined-component	path		string												true	"Defined Component ID"
+//	@Param			statements			body		[]oscalTypes_1_1_3.ControlStatementImplementation	true	"Statements"
+//	@Success		200					{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.ControlStatementImplementation]
+//	@Failure		400					{object}	api.Error
+//	@Failure		404					{object}	api.Error
+//	@Failure		500					{object}	api.Error
+//	@Router			/oscal/component-definitions/{id}/components/{defined-component}/control-implementations/statements [post]
+func (h *ComponentDefinitionHandler) CreateStatements(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var componentDefinition relational.ComponentDefinition
+	if err := h.db.First(&componentDefinition, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	definedComponentID := ctx.Param("defined-component")
+	var definedComponent relational.DefinedComponent
+	if err := h.db.First(&definedComponent, "id = ?", definedComponentID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load defined component", "id", definedComponentID, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var statements []oscalTypes_1_1_3.ControlStatementImplementation
+	if err := ctx.Bind(&statements); err != nil {
+		h.sugar.Warnw("Failed to bind statements", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Begin a transaction
+	tx := h.db.Begin()
+	if tx.Error != nil {
+		h.sugar.Errorf("Failed to begin transaction: %v", tx.Error)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(tx.Error))
+	}
+
+	// Convert to relational model
+	var newStatements []relational.ControlStatementImplementation
+	for _, statement := range statements {
+		relationalStatement := relational.ControlStatementImplementation{}
+		relationalStatement.UnmarshalOscal(statement)
+		newStatements = append(newStatements, relationalStatement)
+	}
+
+	// Create the statements
+	for _, statement := range newStatements {
+		if err := tx.Create(&statement).Error; err != nil {
+			tx.Rollback()
+			h.sugar.Errorf("Failed to create statement: %v", err)
+			return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		}
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		h.sugar.Errorf("Failed to commit transaction: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ControlStatementImplementation]{
+		Data: statements,
+	})
+}
+
 // GetImportComponentDefinitions godoc
 //
 //	@Summary		Get import component definitions for a defined component
@@ -1439,4 +1671,76 @@ func (h *ComponentDefinitionHandler) GetIncorporatesComponents(ctx echo.Context)
 		}
 	}
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.IncorporatesComponent]{Data: oscalIncorporatesComponents})
+}
+
+// CreateIncorporatesComponents godoc
+//
+//	@Summary		Create incorporates components for a component definition
+//	@Description	Creates new incorporates components for a given component definition.
+//	@Tags			Oscal
+//	@Accept			json
+//	@Produce		json
+//	@Param			id						path		string										true	"Component Definition ID"
+//	@Param			incorporates-components	body		[]oscalTypes_1_1_3.IncorporatesComponent	true	"Incorporates Components"
+//	@Success		200						{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.IncorporatesComponent]
+//	@Failure		400						{object}	api.Error
+//	@Failure		404						{object}	api.Error
+//	@Failure		500						{object}	api.Error
+//	@Router			/oscal/component-definitions/{id}/capabilities/incorporates-components [post]
+func (h *ComponentDefinitionHandler) CreateIncorporatesComponents(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var componentDefinition relational.ComponentDefinition
+	if err := h.db.First(&componentDefinition, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var incorporatesComponents []oscalTypes_1_1_3.IncorporatesComponent
+	if err := ctx.Bind(&incorporatesComponents); err != nil {
+		h.sugar.Warnw("Failed to bind incorporates components", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Begin a transaction
+	tx := h.db.Begin()
+	if tx.Error != nil {
+		h.sugar.Errorf("Failed to begin transaction: %v", tx.Error)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(tx.Error))
+	}
+
+	// Convert to relational model
+	var newIncorporatesComponents []relational.IncorporatesComponents
+	for _, component := range incorporatesComponents {
+		relationalComponent := relational.IncorporatesComponents{}
+		relationalComponent.UnmarshalOscal(component)
+		newIncorporatesComponents = append(newIncorporatesComponents, relationalComponent)
+	}
+
+	// Create the incorporates components
+	for _, component := range newIncorporatesComponents {
+		if err := tx.Create(&component).Error; err != nil {
+			tx.Rollback()
+			h.sugar.Errorf("Failed to create incorporates component: %v", err)
+			return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		}
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		h.sugar.Errorf("Failed to commit transaction: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.IncorporatesComponent]{
+		Data: incorporatesComponents,
+	})
 }
