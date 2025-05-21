@@ -37,6 +37,7 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.PUT("/:id", h.Update)
 	api.GET("/:id/full", h.Full)
 	api.GET("/:id/import-component-definitions", h.GetImportComponentDefinitions)
+	api.POST("/:id/import-component-definitions", h.CreateImportComponentDefinitions)
 	api.PUT("/:id/import-component-definitions", h.UpdateImportComponentDefinitions)
 	api.GET("/:id/components", h.GetComponents)
 	api.PUT("/:id/components", h.UpdateComponents)
@@ -414,7 +415,7 @@ func (h *ComponentDefinitionHandler) UpdateComponents(ctx echo.Context) error {
 		// Check if the component exists first
 		var existingComponent relational.DefinedComponent
 		result := tx.First(&existingComponent, "id = ?", relationalComponent.ID)
-		
+
 		if result.Error != nil {
 			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 				// Component doesn't exist, create it
@@ -432,13 +433,13 @@ func (h *ComponentDefinitionHandler) UpdateComponents(ctx echo.Context) error {
 			// Component exists, update it using a map instead of struct to handle zero values
 			updateFields := map[string]interface{}{
 				"component_definition_id": id,
-				"title": relationalComponent.Title,
-				"description": relationalComponent.Description,
-				"purpose": relationalComponent.Purpose,
-				"type": relationalComponent.Type,
-				"remarks": relationalComponent.Remarks,
+				"title":                   relationalComponent.Title,
+				"description":             relationalComponent.Description,
+				"purpose":                 relationalComponent.Purpose,
+				"type":                    relationalComponent.Type,
+				"remarks":                 relationalComponent.Remarks,
 			}
-			
+
 			// Include related elements if they exist
 			if relationalComponent.Props != nil {
 				updateFields["props"] = relationalComponent.Props
@@ -452,7 +453,7 @@ func (h *ComponentDefinitionHandler) UpdateComponents(ctx echo.Context) error {
 			if relationalComponent.Protocols != nil {
 				updateFields["protocols"] = relationalComponent.Protocols
 			}
-			
+
 			if err := tx.Model(&relational.DefinedComponent{}).Where("id = ?", relationalComponent.ID).Updates(updateFields).Error; err != nil {
 				tx.Rollback()
 				h.sugar.Errorf("Failed to update component: %v", err)
@@ -629,13 +630,13 @@ func (h *ComponentDefinitionHandler) UpdateDefinedComponent(ctx echo.Context) er
 	// Convert struct to map for updates to properly handle zero values
 	updateFields := map[string]interface{}{
 		"component_definition_id": id,
-		"title": definedComponent.Title,
-		"description": definedComponent.Description,
-		"purpose": definedComponent.Purpose,
-		"type": definedComponent.Type,
-		"remarks": definedComponent.Remarks,
+		"title":                   definedComponent.Title,
+		"description":             definedComponent.Description,
+		"purpose":                 definedComponent.Purpose,
+		"type":                    definedComponent.Type,
+		"remarks":                 definedComponent.Remarks,
 	}
-	
+
 	// Include related elements if they exist
 	if definedComponent.Props != nil {
 		updateFields["props"] = definedComponent.Props
@@ -649,7 +650,7 @@ func (h *ComponentDefinitionHandler) UpdateDefinedComponent(ctx echo.Context) er
 	if definedComponent.Protocols != nil {
 		updateFields["protocols"] = definedComponent.Protocols
 	}
-	
+
 	// Use explicit WHERE clause with the primary key
 	if err := tx.Model(&relational.DefinedComponent{}).Where("id = ?", definedComponentID).Updates(updateFields).Error; err != nil {
 		tx.Rollback()
@@ -903,6 +904,91 @@ func (h *ComponentDefinitionHandler) GetImportComponentDefinitions(ctx echo.Cont
 		oscalImportComponentDefinitions = append(oscalImportComponentDefinitions, *importComponentDefinition.MarshalOscal())
 	}
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ImportComponentDefinition]{Data: oscalImportComponentDefinitions})
+}
+
+// CreateImportComponentDefinitions godoc
+//
+//	@Summary		Create import component definitions for a component definition
+//	@Description	Creates new import component definitions for a given component definition.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id								path		string											true	"Component Definition ID"
+//	@Param			import-component-definitions	body		[]oscalTypes_1_1_3.ImportComponentDefinition	true	"Import Component Definitions"
+//	@Success		200								{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.ImportComponentDefinition]
+//	@Failure		400								{object}	api.Error
+//	@Failure		404								{object}	api.Error
+//	@Failure		500								{object}	api.Error
+//	@Router			/oscal/component-definitions/{id}/import-component-definitions [post]
+func (h *ComponentDefinitionHandler) CreateImportComponentDefinitions(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var componentDefinition relational.ComponentDefinition
+	if err := h.db.First(&componentDefinition, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var importComponentDefinitions []oscalTypes_1_1_3.ImportComponentDefinition
+	if err := ctx.Bind(&importComponentDefinitions); err != nil {
+		h.sugar.Warnw("Failed to bind import component definitions", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Begin a transaction
+	tx := h.db.Begin()
+	if tx.Error != nil {
+		h.sugar.Errorf("Failed to begin transaction: %v", tx.Error)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(tx.Error))
+	}
+
+	// Convert to relational model
+	var newImportDefs []relational.ImportComponentDefinition
+	for _, importDef := range importComponentDefinitions {
+		relationalImportDef := relational.ImportComponentDefinition{}
+		relationalImportDef.UnmarshalOscal(importDef)
+		newImportDefs = append(newImportDefs, relationalImportDef)
+	}
+
+	// Append new import definitions to existing ones
+	existingImports := componentDefinition.ImportComponentDefinitions
+	updatedImports := append(existingImports, newImportDefs...)
+
+	// Update the component definition with the new import definitions
+	if err := tx.Model(&componentDefinition).Update("import_component_definitions", updatedImports).Error; err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to update import component definitions: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update metadata
+	now := time.Now()
+	metadataUpdates := map[string]interface{}{
+		"last_modified": now,
+		"oscal_version": versioning.GetLatestSupportedVersion(),
+	}
+	if err := tx.Model(&componentDefinition.Metadata).Updates(metadataUpdates).Error; err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to update metadata: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		h.sugar.Errorf("Failed to commit transaction: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ImportComponentDefinition]{
+		Data: importComponentDefinitions,
+	})
 }
 
 // UpdateImportComponentDefinitions godoc
