@@ -3441,6 +3441,46 @@ paths:
       summary: Get components for a component definition
       tags:
       - Oscal
+    post:
+      consumes:
+      - application/json
+      description: Creates new components for a given component definition.
+      parameters:
+      - description: Component Definition ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Components to create
+        in: body
+        name: components
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/oscalTypes_1_1_3.DefinedComponent'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_DefinedComponent'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Create components for a component definition
+      tags:
+      - Oscal
     put:
       consumes:
       - application/json

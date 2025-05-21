@@ -40,6 +40,7 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.POST("/:id/import-component-definitions", h.CreateImportComponentDefinitions)
 	api.PUT("/:id/import-component-definitions", h.UpdateImportComponentDefinitions)
 	api.GET("/:id/components", h.GetComponents)
+	api.POST("/:id/components", h.CreateComponents)
 	api.PUT("/:id/components", h.UpdateComponents)
 	api.GET("/:id/components/:defined-component", h.GetDefinedComponent)
 	api.PUT("/:id/components/:defined-component", h.UpdateDefinedComponent)
@@ -360,6 +361,92 @@ func (h *ComponentDefinitionHandler) GetComponents(ctx echo.Context) error {
 		oscalComponents[i] = *component.MarshalOscal()
 	}
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.DefinedComponent]{Data: oscalComponents})
+}
+
+// CreateComponents godoc
+//
+//	@Summary		Create components for a component definition
+//	@Description	Creates new components for a given component definition.
+//	@Tags			Oscal
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string								true	"Component Definition ID"
+//	@Param			components	body		[]oscalTypes_1_1_3.DefinedComponent	true	"Components to create"
+//	@Success		200			{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.DefinedComponent]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Router			/oscal/component-definitions/{id}/components [post]
+func (h *ComponentDefinitionHandler) CreateComponents(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var componentDefinition relational.ComponentDefinition
+	if err := h.db.First(&componentDefinition, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var components []oscalTypes_1_1_3.DefinedComponent
+	if err := ctx.Bind(&components); err != nil {
+		h.sugar.Warnw("Failed to bind components", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Begin a transaction
+	tx := h.db.Begin()
+	if tx.Error != nil {
+		h.sugar.Errorf("Failed to begin transaction: %v", tx.Error)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(tx.Error))
+	}
+
+	// Convert to relational model
+	var newComponents []relational.DefinedComponent
+	for _, component := range components {
+		relationalComponent := relational.DefinedComponent{}
+		relationalComponent.UnmarshalOscal(component)
+		newComponents = append(newComponents, relationalComponent)
+	}
+
+	// Append new components to existing ones
+	existingComponents := componentDefinition.Components
+	updatedComponents := append(existingComponents, newComponents...)
+
+	// Update the component definition with the new components
+	if err := tx.Model(&componentDefinition).Update("components", updatedComponents).Error; err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to update components: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update metadata
+	now := time.Now()
+	metadataUpdates := map[string]interface{}{
+		"last_modified": now,
+		"oscal_version": versioning.GetLatestSupportedVersion(),
+	}
+	if err := tx.Model(&componentDefinition.Metadata).Updates(metadataUpdates).Error; err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to update metadata: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		h.sugar.Errorf("Failed to commit transaction: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.DefinedComponent]{
+		Data: components,
+	})
 }
 
 // UpdateComponents godoc
