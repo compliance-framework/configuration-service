@@ -10,6 +10,7 @@ import (
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/api/handler"
 	"github.com/compliance-framework/configuration-service/internal/service/relational"
+	"github.com/defenseunicorns/go-oscal/src/pkg/versioning"
 	oscalTypes_1_1_3 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -35,6 +36,7 @@ func (h *ProfileHandler) Register(api *echo.Group) {
 	api.GET("/:id/imports", h.ListImports)
 	api.GET("/:id/back-matter", h.GetBackmatter)
 	api.POST("/:id/resolve", h.Resolve)
+	api.POST("", h.Create)
 }
 
 // List godoc
@@ -275,6 +277,41 @@ func (h *ProfileHandler) Resolve(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[response]{Data: resp})
+}
+
+// Create godoc
+//
+//	@Summary		Create a new OSCAL Profile
+//	@Description	Creates a new OSCAL Profile.
+//	@Tags			Oscal, Profiles
+//	@Accept			json
+//	@Produce		json
+//	@Param			profile	body		oscalTypes_1_1_3.Profile	true	"Profile object"
+//	@Success		201		{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Profile]
+//	@Failure		400		{object}	api.Error
+//	@Failure		500		{object}	api.Error
+//	@Router			/oscal/profiles [post]
+func (h *ProfileHandler) Create(ctx echo.Context) error {
+	now := time.Now()
+
+	var oscalProfile oscalTypes_1_1_3.Profile
+	if err := ctx.Bind(&oscalProfile); err != nil {
+		h.sugar.Errorw("error binding profile", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	fmt.Println("UUID", oscalProfile.UUID)
+
+	profileRel := &relational.Profile{}
+	profileRel.UnmarshalOscal(oscalProfile)
+	profileRel.Metadata.LastModified = &now
+	profileRel.Metadata.OscalVersion = versioning.GetLatestSupportedVersion()
+	if err := h.db.Create(profileRel).Error; err != nil {
+		h.sugar.Errorw("error creating profile", "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[oscalTypes_1_1_3.Profile]{Data: *profileRel.MarshalOscal()})
 }
 
 // Helper functions
