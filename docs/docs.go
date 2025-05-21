@@ -2268,6 +2268,54 @@ const docTemplate = `{
                 }
             }
         },
+        "/oscal/profiles/{id}/full": {
+            "get": {
+                "description": "Retrieves the full OSCAL Profile, including all nested content.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Oscal",
+                    "Profiles"
+                ],
+                "summary": "Get full Profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Profile ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Profile"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/oscal/profiles/{id}/imports": {
             "get": {
                 "description": "List imports for a specific profile",

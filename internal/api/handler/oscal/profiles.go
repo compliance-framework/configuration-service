@@ -32,11 +32,12 @@ func NewProfileHandler(sugar *zap.SugaredLogger, db *gorm.DB) *ProfileHandler {
 
 func (h *ProfileHandler) Register(api *echo.Group) {
 	api.GET("", h.List)
+	api.POST("", h.Create)
 	api.GET("/:id", h.Get)
 	api.GET("/:id/imports", h.ListImports)
 	api.GET("/:id/back-matter", h.GetBackmatter)
 	api.POST("/:id/resolve", h.Resolve)
-	api.POST("", h.Create)
+	api.GET("/:id/full", h.GetFull)
 }
 
 // List godoc
@@ -312,6 +313,26 @@ func (h *ProfileHandler) Create(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[oscalTypes_1_1_3.Profile]{Data: *profileRel.MarshalOscal()})
+}
+
+func (h *ProfileHandler) GetFull(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("error parsing UUID", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	profile, err := FindFullProfile(h.db, id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Errorw("error finding profile", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Profile]{Data: *profile.MarshalOscal()})
 }
 
 // Helper functions
