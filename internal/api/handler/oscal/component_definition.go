@@ -345,14 +345,34 @@ func (h *ComponentDefinitionHandler) UpdateComponents(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	// Clear existing components
-	componentDefinition.Components = []relational.DefinedComponent{}
+	// Begin a transaction to ensure data consistency
+	tx := h.db.Begin()
+	if tx.Error != nil {
+		h.sugar.Errorf("Failed to begin transaction: %v", tx.Error)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(tx.Error))
+	}
 
-	// Add new components
+	// Delete existing components for this component definition
+	if err := tx.Where("component_definition_id = ?", id).Delete(&relational.DefinedComponent{}).Error; err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to delete existing components: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Create new components
+	var newComponents []relational.DefinedComponent
 	for _, oscalComponent := range oscalComponents {
 		relationalComponent := relational.DefinedComponent{}
 		relationalComponent.UnmarshalOscal(oscalComponent)
-		componentDefinition.Components = append(componentDefinition.Components, relationalComponent)
+		relationalComponent.ComponentDefinitionID = id // Ensure proper association
+		newComponents = append(newComponents, relationalComponent)
+	}
+
+	// Create new components in the database
+	if err := tx.Create(&newComponents).Error; err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to create new components: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	// Update metadata
@@ -360,9 +380,16 @@ func (h *ComponentDefinitionHandler) UpdateComponents(ctx echo.Context) error {
 	componentDefinition.Metadata.LastModified = &now
 	componentDefinition.Metadata.OscalVersion = versioning.GetLatestSupportedVersion()
 
-	// Save changes to database
-	if err := h.db.Save(&componentDefinition).Error; err != nil {
-		h.sugar.Errorf("Failed to update components: %v", err)
+	// Save metadata changes
+	if err := tx.Save(&componentDefinition.Metadata).Error; err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to update metadata: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		h.sugar.Errorf("Failed to commit transaction: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
