@@ -34,6 +34,8 @@ func (h *ProfileHandler) Register(api *echo.Group) {
 	api.POST("", h.Create)
 	api.GET("/:id", h.Get)
 	api.GET("/:id/imports", h.ListImports)
+	api.GET("/:id/modify", h.GetModify)
+	api.GET("/:id/merge", h.GetMerge)
 	api.GET("/:id/back-matter", h.GetBackmatter)
 	api.POST("/:id/resolve", h.Resolve)
 	api.GET("/:id/full", h.GetFull)
@@ -341,6 +343,79 @@ func (h *ProfileHandler) GetFull(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Profile]{Data: *profile.MarshalOscal()})
+}
+
+// GetModify godoc
+//
+//	@Summary		Get modify section
+//	@Description	Retrieves the modify section for a specific profile.
+//	@Tags			Oscal, Profiles
+//	@Param			id	path	string	true	"Profile ID"
+//	@Produce		json
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Modify]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/profiles/{id}/modify [get]
+func (h *ProfileHandler) GetModify(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("error parsing UUID", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	var profile relational.Profile
+	if err := h.db.
+		Preload("Modify").
+		Preload("Modify.SetParameters").
+		Preload("Modify.Alters").
+		Preload("Modify.Alters.Adds").
+		Where("id = ?", id).
+		First(&profile).Error; err != nil {
+		h.sugar.Errorw("error getting profile", "id", idParam, "error", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Modify]{Data: *profile.Modify.MarshalOscal()})
+}
+
+// GetMerge godoc
+//
+//	@Summary		Get merge section
+//	@Description	Retrieves the merge section for a specific profile.
+//	@Tags			Oscal, Profiles
+//	@Param			id	path	string	true	"Profile ID"
+//	@Produce		json
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Merge]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/profiles/{id}/merge [get]
+func (h *ProfileHandler) GetMerge(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("error parsing UUID", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	var profile relational.Profile
+	if err := h.db.
+		Preload("Merge").
+		Where("id = ?", id).
+		First(&profile).Error; err != nil {
+		h.sugar.Errorw("error getting profile", "id", idParam, "error", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Merge]{Data: *profile.Merge.MarshalOscal()})
 }
 
 // Helper functions
