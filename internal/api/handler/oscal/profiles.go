@@ -2,7 +2,6 @@ package oscal
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -234,7 +233,6 @@ func (h *ProfileHandler) Resolve(ctx echo.Context) error {
 		},
 	}
 
-	fmt.Println("New catalog ID generated: ", newID)
 	catalogUUids, allControls := ResolveControls(profile, h.db, newID)
 
 	now := time.Now()
@@ -301,8 +299,6 @@ func (h *ProfileHandler) Create(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	fmt.Println("UUID", oscalProfile.UUID)
-
 	profileRel := &relational.Profile{}
 	profileRel.UnmarshalOscal(oscalProfile)
 	profileRel.Metadata.LastModified = &now
@@ -315,6 +311,18 @@ func (h *ProfileHandler) Create(ctx echo.Context) error {
 	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[oscalTypes_1_1_3.Profile]{Data: *profileRel.MarshalOscal()})
 }
 
+// GetFull godoc
+//
+//	@Summary		Get full Profile
+//	@Description	Retrieves the full OSCAL Profile, including all nested content.
+//	@Tags			Oscal, Profiles
+//	@Produce		json
+//	@Param			id	path		string	true	"Profile ID"
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Profile]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/profiles/{id}/full [get]
 func (h *ProfileHandler) GetFull(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -340,7 +348,13 @@ func (h *ProfileHandler) GetFull(ctx echo.Context) error {
 func CombineBackmatter(backmatters *[]relational.BackMatter) *relational.BackMatter {
 	backmatter := relational.BackMatter{}
 	for _, data := range *backmatters {
-		backmatter.Resources = append(backmatter.Resources, data.Resources...)
+		resources := make([]relational.BackMatterResource, len(data.Resources))
+		for i, resource := range data.Resources {
+			var newResource relational.BackMatterResource
+			newResource.UnmarshalOscal(*resource.MarshalOscal())
+			resources[i] = resource
+		}
+		backmatter.Resources = append(backmatter.Resources, resources...)
 	}
 	return &backmatter
 }
@@ -503,7 +517,7 @@ func processImport(db *gorm.DB, profile *relational.Profile, imp relational.Impo
 
 	for i := range controls {
 		ctrl := relational.Control{}
-		fmt.Println("New catalogId: ", newCatalogId)
+
 		ctrl.UnmarshalOscal(*controls[i].MarshalOscal(), newCatalogId)
 
 		ctrl = applySetParameters(ctrl, setParams)
