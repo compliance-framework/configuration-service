@@ -3557,6 +3557,44 @@ paths:
       summary: Get a defined component for a component definition
       tags:
       - Oscal
+    post:
+      consumes:
+      - application/json
+      description: Creates a new defined component for a given component definition.
+      parameters:
+      - description: Component Definition ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Defined Component to create
+        in: body
+        name: defined-component
+        required: true
+        schema:
+          $ref: '#/definitions/oscalTypes_1_1_3.DefinedComponent'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_DefinedComponent'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Create a defined component for a component definition
+      tags:
+      - Oscal
     put:
       consumes:
       - application/json
@@ -3636,6 +3674,51 @@ paths:
       summary: Get control implementations for a defined component
       tags:
       - Oscal
+    post:
+      consumes:
+      - application/json
+      description: Creates new control implementations for a given defined component.
+      parameters:
+      - description: Component Definition ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Defined Component ID
+        in: path
+        name: defined-component
+        required: true
+        type: string
+      - description: Control Implementations
+        in: body
+        name: control-implementations
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/oscalTypes_1_1_3.ControlImplementationSet'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_ControlImplementationSet'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Create control implementations for a defined component
+      tags:
+      - Oscal
   /oscal/component-definitions/{id}/components/{defined-component}/control-implementations/implemented-requirements:
     get:
       description: Retrieves all implemented requirements for a given defined component.
@@ -3670,6 +3753,51 @@ paths:
           schema:
             $ref: '#/definitions/api.Error'
       summary: Get implemented requirements for a defined component
+      tags:
+      - Oscal
+    post:
+      consumes:
+      - application/json
+      description: Creates new implemented requirements for a given control implementation.
+      parameters:
+      - description: Component Definition ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Defined Component ID
+        in: path
+        name: defined-component
+        required: true
+        type: string
+      - description: Implemented Requirements
+        in: body
+        name: implemented-requirements
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/oscalTypes_1_1_3.ImplementedRequirementControlImplementation'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_ImplementedRequirementControlImplementation'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Create implemented requirements for a control implementation
       tags:
       - Oscal
   /oscal/component-definitions/{id}/components/{defined-component}/control-implementations/statements:
