@@ -4,6 +4,7 @@ package tests
 
 import (
 	"context"
+
 	"github.com/compliance-framework/configuration-service/internal/service/relational"
 	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go"
