@@ -3517,6 +3517,49 @@ paths:
       summary: Get a defined component for a component definition
       tags:
       - Oscal
+    put:
+      consumes:
+      - application/json
+      description: Updates a defined component for a given component definition.
+      parameters:
+      - description: Component Definition ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Defined Component ID
+        in: path
+        name: defined-component
+        required: true
+        type: string
+      - description: Defined Component to update
+        in: body
+        name: defined-component
+        required: true
+        schema:
+          $ref: '#/definitions/oscalTypes_1_1_3.DefinedComponent'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_DefinedComponent'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Update a defined component for a component definition
+      tags:
+      - Oscal
   /oscal/component-definitions/{id}/components/{defined-component}/control-implementations:
     get:
       description: Retrieves all control implementations for a given defined component.

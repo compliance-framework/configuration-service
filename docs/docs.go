@@ -2542,6 +2542,70 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "put": {
+                "description": "Updates a defined component for a given component definition.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Oscal"
+                ],
+                "summary": "Update a defined component for a component definition",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Component Definition ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Defined Component ID",
+                        "name": "defined-component",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Defined Component to update",
+                        "name": "defined-component",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/oscalTypes_1_1_3.DefinedComponent"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_DefinedComponent"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
             }
         },
         "/oscal/component-definitions/{id}/components/{defined-component}/control-implementations": {
