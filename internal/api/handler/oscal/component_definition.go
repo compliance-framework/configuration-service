@@ -184,15 +184,67 @@ func (h *ComponentDefinitionHandler) Update(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
+	// Validate required fields
+	if oscalCat.UUID == "" {
+		h.sugar.Warnw("Missing required field: UUID")
+		return ctx.JSON(http.StatusBadRequest, api.NewError(errors.New("UUID is required")))
+	}
+
+	// Begin a transaction
+	tx := h.db.Begin()
+	if tx.Error != nil {
+		h.sugar.Errorf("Failed to begin transaction: %v", tx.Error)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(tx.Error))
+	}
+
+	// Check if component definition exists
+	var existingComponent relational.ComponentDefinition
+	if err := tx.First(&existingComponent, "id = ?", id).Error; err != nil {
+		tx.Rollback()
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Errorf("Failed to find component definition: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update component definition
 	now := time.Now()
 	relCat := &relational.ComponentDefinition{}
 	relCat.UnmarshalOscal(oscalCat)
-	relCat.Metadata.LastModified = &now
-	relCat.Metadata.OscalVersion = versioning.GetLatestSupportedVersion()
-	if err := h.db.Where("id = ?", id).Updates(relCat).Error; err != nil {
+	relCat.ID = &id // Ensure ID is set correctly
+
+	// Validate the unmarshaled data
+	if relCat.Metadata.Title == "" {
+		tx.Rollback()
+		h.sugar.Warnw("Missing required field: Metadata.Title")
+		return ctx.JSON(http.StatusBadRequest, api.NewError(errors.New("Metadata.Title is required")))
+	}
+
+	// Update the component definition
+	if err := tx.Model(&existingComponent).Updates(relCat).Error; err != nil {
+		tx.Rollback()
 		h.sugar.Errorf("Failed to update component definition: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
+
+	// Update metadata
+	metadataUpdates := map[string]interface{}{
+		"last_modified": now,
+		"oscal_version": versioning.GetLatestSupportedVersion(),
+	}
+	if err := tx.Model(&existingComponent.Metadata).Updates(metadataUpdates).Error; err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to update metadata: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		h.sugar.Errorf("Failed to commit transaction: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.ComponentDefinition]{Data: *relCat.MarshalOscal()})
 }
 
@@ -353,36 +405,36 @@ func (h *ComponentDefinitionHandler) UpdateComponents(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(tx.Error))
 	}
 
-	// Delete existing components for this component definition
-	if err := tx.Where("component_definition_id = ?", id).Delete(&relational.DefinedComponent{}).Error; err != nil {
-		tx.Rollback()
-		h.sugar.Errorf("Failed to delete existing components: %v", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-	}
-
-	// Create new components
-	var newComponents []relational.DefinedComponent
+	// Update each component individually to preserve existing data
 	for _, oscalComponent := range oscalComponents {
 		relationalComponent := relational.DefinedComponent{}
 		relationalComponent.UnmarshalOscal(oscalComponent)
-		relationalComponent.ComponentDefinitionID = id // Ensure proper association
-		newComponents = append(newComponents, relationalComponent)
-	}
+		relationalComponent.ComponentDefinitionID = id
 
-	// Create new components in the database
-	if err := tx.Create(&newComponents).Error; err != nil {
-		tx.Rollback()
-		h.sugar.Errorf("Failed to create new components: %v", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		// If the component exists, update it; otherwise create it
+		if err := tx.Model(&relationalComponent).Where("id = ?", relationalComponent.ID).Updates(relationalComponent).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				// Component doesn't exist, create it
+				if err := tx.Create(&relationalComponent).Error; err != nil {
+					tx.Rollback()
+					h.sugar.Errorf("Failed to create new component: %v", err)
+					return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+				}
+			} else {
+				tx.Rollback()
+				h.sugar.Errorf("Failed to update component: %v", err)
+				return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+			}
+		}
 	}
 
 	// Update metadata
 	now := time.Now()
-	componentDefinition.Metadata.LastModified = &now
-	componentDefinition.Metadata.OscalVersion = versioning.GetLatestSupportedVersion()
-
-	// Save metadata changes
-	if err := tx.Save(&componentDefinition.Metadata).Error; err != nil {
+	metadataUpdates := map[string]interface{}{
+		"last_modified": now,
+		"oscal_version": versioning.GetLatestSupportedVersion(),
+	}
+	if err := tx.Model(&componentDefinition.Metadata).Updates(metadataUpdates).Error; err != nil {
 		tx.Rollback()
 		h.sugar.Errorf("Failed to update metadata: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
@@ -530,12 +582,43 @@ func (h *ComponentDefinitionHandler) UpdateDefinedComponent(ctx echo.Context) er
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
+	// Begin a transaction
+	tx := h.db.Begin()
+	if tx.Error != nil {
+		h.sugar.Errorf("Failed to begin transaction: %v", tx.Error)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(tx.Error))
+	}
+
+	// Update only the fields that are provided in the request
 	definedComponent.UnmarshalOscal(oscalDefinedComponent)
 	definedComponent.ComponentDefinitionID = id // Ensure proper association
 
-	if err := h.db.Save(&definedComponent).Error; err != nil {
-		h.sugar.Warnw("Failed to save defined component", "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	// Use Updates instead of Save to only update non-zero fields
+	if err := tx.Model(&definedComponent).Updates(definedComponent).Error; err != nil {
+		tx.Rollback()
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Errorf("Failed to update defined component: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update metadata
+	now := time.Now()
+	metadataUpdates := map[string]interface{}{
+		"last_modified": now,
+		"oscal_version": versioning.GetLatestSupportedVersion(),
+	}
+	if err := tx.Model(&componentDefinition.Metadata).Updates(metadataUpdates).Error; err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to update metadata: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		h.sugar.Errorf("Failed to commit transaction: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.DefinedComponent]{Data: *definedComponent.MarshalOscal()})
@@ -804,24 +887,45 @@ func (h *ComponentDefinitionHandler) UpdateImportComponentDefinitions(ctx echo.C
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	// Clear existing import component definitions
-	componentDefinition.ImportComponentDefinitions = []relational.ImportComponentDefinition{}
+	// Begin a transaction
+	tx := h.db.Begin()
+	if tx.Error != nil {
+		h.sugar.Errorf("Failed to begin transaction: %v", tx.Error)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(tx.Error))
+	}
 
-	// Add new import component definitions
-	for _, importComponentDefinition := range importComponentDefinitions {
+	// Convert to relational model
+	var newImportDefs []relational.ImportComponentDefinition
+	for _, importDef := range importComponentDefinitions {
 		relationalImportDef := relational.ImportComponentDefinition{}
-		relationalImportDef.UnmarshalOscal(importComponentDefinition)
-		componentDefinition.ImportComponentDefinitions = append(componentDefinition.ImportComponentDefinitions, relationalImportDef)
+		relationalImportDef.UnmarshalOscal(importDef)
+		newImportDefs = append(newImportDefs, relationalImportDef)
+	}
+
+	// Update the import component definitions using Updates
+	if err := tx.Model(&componentDefinition).Updates(map[string]interface{}{
+		"import_component_definitions": newImportDefs,
+	}).Error; err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to update import component definitions: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	// Update metadata
 	now := time.Now()
-	componentDefinition.Metadata.LastModified = &now
-	componentDefinition.Metadata.OscalVersion = versioning.GetLatestSupportedVersion()
+	metadataUpdates := map[string]interface{}{
+		"last_modified": now,
+		"oscal_version": versioning.GetLatestSupportedVersion(),
+	}
+	if err := tx.Model(&componentDefinition.Metadata).Updates(metadataUpdates).Error; err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to update metadata: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
 
-	// Save changes to database
-	if err := h.db.Save(&componentDefinition).Error; err != nil {
-		h.sugar.Errorf("Failed to update import component definitions: %v", err)
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		h.sugar.Errorf("Failed to commit transaction: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
