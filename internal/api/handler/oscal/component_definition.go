@@ -31,15 +31,15 @@ func NewComponentDefinitionHandler(sugar *zap.SugaredLogger, db *gorm.DB) *Compo
 }
 
 func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
-	api.GET("", h.List)                                                           //manually tested
-	api.POST("", h.Create)                                                        //manually tested
-	api.GET("/:id", h.Get)                                                        // integration tested
-	api.PUT("/:id", h.Update)                                                     // todo
-	api.GET("/:id/full", h.Full)                                                  //manually tested
-	api.GET("/:id/import-component-definitions", h.GetImportComponentDefinitions) //manually tested
-	api.POST("/:id/import-component-definitions", h.CreateImportComponentDefinitions)
-	api.PUT("/:id/import-component-definitions", h.UpdateImportComponentDefinitions)
-	api.GET("/:id/components", h.GetComponents)
+	api.GET("", h.List)                                                               //manually tested
+	api.POST("", h.Create)                                                            //manually tested
+	api.GET("/:id", h.Get)                                                            // integration tested
+	api.PUT("/:id", h.Update)                                                         // todo
+	api.GET("/:id/full", h.Full)                                                      //manually tested
+	api.GET("/:id/import-component-definitions", h.GetImportComponentDefinitions)     //manually tested
+	api.POST("/:id/import-component-definitions", h.CreateImportComponentDefinitions) // integration tested
+	api.PUT("/:id/import-component-definitions", h.UpdateImportComponentDefinitions)  // todo
+	api.GET("/:id/components", h.GetComponents)                                       //manually tested
 	api.POST("/:id/components", h.CreateComponents)
 	api.PUT("/:id/components", h.UpdateComponents)
 	api.GET("/:id/components/:defined-component", h.GetDefinedComponent)
