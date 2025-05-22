@@ -350,7 +350,7 @@ func (h *ComponentDefinitionHandler) CreateImportComponentDefinitions(ctx echo.C
 	}
 
 	var componentDefinition relational.ComponentDefinition
-	if err := h.db.First(&componentDefinition, "id = ?", id).Error; err != nil {
+	if err := h.db.Preload("Metadata").First(&componentDefinition, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
 		}

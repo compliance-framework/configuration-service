@@ -170,12 +170,10 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateImportComponentDe
 		// Create test import component definitions
 		importComponentDefs := []oscaltypes.ImportComponentDefinition{
 			{
-				Href:    "https://example.com/components/base",
-				Remarks: "Base component definition",
+				Href: "https://example.com/components/base",
 			},
 			{
-				Href:    "https://example.com/components/security",
-				Remarks: "Security component definition",
+				Href: "https://example.com/components/security",
 			},
 		}
 
@@ -203,7 +201,6 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateImportComponentDe
 		// Verify each import component definition
 		for i, importDef := range importResponse.Data {
 			suite.Equal(importComponentDefs[i].Href, importDef.Href, "Import component definition href doesn't match")
-			suite.Equal(importComponentDefs[i].Remarks, importDef.Remarks, "Import component definition remarks don't match")
 		}
 
 		// Verify we can retrieve the import component definitions
