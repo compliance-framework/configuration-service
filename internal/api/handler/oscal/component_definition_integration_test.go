@@ -132,6 +132,93 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateCompleteComponent
 	})
 }
 
+func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateImportComponentDefinitions() {
+	fmt.Println("Running TestCreateImportComponentDefinitions")
+	logger, _ := zap.NewDevelopment()
+
+	// Reset database
+	err := suite.Migrator.Refresh()
+	suite.Require().NoError(err, "Failed to refresh database")
+	fmt.Println("Database refreshed successfully")
+
+	// Setup server
+	server := api.NewServer(context.Background(), logger.Sugar())
+	RegisterHandlers(server, logger.Sugar(), suite.DB)
+	fmt.Println("Server initialized")
+
+	suite.Run("Successfully creates import component definitions", func() {
+		// First create a base component definition to add imports to
+		baseCompDef := createValidComponentDefinition()
+		reqBody, err := json.Marshal(baseCompDef)
+		suite.Require().NoError(err, "Failed to marshal base component definition")
+
+		// Create the base component definition
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/api/oscal/component-definitions", bytes.NewReader(reqBody))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		server.E().ServeHTTP(rec, req)
+
+		// Check response
+		suite.Equal(http.StatusCreated, rec.Code, "Failed to create base component definition")
+
+		// Unmarshal response to get the created component definition ID
+		response := &handler.GenericDataResponse[oscaltypes.ComponentDefinition]{}
+		err = json.Unmarshal(rec.Body.Bytes(), response)
+		suite.Require().NoError(err, "Failed to unmarshal creation response")
+		componentDefID := response.Data.UUID
+
+		// Create test import component definitions
+		importComponentDefs := []oscaltypes.ImportComponentDefinition{
+			{
+				Href:    "https://example.com/components/base",
+				Remarks: "Base component definition",
+			},
+			{
+				Href:    "https://example.com/components/security",
+				Remarks: "Security component definition",
+			},
+		}
+
+		// Marshal the import component definitions to JSON
+		reqBody, err = json.Marshal(importComponentDefs)
+		suite.Require().NoError(err, "Failed to marshal import component definitions")
+
+		// Send POST request to create import component definitions
+		rec = httptest.NewRecorder()
+		req = httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/oscal/component-definitions/%s/import-component-definitions", componentDefID), bytes.NewReader(reqBody))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		server.E().ServeHTTP(rec, req)
+
+		// Check response
+		suite.Equal(http.StatusOK, rec.Code, "Failed to create import component definitions")
+
+		// Unmarshal and verify response
+		importResponse := &handler.GenericDataListResponse[oscaltypes.ImportComponentDefinition]{}
+		err = json.Unmarshal(rec.Body.Bytes(), importResponse)
+		suite.Require().NoError(err, "Failed to unmarshal import component definitions response")
+
+		// Verify the response contains the correct number of import component definitions
+		suite.Equal(len(importComponentDefs), len(importResponse.Data), "Number of import component definitions doesn't match")
+
+		// Verify each import component definition
+		for i, importDef := range importResponse.Data {
+			suite.Equal(importComponentDefs[i].Href, importDef.Href, "Import component definition href doesn't match")
+			suite.Equal(importComponentDefs[i].Remarks, importDef.Remarks, "Import component definition remarks don't match")
+		}
+
+		// Verify we can retrieve the import component definitions
+		rec = httptest.NewRecorder()
+		req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/oscal/component-definitions/%s/import-component-definitions", componentDefID), nil)
+		server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to get import component definitions")
+
+		getResponse := &handler.GenericDataListResponse[oscaltypes.ImportComponentDefinition]{}
+		err = json.Unmarshal(rec.Body.Bytes(), getResponse)
+		suite.Require().NoError(err, "Failed to unmarshal GET response")
+		suite.Equal(len(importComponentDefs), len(getResponse.Data), "Number of retrieved import component definitions doesn't match")
+	})
+}
+
 // Helper functions to create test data
 func createTestBackMatterResource(uuid string) oscaltypes.Resource {
 	return oscaltypes.Resource{
