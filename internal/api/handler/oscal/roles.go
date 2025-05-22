@@ -68,7 +68,7 @@ func (h *RoleHandler) List(ctx echo.Context) error {
 //	@Failure		400	{object}	api.Error
 //	@Failure		404	{object}	api.Error
 //	@Failure		500	{object}	api.Error
-//	@Router			/oscal/parties/{id} [get]
+//	@Router			/oscal/roles/{id} [get]
 func (h *RoleHandler) Get(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)

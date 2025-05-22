@@ -3774,7 +3774,7 @@ paths:
       - Oscal
   /oscal/parties/{id}:
     get:
-      description: Retrieves a single Role by its unique ID.
+      description: Retrieves a single Party by its unique ID.
       parameters:
       - description: Party ID
         in: path
@@ -3787,7 +3787,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Role'
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Party'
         "400":
           description: Bad Request
           schema:
@@ -3800,7 +3800,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.Error'
-      summary: Get a Role
+      summary: Get a Party
       tags:
       - Oscal
   /oscal/profiles:
@@ -4099,6 +4099,37 @@ paths:
           schema:
             $ref: '#/definitions/api.Error'
       summary: List roles
+      tags:
+      - Oscal
+  /oscal/roles/{id}:
+    get:
+      description: Retrieves a single Role by its unique ID.
+      parameters:
+      - description: Party ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Role'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Get a Role
       tags:
       - Oscal
   /oscal/system-security-plans:

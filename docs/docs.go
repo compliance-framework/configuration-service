@@ -2128,14 +2128,14 @@ const docTemplate = `{
         },
         "/oscal/parties/{id}": {
             "get": {
-                "description": "Retrieves a single Role by its unique ID.",
+                "description": "Retrieves a single Party by its unique ID.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Oscal"
                 ],
-                "summary": "Get a Role",
+                "summary": "Get a Party",
                 "parameters": [
                     {
                         "type": "string",
@@ -2149,7 +2149,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Role"
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Party"
                         }
                     },
                     "400": {
@@ -2606,6 +2606,53 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/oscal/roles/{id}": {
+            "get": {
+                "description": "Retrieves a single Role by its unique ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Oscal"
+                ],
+                "summary": "Get a Role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Party ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Role"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/api.Error"
                         }
