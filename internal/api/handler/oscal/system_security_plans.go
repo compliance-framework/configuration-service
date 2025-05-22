@@ -581,6 +581,18 @@ func (h *SystemSecurityPlanHandler) UpdateCharacteristics(ctx echo.Context) erro
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.SystemCharacteristics]{Data: *sc.MarshalOscal()})
 }
 
+// GetSystemImplementation godoc
+//
+//	@Summary		Get System Implementation
+//	@Description	Retrieves the System Implementation for a given System Security Plan.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id	path		string	true	"System Security Plan ID"
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.SystemImplementation]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/system-security-plans/{id}/system-implementation [get]
 func (h *SystemSecurityPlanHandler) GetSystemImplementation(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -603,6 +615,18 @@ func (h *SystemSecurityPlanHandler) GetSystemImplementation(ctx echo.Context) er
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.SystemImplementation]{Data: ssp.MarshalOscal().SystemImplementation})
 }
 
+// GetSystemImplementationUsers godoc
+//
+//	@Summary		List System Implementation Users
+//	@Description	Retrieves users in the System Implementation for a given System Security Plan.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id	path		string	true	"System Security Plan ID"
+//	@Success		200	{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.SystemUser]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/system-security-plans/{id}/system-implementation/users [get]
 func (h *SystemSecurityPlanHandler) GetSystemImplementationUsers(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -627,6 +651,18 @@ func (h *SystemSecurityPlanHandler) GetSystemImplementationUsers(ctx echo.Contex
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.SystemUser]{Data: ssp.MarshalOscal().SystemImplementation.Users})
 }
 
+// GetSystemImplementationComponents godoc
+//
+//	@Summary		List System Implementation Components
+//	@Description	Retrieves components in the System Implementation for a given System Security Plan.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id	path		string	true	"System Security Plan ID"
+//	@Success		200	{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.SystemComponent]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/system-security-plans/{id}/system-implementation/components [get]
 func (h *SystemSecurityPlanHandler) GetSystemImplementationComponents(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -650,6 +686,18 @@ func (h *SystemSecurityPlanHandler) GetSystemImplementationComponents(ctx echo.C
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.SystemComponent]{Data: ssp.MarshalOscal().SystemImplementation.Components})
 }
 
+// GetSystemImplementationInventoryItems godoc
+//
+//	@Summary		List System Implementation Inventory Items
+//	@Description	Retrieves inventory items in the System Implementation for a given System Security Plan.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id	path		string	true	"System Security Plan ID"
+//	@Success		200	{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.InventoryItem]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/system-security-plans/{id}/system-implementation/inventory-items [get]
 func (h *SystemSecurityPlanHandler) GetSystemImplementationInventoryItems(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -674,6 +722,18 @@ func (h *SystemSecurityPlanHandler) GetSystemImplementationInventoryItems(ctx ec
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.InventoryItem]{Data: *ssp.MarshalOscal().SystemImplementation.InventoryItems})
 }
 
+// GetSystemImplementationLeveragedAuthorizations godoc
+//
+//	@Summary		List System Implementation Leveraged Authorizations
+//	@Description	Retrieves leveraged authorizations in the System Implementation for a given System Security Plan.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id	path		string	true	"System Security Plan ID"
+//	@Success		200	{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.LeveragedAuthorization]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/system-security-plans/{id}/system-implementation/leveraged-authorizations [get]
 func (h *SystemSecurityPlanHandler) GetSystemImplementationLeveragedAuthorizations(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -697,6 +757,18 @@ func (h *SystemSecurityPlanHandler) GetSystemImplementationLeveragedAuthorizatio
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.LeveragedAuthorization]{Data: *ssp.MarshalOscal().SystemImplementation.LeveragedAuthorizations})
 }
 
+// GetControlImplementation godoc
+//
+//	@Summary		Get Control Implementation
+//	@Description	Retrieves the Control Implementation for a given System Security Plan.
+//	@Tags			Oscal
+//	@Produce		json
+//	@Param			id	path		string	true	"System Security Plan ID"
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.ControlImplementation]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/system-security-plans/{id}/control-implementation [get]
 func (h *SystemSecurityPlanHandler) GetControlImplementation(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
