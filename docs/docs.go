@@ -2128,14 +2128,14 @@ const docTemplate = `{
         },
         "/oscal/parties/{id}": {
             "get": {
-                "description": "Retrieves a single Party by its unique ID.",
+                "description": "Retrieves a single Role by its unique ID.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Oscal"
                 ],
-                "summary": "Get a Party",
+                "summary": "Get a Role",
                 "parameters": [
                     {
                         "type": "string",
@@ -2149,7 +2149,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Party"
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Role"
                         }
                     },
                     "400": {
@@ -2589,14 +2589,14 @@ const docTemplate = `{
         },
         "/oscal/roles": {
             "get": {
-                "description": "Retrieves all parties.",
+                "description": "Retrieves all roles.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Oscal"
                 ],
-                "summary": "List parties",
+                "summary": "List roles",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -4103,6 +4103,19 @@ const docTemplate = `{
                     "allOf": [
                         {
                             "$ref": "#/definitions/oscalTypes_1_1_3.Profile"
+                        }
+                    ]
+                }
+            }
+        },
+        "handler.GenericDataResponse-oscalTypes_1_1_3_Role": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Items from the list response",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/oscalTypes_1_1_3.Role"
                         }
                     ]
                 }

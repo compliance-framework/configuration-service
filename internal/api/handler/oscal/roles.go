@@ -33,8 +33,8 @@ func (h *RoleHandler) Register(api *echo.Group) {
 
 // List godoc
 //
-//	@Summary		List parties
-//	@Description	Retrieves all parties.
+//	@Summary		List roles
+//	@Description	Retrieves all roles.
 //	@Tags			Oscal
 //	@Produce		json
 //	@Success		200	{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.Role]
@@ -59,12 +59,12 @@ func (h *RoleHandler) List(ctx echo.Context) error {
 
 // Get godoc
 //
-//	@Summary		Get a Party
-//	@Description	Retrieves a single Party by its unique ID.
+//	@Summary		Get a Role
+//	@Description	Retrieves a single Role by its unique ID.
 //	@Tags			Oscal
 //	@Produce		json
 //	@Param			id	path		string	true	"Party ID"
-//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Party]
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Role]
 //	@Failure		400	{object}	api.Error
 //	@Failure		404	{object}	api.Error
 //	@Failure		500	{object}	api.Error
