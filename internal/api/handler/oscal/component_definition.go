@@ -237,6 +237,7 @@ func (h *ComponentDefinitionHandler) Update(ctx echo.Context) error {
 	}
 
 	// Update metadata
+	now = time.Now()
 	metadataUpdates := map[string]interface{}{
 		"last_modified": now,
 		"oscal_version": versioning.GetLatestSupportedVersion(),
@@ -583,18 +584,17 @@ func (h *ComponentDefinitionHandler) CreateComponents(ctx echo.Context) error {
 	for _, component := range components {
 		relationalComponent := relational.DefinedComponent{}
 		relationalComponent.UnmarshalOscal(component)
+		relationalComponent.ComponentDefinitionID = id
 		newComponents = append(newComponents, relationalComponent)
 	}
 
-	// Append new components to existing ones
-	existingComponents := componentDefinition.Components
-	updatedComponents := append(existingComponents, newComponents...)
-
-	// Update the component definition with the new components
-	if err := tx.Model(&componentDefinition).Update("components", updatedComponents).Error; err != nil {
-		tx.Rollback()
-		h.sugar.Errorf("Failed to update components: %v", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	// Create each component individually
+	for _, component := range newComponents {
+		if err := tx.Create(&component).Error; err != nil {
+			tx.Rollback()
+			h.sugar.Errorf("Failed to create component: %v", err)
+			return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		}
 	}
 
 	// Update metadata
@@ -603,7 +603,7 @@ func (h *ComponentDefinitionHandler) CreateComponents(ctx echo.Context) error {
 		"last_modified": now,
 		"oscal_version": versioning.GetLatestSupportedVersion(),
 	}
-	if err := tx.Model(&componentDefinition.Metadata).Updates(metadataUpdates).Error; err != nil {
+	if err := tx.Model(&relational.Metadata{}).Where("id = ?", componentDefinition.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
 		tx.Rollback()
 		h.sugar.Errorf("Failed to update metadata: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
