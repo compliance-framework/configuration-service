@@ -216,6 +216,132 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateImportComponentDe
 	})
 }
 
+func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateComponents() {
+	fmt.Println("Running TestCreateComponents")
+	logger, _ := zap.NewDevelopment()
+
+	// Reset database
+	err := suite.Migrator.Refresh()
+	suite.Require().NoError(err, "Failed to refresh database")
+	fmt.Println("Database refreshed successfully")
+
+	// Setup server
+	server := api.NewServer(context.Background(), logger.Sugar())
+	RegisterHandlers(server, logger.Sugar(), suite.DB)
+	fmt.Println("Server initialized")
+
+	suite.Run("Successfully creates components for a component definition", func() {
+		// First create a base component definition to add components to
+		baseCompDef := createValidComponentDefinition()
+		reqBody, err := json.Marshal(baseCompDef)
+		suite.Require().NoError(err, "Failed to marshal base component definition")
+
+		// Create the base component definition
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/api/oscal/component-definitions", bytes.NewReader(reqBody))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		server.E().ServeHTTP(rec, req)
+
+		// Check response
+		suite.Equal(http.StatusCreated, rec.Code, "Failed to create base component definition")
+
+		// Unmarshal response to get the created component definition ID
+		response := &handler.GenericDataResponse[oscaltypes.ComponentDefinition]{}
+		err = json.Unmarshal(rec.Body.Bytes(), response)
+		suite.Require().NoError(err, "Failed to unmarshal creation response")
+		componentDefID := response.Data.UUID
+
+		// Create test components
+		components := []oscaltypes.DefinedComponent{
+			{
+				UUID:        uuid.New().String(),
+				Type:        "software",
+				Title:       "Web Server Component",
+				Description: "A web server component for testing",
+				Purpose:     "Web serving",
+				Protocols: &[]oscaltypes.Protocol{
+					{
+						UUID:  uuid.New().String(),
+						Name:  "https",
+						Title: "HTTPS Protocol",
+						PortRanges: &[]oscaltypes.PortRange{
+							{
+								Start:     443,
+								End:       443,
+								Transport: "TCP",
+							},
+						},
+					},
+				},
+			},
+			{
+				UUID:        uuid.New().String(),
+				Type:        "service",
+				Title:       "Database Component",
+				Description: "A database component for testing",
+				Purpose:     "Data storage",
+				Protocols: &[]oscaltypes.Protocol{
+					{
+						UUID:  uuid.New().String(),
+						Name:  "postgres",
+						Title: "PostgreSQL Protocol",
+						PortRanges: &[]oscaltypes.PortRange{
+							{
+								Start:     5432,
+								End:       5432,
+								Transport: "TCP",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		// Marshal the components to JSON
+		reqBody, err = json.Marshal(components)
+		suite.Require().NoError(err, "Failed to marshal components")
+
+		// Send POST request to create components
+		rec = httptest.NewRecorder()
+		req = httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/oscal/component-definitions/%s/components", componentDefID), bytes.NewReader(reqBody))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		server.E().ServeHTTP(rec, req)
+
+		// Check response
+		suite.Equal(http.StatusOK, rec.Code, "Failed to create components")
+
+		// Unmarshal and verify response
+		componentsResponse := &handler.GenericDataListResponse[oscaltypes.DefinedComponent]{}
+		err = json.Unmarshal(rec.Body.Bytes(), componentsResponse)
+		suite.Require().NoError(err, "Failed to unmarshal components response")
+
+		// Verify the response contains the correct number of components
+		suite.Equal(len(components), len(componentsResponse.Data), "Number of components doesn't match")
+
+		// Verify each component
+		for i, component := range componentsResponse.Data {
+			suite.Equal(components[i].UUID, component.UUID, "Component UUID doesn't match")
+			suite.Equal(components[i].Type, component.Type, "Component type doesn't match")
+			suite.Equal(components[i].Title, component.Title, "Component title doesn't match")
+			suite.Equal(components[i].Description, component.Description, "Component description doesn't match")
+			suite.Equal(components[i].Purpose, component.Purpose, "Component purpose doesn't match")
+		}
+
+		fmt.Printf("Successfully created %d components for component definition %s\n", len(components), componentDefID)
+
+		// Verify we can retrieve the components
+		rec = httptest.NewRecorder()
+		req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/oscal/component-definitions/%s/components", componentDefID), nil)
+		server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to get components")
+
+		getResponse := &handler.GenericDataListResponse[oscaltypes.DefinedComponent]{}
+		err = json.Unmarshal(rec.Body.Bytes(), getResponse)
+		suite.Require().NoError(err, "Failed to unmarshal GET response")
+		suite.Equal(len(components), len(getResponse.Data), "Number of retrieved components doesn't match")
+	})
+}
+
 // Helper functions to create test data
 func createTestBackMatterResource(uuid string) oscaltypes.Resource {
 	return oscaltypes.Resource{
