@@ -29,26 +29,63 @@ func TestComponentDefinitionApi(t *testing.T) {
 
 type ComponentDefinitionApiIntegrationSuite struct {
 	tests.IntegrationTestSuite
+	server *api.Server
+	logger *zap.SugaredLogger
 }
 
 func (suite *ComponentDefinitionApiIntegrationSuite) SetupSuite() {
 	fmt.Println("Setting up Component Definition API test suite")
 	suite.IntegrationTestSuite.SetupSuite()
+
+	// Setup logger and server once for all tests
+	logger, _ := zap.NewDevelopment()
+	suite.logger = logger.Sugar()
+	suite.server = api.NewServer(context.Background(), suite.logger)
+	RegisterHandlers(suite.server, suite.logger, suite.DB)
+	fmt.Println("Server initialized")
+}
+
+func (suite *ComponentDefinitionApiIntegrationSuite) SetupTest() {
+	// Reset database before each test
+	err := suite.Migrator.Refresh()
+	suite.Require().NoError(err, "Failed to refresh database")
+	fmt.Println("Database refreshed successfully")
+}
+
+// Helper method to create a test request
+func (suite *ComponentDefinitionApiIntegrationSuite) createRequest(method, path string, body interface{}) (*httptest.ResponseRecorder, *http.Request) {
+	var reqBody []byte
+	var err error
+
+	if body != nil {
+		reqBody, err = json.Marshal(body)
+		suite.Require().NoError(err, "Failed to marshal request body")
+	}
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(method, path, bytes.NewReader(reqBody))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+	return rec, req
+}
+
+// Helper method to create a base component definition
+func (suite *ComponentDefinitionApiIntegrationSuite) createBaseComponentDefinition() string {
+	baseCompDef := createValidComponentDefinition()
+	rec, req := suite.createRequest(http.MethodPost, "/api/oscal/component-definitions", baseCompDef)
+
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusCreated, rec.Code, "Failed to create base component definition")
+
+	response := &handler.GenericDataResponse[oscaltypes.ComponentDefinition]{}
+	err := json.Unmarshal(rec.Body.Bytes(), response)
+	suite.Require().NoError(err, "Failed to unmarshal creation response")
+
+	return response.Data.UUID
 }
 
 func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateCompleteComponentDefinition() {
 	fmt.Println("Running TestCreateCompleteComponentDefinition")
-	logger, _ := zap.NewDevelopment()
-
-	// Reset database
-	err := suite.Migrator.Refresh()
-	suite.Require().NoError(err, "Failed to refresh database")
-	fmt.Println("Database refreshed successfully")
-
-	// Setup server
-	server := api.NewServer(context.Background(), logger.Sugar())
-	RegisterHandlers(server, logger.Sugar(), suite.DB)
-	fmt.Println("Server initialized")
 
 	suite.Run("Successfully creates a complete component definition", func() {
 		// Generate UUIDs dynamically
@@ -83,22 +120,16 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateCompleteComponent
 			},
 		}
 
-		// Marshal the component definition to JSON
-		reqBody, err := json.Marshal(completeCompDef)
-		suite.Require().NoError(err, "Failed to marshal complete component definition")
-
 		// Send POST request
-		rec := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodPost, "/api/oscal/component-definitions", bytes.NewReader(reqBody))
-		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-		server.E().ServeHTTP(rec, req)
+		rec, req := suite.createRequest(http.MethodPost, "/api/oscal/component-definitions", completeCompDef)
+		suite.server.E().ServeHTTP(rec, req)
 
 		// Check response
 		suite.Equal(http.StatusCreated, rec.Code, "Failed to create complete component definition")
 
 		// Unmarshal and verify response
 		response := &handler.GenericDataResponse[oscaltypes.ComponentDefinition]{}
-		err = json.Unmarshal(rec.Body.Bytes(), response)
+		err := json.Unmarshal(rec.Body.Bytes(), response)
 		suite.Require().NoError(err, "Failed to unmarshal creation response")
 
 		// Verify specific fields
@@ -120,9 +151,8 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateCompleteComponent
 		fmt.Println("Complete component definition created successfully with UUID:", response.Data.UUID)
 
 		// Verify we can retrieve the component definition
-		rec = httptest.NewRecorder()
-		req = httptest.NewRequest(http.MethodGet, "/api/oscal/component-definitions/"+response.Data.UUID, nil)
-		server.E().ServeHTTP(rec, req)
+		rec, req = suite.createRequest(http.MethodGet, "/api/oscal/component-definitions/"+response.Data.UUID, nil)
+		suite.server.E().ServeHTTP(rec, req)
 		suite.Equal(http.StatusOK, rec.Code, "Failed to get created component definition")
 
 		getResponse := &handler.GenericDataResponse[oscaltypes.ComponentDefinition]{}
@@ -134,38 +164,10 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateCompleteComponent
 
 func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateImportComponentDefinitions() {
 	fmt.Println("Running TestCreateImportComponentDefinitions")
-	logger, _ := zap.NewDevelopment()
-
-	// Reset database
-	err := suite.Migrator.Refresh()
-	suite.Require().NoError(err, "Failed to refresh database")
-	fmt.Println("Database refreshed successfully")
-
-	// Setup server
-	server := api.NewServer(context.Background(), logger.Sugar())
-	RegisterHandlers(server, logger.Sugar(), suite.DB)
-	fmt.Println("Server initialized")
 
 	suite.Run("Successfully creates import component definitions", func() {
 		// First create a base component definition to add imports to
-		baseCompDef := createValidComponentDefinition()
-		reqBody, err := json.Marshal(baseCompDef)
-		suite.Require().NoError(err, "Failed to marshal base component definition")
-
-		// Create the base component definition
-		rec := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodPost, "/api/oscal/component-definitions", bytes.NewReader(reqBody))
-		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-		server.E().ServeHTTP(rec, req)
-
-		// Check response
-		suite.Equal(http.StatusCreated, rec.Code, "Failed to create base component definition")
-
-		// Unmarshal response to get the created component definition ID
-		response := &handler.GenericDataResponse[oscaltypes.ComponentDefinition]{}
-		err = json.Unmarshal(rec.Body.Bytes(), response)
-		suite.Require().NoError(err, "Failed to unmarshal creation response")
-		componentDefID := response.Data.UUID
+		componentDefID := suite.createBaseComponentDefinition()
 
 		// Create test import component definitions
 		importComponentDefs := []oscaltypes.ImportComponentDefinition{
@@ -177,22 +179,20 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateImportComponentDe
 			},
 		}
 
-		// Marshal the import component definitions to JSON
-		reqBody, err = json.Marshal(importComponentDefs)
-		suite.Require().NoError(err, "Failed to marshal import component definitions")
-
 		// Send POST request to create import component definitions
-		rec = httptest.NewRecorder()
-		req = httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/oscal/component-definitions/%s/import-component-definitions", componentDefID), bytes.NewReader(reqBody))
-		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-		server.E().ServeHTTP(rec, req)
+		rec, req := suite.createRequest(
+			http.MethodPost,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/import-component-definitions", componentDefID),
+			importComponentDefs,
+		)
+		suite.server.E().ServeHTTP(rec, req)
 
 		// Check response
 		suite.Equal(http.StatusOK, rec.Code, "Failed to create import component definitions")
 
 		// Unmarshal and verify response
 		importResponse := &handler.GenericDataListResponse[oscaltypes.ImportComponentDefinition]{}
-		err = json.Unmarshal(rec.Body.Bytes(), importResponse)
+		err := json.Unmarshal(rec.Body.Bytes(), importResponse)
 		suite.Require().NoError(err, "Failed to unmarshal import component definitions response")
 
 		// Verify the response contains the correct number of import component definitions
@@ -204,9 +204,12 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateImportComponentDe
 		}
 
 		// Verify we can retrieve the import component definitions
-		rec = httptest.NewRecorder()
-		req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/oscal/component-definitions/%s/import-component-definitions", componentDefID), nil)
-		server.E().ServeHTTP(rec, req)
+		rec, req = suite.createRequest(
+			http.MethodGet,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/import-component-definitions", componentDefID),
+			nil,
+		)
+		suite.server.E().ServeHTTP(rec, req)
 		suite.Equal(http.StatusOK, rec.Code, "Failed to get import component definitions")
 
 		getResponse := &handler.GenericDataListResponse[oscaltypes.ImportComponentDefinition]{}
@@ -218,38 +221,10 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateImportComponentDe
 
 func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateComponents() {
 	fmt.Println("Running TestCreateComponents")
-	logger, _ := zap.NewDevelopment()
-
-	// Reset database
-	err := suite.Migrator.Refresh()
-	suite.Require().NoError(err, "Failed to refresh database")
-	fmt.Println("Database refreshed successfully")
-
-	// Setup server
-	server := api.NewServer(context.Background(), logger.Sugar())
-	RegisterHandlers(server, logger.Sugar(), suite.DB)
-	fmt.Println("Server initialized")
 
 	suite.Run("Successfully creates components for a component definition", func() {
 		// First create a base component definition to add components to
-		baseCompDef := createValidComponentDefinition()
-		reqBody, err := json.Marshal(baseCompDef)
-		suite.Require().NoError(err, "Failed to marshal base component definition")
-
-		// Create the base component definition
-		rec := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodPost, "/api/oscal/component-definitions", bytes.NewReader(reqBody))
-		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-		server.E().ServeHTTP(rec, req)
-
-		// Check response
-		suite.Equal(http.StatusCreated, rec.Code, "Failed to create base component definition")
-
-		// Unmarshal response to get the created component definition ID
-		response := &handler.GenericDataResponse[oscaltypes.ComponentDefinition]{}
-		err = json.Unmarshal(rec.Body.Bytes(), response)
-		suite.Require().NoError(err, "Failed to unmarshal creation response")
-		componentDefID := response.Data.UUID
+		componentDefID := suite.createBaseComponentDefinition()
 
 		// Create test components
 		components := []oscaltypes.DefinedComponent{
@@ -297,22 +272,20 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateComponents() {
 			},
 		}
 
-		// Marshal the components to JSON
-		reqBody, err = json.Marshal(components)
-		suite.Require().NoError(err, "Failed to marshal components")
-
 		// Send POST request to create components
-		rec = httptest.NewRecorder()
-		req = httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/oscal/component-definitions/%s/components", componentDefID), bytes.NewReader(reqBody))
-		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-		server.E().ServeHTTP(rec, req)
+		rec, req := suite.createRequest(
+			http.MethodPost,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/components", componentDefID),
+			components,
+		)
+		suite.server.E().ServeHTTP(rec, req)
 
 		// Check response
 		suite.Equal(http.StatusOK, rec.Code, "Failed to create components")
 
 		// Unmarshal and verify response
 		componentsResponse := &handler.GenericDataListResponse[oscaltypes.DefinedComponent]{}
-		err = json.Unmarshal(rec.Body.Bytes(), componentsResponse)
+		err := json.Unmarshal(rec.Body.Bytes(), componentsResponse)
 		suite.Require().NoError(err, "Failed to unmarshal components response")
 
 		// Verify the response contains the correct number of components
@@ -330,9 +303,12 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateComponents() {
 		fmt.Printf("Successfully created %d components for component definition %s\n", len(components), componentDefID)
 
 		// Verify we can retrieve the components
-		rec = httptest.NewRecorder()
-		req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/oscal/component-definitions/%s/components", componentDefID), nil)
-		server.E().ServeHTTP(rec, req)
+		rec, req = suite.createRequest(
+			http.MethodGet,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/components", componentDefID),
+			nil,
+		)
+		suite.server.E().ServeHTTP(rec, req)
 		suite.Equal(http.StatusOK, rec.Code, "Failed to get components")
 
 		getResponse := &handler.GenericDataListResponse[oscaltypes.DefinedComponent]{}
