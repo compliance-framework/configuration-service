@@ -439,6 +439,119 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestUpdateComponents() {
 	})
 }
 
+func (suite *ComponentDefinitionApiIntegrationSuite) TestUpdateDefinedComponent() {
+	fmt.Println("Running TestUpdateDefinedComponent")
+
+	suite.Run("Successfully updates a defined component", func() {
+		// First create a base component definition
+		componentDefID := suite.createBaseComponentDefinition()
+
+		// Create initial component
+		initialComponent := oscaltypes.DefinedComponent{
+			UUID:        uuid.New().String(),
+			Type:        "software",
+			Title:       "Initial Web Server Component",
+			Description: "An initial web server component for testing",
+			Purpose:     "Web serving",
+			Protocols: &[]oscaltypes.Protocol{
+				{
+					UUID:  uuid.New().String(),
+					Name:  "https",
+					Title: "HTTPS Protocol",
+					PortRanges: &[]oscaltypes.PortRange{
+						{
+							Start:     443,
+							End:       443,
+							Transport: "TCP",
+						},
+					},
+				},
+			},
+		}
+
+		// Create initial component
+		rec, req := suite.createRequest(
+			http.MethodPost,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/components", componentDefID),
+			[]oscaltypes.DefinedComponent{initialComponent},
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to create initial component")
+
+		// Create updated component with modified data
+		updatedComponent := oscaltypes.DefinedComponent{
+			UUID:        initialComponent.UUID, // Keep the same UUID
+			Type:        "service",             // Changed type
+			Title:       "Updated Web Server Component",
+			Description: "An updated web server component for testing",
+			Purpose:     "Enhanced web serving",
+			Protocols: &[]oscaltypes.Protocol{
+				{
+					UUID:  uuid.New().String(),
+					Name:  "http",
+					Title: "HTTP Protocol",
+					PortRanges: &[]oscaltypes.PortRange{
+						{
+							Start:     80,
+							End:       80,
+							Transport: "TCP",
+						},
+					},
+				},
+			},
+		}
+
+		// Send PUT request to update the defined component
+		rec, req = suite.createRequest(
+			http.MethodPut,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/components", componentDefID),
+			[]oscaltypes.DefinedComponent{updatedComponent},
+		)
+		suite.server.E().ServeHTTP(rec, req)
+
+		// Check response
+		suite.Equal(http.StatusOK, rec.Code, "Failed to update defined component")
+
+		// Unmarshal and verify response
+		componentsResponse := &handler.GenericDataListResponse[oscaltypes.DefinedComponent]{}
+		err := json.Unmarshal(rec.Body.Bytes(), componentsResponse)
+		suite.Require().NoError(err, "Failed to unmarshal components response")
+
+		// Verify the response contains the correct number of components
+		suite.Equal(1, len(componentsResponse.Data), "Number of components doesn't match")
+
+		// Verify the component was updated correctly
+		component := componentsResponse.Data[0]
+		suite.Equal(updatedComponent.UUID, component.UUID, "Component UUID doesn't match")
+		suite.Equal(updatedComponent.Type, component.Type, "Component type wasn't updated")
+		suite.Equal(updatedComponent.Title, component.Title, "Component title wasn't updated")
+		suite.Equal(updatedComponent.Description, component.Description, "Component description wasn't updated")
+		suite.Equal(updatedComponent.Purpose, component.Purpose, "Component purpose wasn't updated")
+
+		fmt.Printf("Successfully updated defined component %s for component definition %s\n", initialComponent.UUID, componentDefID)
+
+		// Verify we can retrieve the updated component
+		rec, req = suite.createRequest(
+			http.MethodGet,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/components/%s", componentDefID, initialComponent.UUID),
+			nil,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to get updated component")
+
+		getResponse := &handler.GenericDataResponse[oscaltypes.DefinedComponent]{}
+		err = json.Unmarshal(rec.Body.Bytes(), getResponse)
+		suite.Require().NoError(err, "Failed to unmarshal GET response")
+
+		// Verify the retrieved component matches the updates
+		suite.Equal(updatedComponent.UUID, getResponse.Data.UUID, "Retrieved component UUID doesn't match")
+		suite.Equal(updatedComponent.Type, getResponse.Data.Type, "Retrieved component type doesn't match")
+		suite.Equal(updatedComponent.Title, getResponse.Data.Title, "Retrieved component title doesn't match")
+		suite.Equal(updatedComponent.Description, getResponse.Data.Description, "Retrieved component description doesn't match")
+		suite.Equal(updatedComponent.Purpose, getResponse.Data.Purpose, "Retrieved component purpose doesn't match")
+	})
+}
+
 // Helper functions to create test data
 func createTestBackMatterResource(uuid string) oscaltypes.Resource {
 	return oscaltypes.Resource{

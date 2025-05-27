@@ -44,17 +44,17 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.PUT("/:id/components", h.UpdateComponents)                                    // integration tested
 	api.GET("/:id/components/:defined-component", h.GetDefinedComponent)              // manually tested
 	api.POST("/:id/components/:defined-component", h.CreateDefinedComponent)          // todo
-	api.PUT("/:id/components/:defined-component", h.UpdateDefinedComponent)
+	api.PUT("/:id/components/:defined-component", h.UpdateDefinedComponent)           // integration tested
 	api.GET("/:id/components/:defined-component/control-implementations", h.GetControlImplementations)
-	api.POST("/:id/components/:defined-component/control-implementations", h.CreateControlImplementations)
+	api.POST("/:id/components/:defined-component/control-implementations", h.CreateControlImplementations) // todo
 	api.GET("/:id/components/:defined-component/control-implementations/implemented-requirements", h.GetImplementedRequirements)
-	api.POST("/:id/components/:defined-component/control-implementations/implemented-requirements", h.CreateImplementedRequirements)
+	api.POST("/:id/components/:defined-component/control-implementations/implemented-requirements", h.CreateImplementedRequirements) // todo
 	api.GET("/:id/components/:defined-component/control-implementations/statements", h.GetStatements)
-	api.POST("/:id/components/:defined-component/control-implementations/statements", h.CreateStatements)
+	api.POST("/:id/components/:defined-component/control-implementations/statements", h.CreateStatements) // todo
 	api.GET("/:id/capabilities", h.GetCapabilities)
-	api.POST("/:id/capabilities", h.CreateCapabilities)
+	api.POST("/:id/capabilities", h.CreateCapabilities) // todo
 	api.GET("/:id/capabilities/incorporates-components", h.GetIncorporatesComponents)
-	api.POST("/:id/capabilities/incorporates-components", h.CreateIncorporatesComponents)
+	api.POST("/:id/capabilities/incorporates-components", h.CreateIncorporatesComponents) // todo
 	api.GET("/:id/back-matter", h.GetBackMatter)
 	api.POST("/:id/back-matter", h.CreateBackMatter)
 }
@@ -397,7 +397,7 @@ func (h *ComponentDefinitionHandler) CreateImportComponentDefinitions(ctx echo.C
 		"last_modified": now,
 		"oscal_version": versioning.GetLatestSupportedVersion(),
 	}
-	if err := tx.Model(&componentDefinition.Metadata).Updates(metadataUpdates).Error; err != nil {
+	if err := tx.Model(&relational.Metadata{}).Where("id = ?", componentDefinition.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
 		tx.Rollback()
 		h.sugar.Errorf("Failed to update metadata: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
