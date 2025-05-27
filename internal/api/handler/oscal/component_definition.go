@@ -55,8 +55,10 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.GET("/:id/components/:defined-component/control-implementations/statements", h.GetStatements)     // manually tested
 	api.POST("/:id/components/:defined-component/control-implementations/statements", h.CreateStatements) // TODO
 	// api.PUT("/:id/components/:defined-component/control-implementations/:statement", h.UpdateSingleStatement) // TODO
-	api.GET("/:id/capabilities", h.GetCapabilities)
-	api.POST("/:id/capabilities", h.CreateCapabilities) // TODO
+	api.GET("/:id/capabilities", h.GetCapabilities)              // manually tested
+	api.POST("/:id/capabilities", h.CreateCapabilities)          // TODO
+	api.PUT("/:id/capabilities/:capability", h.UpdateCapability) // TODO
+
 	api.GET("/:id/capabilities/incorporates-components", h.GetIncorporatesComponents)
 	api.POST("/:id/capabilities/incorporates-components", h.CreateIncorporatesComponents) // TODO
 	api.GET("/:id/back-matter", h.GetBackMatter)
@@ -1953,4 +1955,115 @@ func (h *ComponentDefinitionHandler) UpdateSingleControlImplementation(ctx echo.
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.ControlImplementationSet]{
 		Data: controlImplementation,
 	})
+}
+
+// UpdateCapability godoc
+//
+//	@Summary		Update a capability for a component definition
+//	@Description	Updates a single capability for a given component definition.
+//	@Tags			Oscal
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string						true	"Component Definition ID"
+//	@Param			capability	path		string						true	"Capability ID (UUID)"
+//	@Param			capability	body		oscalTypes_1_1_3.Capability	true	"Capability to update"
+//	@Success		200			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Capability]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Router			/oscal/component-definitions/{id}/capabilities/{capability} [put]
+func (h *ComponentDefinitionHandler) UpdateCapability(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	capabilityParam := ctx.Param("capability")
+	capabilityID, err := uuid.Parse(capabilityParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid capability id", "capability", capabilityParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var componentDefinition relational.ComponentDefinition
+	if err := h.db.Preload("Capabilities").First(&componentDefinition, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var oscalCapability oscalTypes_1_1_3.Capability
+	if err := ctx.Bind(&oscalCapability); err != nil {
+		h.sugar.Warnw("Failed to bind capability", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Find the existing capability
+	found := false
+	for _, cap := range componentDefinition.Capabilities {
+		if cap.UUIDModel.ID != nil && *cap.UUIDModel.ID == capabilityID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		h.sugar.Warnw("Capability not found", "capability", capabilityParam)
+		return ctx.JSON(http.StatusNotFound, api.NewError(errors.New("capability not found")))
+	}
+
+	// Unmarshal and update fields
+	relationalCapability := relational.Capability{}
+	relationalCapability.UnmarshalOscal(oscalCapability)
+	relationalCapability.ID = &capabilityID
+	relationalCapability.ComponentDefinitionId = id
+
+	// Begin a transaction
+	tx := h.db.Begin()
+	if tx.Error != nil {
+		h.sugar.Errorf("Failed to begin transaction: %v", tx.Error)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(tx.Error))
+	}
+
+	updateFields := map[string]interface{}{
+		"name":                    relationalCapability.Name,
+		"description":             relationalCapability.Description,
+		"remarks":                 relationalCapability.Remarks,
+		"links":                   relationalCapability.Links,
+		"props":                   relationalCapability.Props,
+		"incorporates_components": relationalCapability.IncorporatesComponents,
+	}
+
+	// Only update control implementations if provided
+	if len(relationalCapability.ControlImplementations) > 0 {
+		updateFields["control_implementations"] = relationalCapability.ControlImplementations
+	}
+
+	if err := tx.Model(&relational.Capability{}).Where("id = ?", capabilityID).Updates(updateFields).Error; err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to update capability: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update metadata
+	now := time.Now()
+	metadataUpdates := map[string]interface{}{
+		"last_modified": now,
+		"oscal_version": versioning.GetLatestSupportedVersion(),
+	}
+	if err := tx.Model(&relational.Metadata{}).Where("id = ?", componentDefinition.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to update metadata: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		h.sugar.Errorf("Failed to commit transaction: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Capability]{Data: oscalCapability})
 }

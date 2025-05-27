@@ -228,6 +228,13 @@ definitions:
         - $ref: '#/definitions/oscalTypes_1_1_3.BackMatter'
         description: Items from the list response
     type: object
+  handler.GenericDataResponse-oscalTypes_1_1_3_Capability:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/oscalTypes_1_1_3.Capability'
+        description: Items from the list response
+    type: object
   handler.GenericDataResponse-oscalTypes_1_1_3_Catalog:
     properties:
       data:
@@ -3462,6 +3469,50 @@ paths:
           schema:
             $ref: '#/definitions/api.Error'
       summary: Create capabilities for a component definition
+      tags:
+      - Oscal
+  /oscal/component-definitions/{id}/capabilities/{capability}:
+    put:
+      consumes:
+      - application/json
+      description: Updates a single capability for a given component definition.
+      parameters:
+      - description: Component Definition ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Capability ID (UUID)
+        in: path
+        name: capability
+        required: true
+        type: string
+      - description: Capability to update
+        in: body
+        name: capability
+        required: true
+        schema:
+          $ref: '#/definitions/oscalTypes_1_1_3.Capability'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Capability'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Update a capability for a component definition
       tags:
       - Oscal
   /oscal/component-definitions/{id}/capabilities/incorporates-components:

@@ -618,6 +618,75 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestUpdateSingleControlImpl
 	suite.Equal(updatedImplementedRequirements[0].Remarks, response.Data.ImplementedRequirements[0].Remarks)
 }
 
+func (suite *ComponentDefinitionApiIntegrationSuite) TestUpdateCapability() {
+	fmt.Println("Running TestUpdateCapability")
+
+	suite.Run("Successfully updates a capability for a component definition", func() {
+		// Step 1: Create a base component definition
+		componentDefID := suite.createBaseComponentDefinition()
+
+		// Step 2: Create an initial capability
+		capabilityUUID := uuid.New().String()
+		capabilityImplUUID := uuid.New().String()
+		initialCapability := createTestCapability(capabilityUUID, capabilityImplUUID)
+
+		// POST the capability
+		rec, req := suite.createRequest(
+			http.MethodPost,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/capabilities", componentDefID),
+			[]oscaltypes.Capability{initialCapability},
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to create capability")
+
+		// Step 3: Prepare an updated capability (change name, description, add remarks)
+		updatedCapability := initialCapability
+		updatedCapability.Name = "Updated Security Monitoring"
+		updatedCapability.Description = "Updated description for security monitoring capability"
+		updatedCapability.Remarks = "Updated remarks for capability"
+
+		// PUT the update
+		rec, req = suite.createRequest(
+			http.MethodPut,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/capabilities/%s", componentDefID, capabilityUUID),
+			updatedCapability,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to update capability")
+
+		// Unmarshal and verify response
+		updateResponse := &handler.GenericDataResponse[oscaltypes.Capability]{}
+		err := json.Unmarshal(rec.Body.Bytes(), updateResponse)
+		suite.Require().NoError(err, "Failed to unmarshal update response")
+		suite.Equal(updatedCapability.Name, updateResponse.Data.Name, "Capability name wasn't updated")
+		suite.Equal(updatedCapability.Description, updateResponse.Data.Description, "Capability description wasn't updated")
+		suite.Equal(updatedCapability.Remarks, updateResponse.Data.Remarks, "Capability remarks weren't updated")
+
+		// Step 4: GET the capabilities and verify the update is reflected
+		rec, req = suite.createRequest(
+			http.MethodGet,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/capabilities", componentDefID),
+			nil,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to get capabilities")
+
+		getResponse := &handler.GenericDataListResponse[oscaltypes.Capability]{}
+		err = json.Unmarshal(rec.Body.Bytes(), getResponse)
+		suite.Require().NoError(err, "Failed to unmarshal GET response")
+		var found bool
+		for _, cap := range getResponse.Data {
+			if cap.UUID == capabilityUUID {
+				found = true
+				suite.Equal(updatedCapability.Name, cap.Name, "GET: Capability name wasn't updated")
+				suite.Equal(updatedCapability.Description, cap.Description, "GET: Capability description wasn't updated")
+				suite.Equal(updatedCapability.Remarks, cap.Remarks, "GET: Capability remarks weren't updated")
+			}
+		}
+		suite.True(found, "Updated capability not found in GET response")
+	})
+}
+
 // Helper functions to create test data
 func createTestBackMatterResource(uuid string) oscaltypes.Resource {
 	return oscaltypes.Resource{
