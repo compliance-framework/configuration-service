@@ -552,6 +552,72 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestUpdateDefinedComponent(
 	})
 }
 
+func (suite *ComponentDefinitionApiIntegrationSuite) TestUpdateSingleControlImplementation() {
+	fmt.Println("Running TestUpdateSingleControlImplementation")
+
+	// Step 1: Create a base component definition with a component and control implementation
+	componentDefID := suite.createBaseComponentDefinition()
+	componentUUID := uuid.New().String()
+	controlImplUUID := uuid.New().String()
+	implementedReqUUID := uuid.New().String()
+
+	component := createTestComponent(componentUUID, controlImplUUID, implementedReqUUID)
+	components := []oscaltypes.DefinedComponent{component}
+
+	// Create the component
+	rec, req := suite.createRequest(
+		http.MethodPost,
+		fmt.Sprintf("/api/oscal/component-definitions/%s/components", componentDefID),
+		components,
+	)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusOK, rec.Code, "Failed to create component")
+
+	// Step 2: Prepare an update for the control implementation
+	updatedSource := "https://example.com/updated-source"
+	updatedDescription := "Updated control implementation description"
+	updatedSetParameters := &[]oscaltypes.SetParameter{
+		{
+			ParamId: "param-1",
+			Values:  []string{"value1"},
+		},
+	}
+	updatedImplementedRequirements := []oscaltypes.ImplementedRequirementControlImplementation{
+		{
+			UUID:      implementedReqUUID,
+			ControlId: "AC-1",
+			Remarks:   "Updated remarks",
+		},
+	}
+
+	updatedControlImpl := oscaltypes.ControlImplementationSet{
+		UUID:                    controlImplUUID,
+		Source:                  updatedSource,
+		Description:             updatedDescription,
+		SetParameters:           updatedSetParameters,
+		ImplementedRequirements: updatedImplementedRequirements,
+	}
+
+	// Step 3: Send PUT request to update the control implementation
+	rec, req = suite.createRequest(
+		http.MethodPut,
+		fmt.Sprintf("/api/oscal/component-definitions/%s/components/%s/control-implementations/%s", componentDefID, componentUUID, controlImplUUID),
+		updatedControlImpl,
+	)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusOK, rec.Code, "Failed to update control implementation")
+
+	// Step 4: Verify the update in the response
+	response := &handler.GenericDataResponse[oscaltypes.ControlImplementationSet]{}
+	err := json.Unmarshal(rec.Body.Bytes(), response)
+	suite.Require().NoError(err, "Failed to unmarshal update response")
+	suite.Equal(updatedSource, response.Data.Source)
+	suite.Equal(updatedDescription, response.Data.Description)
+	suite.Require().NotNil(response.Data.SetParameters)
+	suite.Equal((*updatedSetParameters)[0].ParamId, (*response.Data.SetParameters)[0].ParamId)
+	suite.Equal(updatedImplementedRequirements[0].Remarks, response.Data.ImplementedRequirements[0].Remarks)
+}
+
 // Helper functions to create test data
 func createTestBackMatterResource(uuid string) oscaltypes.Resource {
 	return oscaltypes.Resource{

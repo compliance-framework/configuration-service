@@ -249,6 +249,13 @@ definitions:
         - $ref: '#/definitions/oscalTypes_1_1_3.Control'
         description: Items from the list response
     type: object
+  handler.GenericDataResponse-oscalTypes_1_1_3_ControlImplementationSet:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/oscalTypes_1_1_3.ControlImplementationSet'
+        description: Items from the list response
+    type: object
   handler.GenericDataResponse-oscalTypes_1_1_3_DefinedComponent:
     properties:
       data:
@@ -3835,6 +3842,100 @@ paths:
           schema:
             $ref: '#/definitions/api.Error'
       summary: Create control implementations for a defined component
+      tags:
+      - Oscal
+    put:
+      consumes:
+      - application/json
+      description: Updates control implementations for a given defined component.
+      parameters:
+      - description: Component Definition ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Defined Component ID
+        in: path
+        name: defined-component
+        required: true
+        type: string
+      - description: Control Implementations
+        in: body
+        name: control-implementations
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/oscalTypes_1_1_3.ControlImplementationSet'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_ControlImplementationSet'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Update control implementations for a defined component
+      tags:
+      - Oscal
+  /oscal/component-definitions/{id}/components/{defined-component}/control-implementations/{control-implementation}:
+    put:
+      consumes:
+      - application/json
+      description: Updates a specific control implementation for a given defined component.
+      parameters:
+      - description: Component Definition ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Defined Component ID
+        in: path
+        name: defined-component
+        required: true
+        type: string
+      - description: Control Implementation ID
+        in: path
+        name: control-implementation
+        required: true
+        type: string
+      - description: Control Implementation
+        in: body
+        name: control-implementation
+        required: true
+        schema:
+          $ref: '#/definitions/oscalTypes_1_1_3.ControlImplementationSet'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_ControlImplementationSet'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Update a single control implementation for a defined component
       tags:
       - Oscal
   /oscal/component-definitions/{id}/components/{defined-component}/control-implementations/implemented-requirements:

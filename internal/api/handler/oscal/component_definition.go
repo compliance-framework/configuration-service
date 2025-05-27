@@ -31,30 +31,35 @@ func NewComponentDefinitionHandler(sugar *zap.SugaredLogger, db *gorm.DB) *Compo
 }
 
 func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
-	api.GET("", h.List)                                                               // manually tested
-	api.POST("", h.Create)                                                            // manually tested
-	api.GET("/:id", h.Get)                                                            // integration tested
-	api.PUT("/:id", h.Update)                                                         // todo
-	api.GET("/:id/full", h.Full)                                                      // manually tested
-	api.GET("/:id/import-component-definitions", h.GetImportComponentDefinitions)     // manually tested
-	api.POST("/:id/import-component-definitions", h.CreateImportComponentDefinitions) // integration tested
-	api.PUT("/:id/import-component-definitions", h.UpdateImportComponentDefinitions)  // todo
-	api.GET("/:id/components", h.GetComponents)                                       // manually tested
-	api.POST("/:id/components", h.CreateComponents)                                   // todo
-	api.PUT("/:id/components", h.UpdateComponents)                                    // integration tested
-	api.GET("/:id/components/:defined-component", h.GetDefinedComponent)              // manually tested
-	api.POST("/:id/components/:defined-component", h.CreateDefinedComponent)          // todo
-	api.PUT("/:id/components/:defined-component", h.UpdateDefinedComponent)           // integration tested
-	api.GET("/:id/components/:defined-component/control-implementations", h.GetControlImplementations)
-	api.POST("/:id/components/:defined-component/control-implementations", h.CreateControlImplementations) // todo
-	api.GET("/:id/components/:defined-component/control-implementations/implemented-requirements", h.GetImplementedRequirements)
-	api.POST("/:id/components/:defined-component/control-implementations/implemented-requirements", h.CreateImplementedRequirements) // todo
-	api.GET("/:id/components/:defined-component/control-implementations/statements", h.GetStatements)
-	api.POST("/:id/components/:defined-component/control-implementations/statements", h.CreateStatements) // todo
+	api.GET("", h.List)                                                                                                                // manually tested
+	api.POST("", h.Create)                                                                                                             // manually tested
+	api.GET("/:id", h.Get)                                                                                                             // integration tested
+	api.PUT("/:id", h.Update)                                                                                                          // integration tested
+	api.GET("/:id/full", h.Full)                                                                                                       // manually tested
+	api.GET("/:id/import-component-definitions", h.GetImportComponentDefinitions)                                                      // manually tested
+	api.POST("/:id/import-component-definitions", h.CreateImportComponentDefinitions)                                                  // integration tested
+	api.PUT("/:id/import-component-definitions", h.UpdateImportComponentDefinitions)                                                   // TODO
+	api.GET("/:id/components", h.GetComponents)                                                                                        // manually tested
+	api.POST("/:id/components", h.CreateComponents)                                                                                    // TODO
+	api.PUT("/:id/components", h.UpdateComponents)                                                                                     // integration tested
+	api.GET("/:id/components/:defined-component", h.GetDefinedComponent)                                                               // manually tested
+	api.POST("/:id/components/:defined-component", h.CreateDefinedComponent)                                                           // TODO
+	api.PUT("/:id/components/:defined-component", h.UpdateDefinedComponent)                                                            // integration tested
+	api.GET("/:id/components/:defined-component/control-implementations", h.GetControlImplementations)                                 // manually tested
+	api.POST("/:id/components/:defined-component/control-implementations", h.CreateControlImplementations)                             // TODO
+	api.PUT("/:id/components/:defined-component/control-implementations", h.UpdateControlImplementations)                              // TODO
+	api.PUT("/:id/components/:defined-component/control-implementations/:control-implementation", h.UpdateSingleControlImplementation) // integration tested
+	api.GET("/:id/components/:defined-component/control-implementations/implemented-requirements", h.GetImplementedRequirements)       // manually tested
+	api.POST("/:id/components/:defined-component/control-implementations/implemented-requirements", h.CreateImplementedRequirements)   // TODO
+	// api.PUT("/:id/components/:defined-component/control-implementations/implemented-requirements", h.UpdateImplementedRequirements) // TODO
+	api.GET("/:id/components/:defined-component/control-implementations/statements", h.GetStatements)         // manually tested
+	api.POST("/:id/components/:defined-component/control-implementations/statements", h.CreateStatements)     // TODO
+	api.PUT("/:id/components/:defined-component/control-implementations/:statement", h.UpdateSingleStatement) // TODO
+
 	api.GET("/:id/capabilities", h.GetCapabilities)
-	api.POST("/:id/capabilities", h.CreateCapabilities) // todo
+	api.POST("/:id/capabilities", h.CreateCapabilities) // TODO
 	api.GET("/:id/capabilities/incorporates-components", h.GetIncorporatesComponents)
-	api.POST("/:id/capabilities/incorporates-components", h.CreateIncorporatesComponents) // todo
+	api.POST("/:id/capabilities/incorporates-components", h.CreateIncorporatesComponents) // TODO
 	api.GET("/:id/back-matter", h.GetBackMatter)
 	api.POST("/:id/back-matter", h.CreateBackMatter)
 }
@@ -1742,5 +1747,211 @@ func (h *ComponentDefinitionHandler) CreateBackMatter(ctx echo.Context) error {
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]{
 		Data: backMatter,
+	})
+}
+
+// UpdateControlImplementations godoc
+//
+//	@Summary		Update control implementations for a defined component
+//	@Description	Updates control implementations for a given defined component.
+//	@Tags			Oscal
+//	@Accept			json
+//	@Produce		json
+//	@Param			id						path		string										true	"Component Definition ID"
+//	@Param			defined-component		path		string										true	"Defined Component ID"
+//	@Param			control-implementations	body		[]oscalTypes_1_1_3.ControlImplementationSet	true	"Control Implementations"
+//	@Success		200						{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.ControlImplementationSet]
+//	@Failure		400						{object}	api.Error
+//	@Failure		404						{object}	api.Error
+//	@Failure		500						{object}	api.Error
+//	@Router			/oscal/component-definitions/{id}/components/{defined-component}/control-implementations [put]
+func (h *ComponentDefinitionHandler) UpdateControlImplementations(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var componentDefinition relational.ComponentDefinition
+	if err := h.db.First(&componentDefinition, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	definedComponentID := ctx.Param("defined-component")
+	var definedComponent relational.DefinedComponent
+	if err := h.db.First(&definedComponent, "id = ?", definedComponentID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load defined component", "id", definedComponentID, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var controlImplementations []oscalTypes_1_1_3.ControlImplementationSet
+	if err := ctx.Bind(&controlImplementations); err != nil {
+		h.sugar.Warnw("Failed to bind control implementations", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Begin a transaction
+	tx := h.db.Begin()
+	if tx.Error != nil {
+		h.sugar.Errorf("Failed to begin transaction: %v", tx.Error)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(tx.Error))
+	}
+
+	// Convert to relational model
+	var newControlImpls []relational.ControlImplementationSet
+	for _, controlImpl := range controlImplementations {
+		relationalControlImpl := relational.ControlImplementationSet{}
+		relationalControlImpl.UnmarshalOscal(controlImpl)
+		newControlImpls = append(newControlImpls, relationalControlImpl)
+	}
+
+	// Clear existing control implementations and add new ones
+	if err := tx.Model(&definedComponent).Association("ControlImplementations").Clear(); err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to clear existing control implementations: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	if err := tx.Model(&definedComponent).Association("ControlImplementations").Append(newControlImpls); err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to update control implementations: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update metadata
+	now := time.Now()
+	metadataUpdates := map[string]interface{}{
+		"last_modified": now,
+		"oscal_version": versioning.GetLatestSupportedVersion(),
+	}
+	if err := tx.Model(&componentDefinition.Metadata).Updates(metadataUpdates).Error; err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to update metadata: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		h.sugar.Errorf("Failed to commit transaction: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ControlImplementationSet]{
+		Data: controlImplementations,
+	})
+}
+
+// UpdateSingleControlImplementation godoc
+//
+//	@Summary		Update a single control implementation for a defined component
+//	@Description	Updates a specific control implementation for a given defined component.
+//	@Tags			Oscal
+//	@Accept			json
+//	@Produce		json
+//	@Param			id						path		string										true	"Component Definition ID"
+//	@Param			defined-component		path		string										true	"Defined Component ID"
+//	@Param			control-implementation	path		string										true	"Control Implementation ID"
+//	@Param			control-implementation	body		oscalTypes_1_1_3.ControlImplementationSet	true	"Control Implementation"
+//	@Success		200						{object}	handler.GenericDataResponse[oscalTypes_1_1_3.ControlImplementationSet]
+//	@Failure		400						{object}	api.Error
+//	@Failure		404						{object}	api.Error
+//	@Failure		500						{object}	api.Error
+//	@Router			/oscal/component-definitions/{id}/components/{defined-component}/control-implementations/{control-implementation} [put]
+func (h *ComponentDefinitionHandler) UpdateSingleControlImplementation(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var componentDefinition relational.ComponentDefinition
+	if err := h.db.First(&componentDefinition, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	definedComponentID := ctx.Param("defined-component")
+	var definedComponent relational.DefinedComponent
+	if err := h.db.First(&definedComponent, "id = ?", definedComponentID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load defined component", "id", definedComponentID, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	controlImplID := ctx.Param("control-implementation")
+	var existingControlImpl relational.ControlImplementationSet
+	if err := h.db.First(&existingControlImpl, "id = ?", controlImplID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load control implementation", "id", controlImplID, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var controlImplementation oscalTypes_1_1_3.ControlImplementationSet
+	if err := ctx.Bind(&controlImplementation); err != nil {
+		h.sugar.Warnw("Failed to bind control implementation", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Begin a transaction
+	tx := h.db.Begin()
+	if tx.Error != nil {
+		h.sugar.Errorf("Failed to begin transaction: %v", tx.Error)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(tx.Error))
+	}
+
+	// Convert to relational model
+	relationalControlImpl := relational.ControlImplementationSet{}
+	relationalControlImpl.UnmarshalOscal(controlImplementation)
+	relationalControlImpl.ID = existingControlImpl.ID // Preserve the existing ID
+
+	// Update the control implementation (only simple fields)
+	if err := tx.Model(&relational.ControlImplementationSet{}).Where("id = ?", controlImplID).Updates(map[string]interface{}{
+		"source":         relationalControlImpl.Source,
+		"description":    relationalControlImpl.Description,
+		"set_parameters": relationalControlImpl.SetParameters,
+		"props":          relationalControlImpl.Props,
+		"links":          relationalControlImpl.Links,
+	}).Error; err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to update control implementation: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update metadata
+	now := time.Now()
+	metadataUpdates := map[string]interface{}{
+		"last_modified": now,
+		"oscal_version": versioning.GetLatestSupportedVersion(),
+	}
+	if err := tx.Model(&relational.Metadata{}).Where("id = ?", componentDefinition.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to update metadata: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		h.sugar.Errorf("Failed to commit transaction: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.ControlImplementationSet]{
+		Data: controlImplementation,
 	})
 }
