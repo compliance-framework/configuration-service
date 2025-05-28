@@ -39,7 +39,7 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.GET("/:id/full", h.Full)                                                                                                       // manually tested
 	api.GET("/:id/import-component-definitions", h.GetImportComponentDefinitions)                                                      // manually tested
 	api.POST("/:id/import-component-definitions", h.CreateImportComponentDefinitions)                                                  // integration tested
-	api.PUT("/:id/import-component-definitions", h.UpdateImportComponentDefinitions)                                                   // TODO
+	api.PUT("/:id/import-component-definitions", h.UpdateImportComponentDefinitions)                                                   // integration tested
 	api.GET("/:id/components", h.GetComponents)                                                                                        // manually tested
 	api.POST("/:id/components", h.CreateComponents)                                                                                    // integration tested
 	api.PUT("/:id/components", h.UpdateComponents)                                                                                     // integration tested
