@@ -61,9 +61,9 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.POST("/:id/capabilities", h.CreateCapabilities)                                   // integration tested
 	api.PUT("/:id/capabilities/:capability", h.UpdateCapability)                          // integration tested
 	api.GET("/:id/capabilities/incorporates-components", h.GetIncorporatesComponents)     // manually tested
-	api.POST("/:id/capabilities/incorporates-components", h.CreateIncorporatesComponents) // TODO
+	api.POST("/:id/capabilities/incorporates-components", h.CreateIncorporatesComponents) // integration tested
 	api.GET("/:id/back-matter", h.GetBackMatter)                                          // manually tested
-	api.POST("/:id/back-matter", h.CreateBackMatter)                                      // TODO
+	api.POST("/:id/back-matter", h.CreateBackMatter)                                      // integration tested
 }
 
 // List godoc
@@ -1815,6 +1815,22 @@ func (h *ComponentDefinitionHandler) CreateBackMatter(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
+	// Validate required fields for each resource
+	if backMatter.Resources != nil {
+		for i, resource := range *backMatter.Resources {
+			if resource.Title == "" {
+				errMsg := fmt.Sprintf("resource at index %d is missing required field: title", i)
+				h.sugar.Warnw(errMsg)
+				return ctx.JSON(http.StatusBadRequest, api.NewError(errors.New(errMsg)))
+			}
+			if resource.Description == "" {
+				errMsg := fmt.Sprintf("resource at index %d is missing required field: description", i)
+				h.sugar.Warnw(errMsg)
+				return ctx.JSON(http.StatusBadRequest, api.NewError(errors.New(errMsg)))
+			}
+		}
+	}
+
 	// Begin a transaction
 	tx := h.db.Begin()
 	if tx.Error != nil {
@@ -1826,6 +1842,12 @@ func (h *ComponentDefinitionHandler) CreateBackMatter(ctx echo.Context) error {
 	relationalBackMatter := relational.BackMatter{}
 	relationalBackMatter.UnmarshalOscal(backMatter)
 
+	// Set the parent relationship
+	parentID := componentDefinition.UUIDModel.ID.String()
+	relationalBackMatter.ParentID = &parentID
+	parentType := "ComponentDefinition"
+	relationalBackMatter.ParentType = &parentType
+
 	// Create the back-matter
 	if err := tx.Create(&relationalBackMatter).Error; err != nil {
 		tx.Rollback()
@@ -1833,8 +1855,8 @@ func (h *ComponentDefinitionHandler) CreateBackMatter(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	// Update the component definition with the new back-matter
-	if err := tx.Model(&componentDefinition).Update("back_matter", relationalBackMatter).Error; err != nil {
+	// Update the component definition's back matter association
+	if err := tx.Model(&componentDefinition).Association("BackMatter").Replace(&relationalBackMatter); err != nil {
 		tx.Rollback()
 		h.sugar.Errorf("Failed to update component definition with back-matter: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))

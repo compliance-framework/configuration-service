@@ -3,17 +3,17 @@ package main
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/api/handler"
 	"github.com/compliance-framework/configuration-service/internal/api/handler/oscal"
 	"github.com/compliance-framework/configuration-service/internal/service/relational"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"log"
-	"os"
 
 	"github.com/joho/godotenv"
 
@@ -24,11 +24,14 @@ import (
 const (
 	DefaultMongoURI = "mongodb://localhost:27017"
 	DefaultPort     = ":8080"
+	DefaultDBDriver = "postgres"
 )
 
 type Config struct {
-	MongoURI string
-	AppPort  string
+	MongoURI           string
+	AppPort            string
+	DBDriver           string
+	DBConnectionString string
 }
 
 // @title						Continuous Compliance Framework API
@@ -49,16 +52,6 @@ func main() {
 	}
 	sugar := logger.Sugar()
 
-	// Check if database initialization is requested via flag or environment variable
-	var initDB bool
-	flag.BoolVar(&initDB, "init-db", false, "Initialize the database with test data")
-	flag.Parse()
-
-	// Check environment variable if flag is not set
-	if !initDB && os.Getenv("INIT_DB") == "true" {
-		initDB = true
-	}
-
 	config := loadConfig()
 
 	mongoDatabase, err := connectMongo(ctx, options.Client().ApplyURI(config.MongoURI), "cf")
@@ -71,25 +64,23 @@ func main() {
 
 	handler.RegisterHandlers(server, mongoDatabase, sugar)
 
-	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
-	if err != nil {
-		panic("failed to connect database")
+	//TODO: farm this out to specific function/file
+	var db *gorm.DB
+	switch config.DBDriver {
+	case "postgres":
+		db, err = gorm.Open(postgres.Open(config.DBConnectionString), &gorm.Config{
+			DisableForeignKeyConstraintWhenMigrating: true,
+		})
+	default:
+		panic("unsupported DB driver: " + config.DBDriver)
 	}
-
+	if err != nil {
+		sugar.Fatal("Failed to open database", "err", err)
+	}
 	err = migrateDB(db)
 	if err != nil {
 		sugar.Fatal("Failed to migrate database", "err", err)
 	}
-
-	// Initialize database with test data if requested
-	if initDB {
-		sugar.Info("Initializing database with test data...")
-		if err := InitLocalDB(); err != nil {
-			sugar.Fatal("Failed to initialize database with test data", "err", err)
-		}
-		sugar.Info("Database initialization completed successfully")
-	}
-
 	oscal.RegisterHandlers(server, sugar, db)
 
 	server.PrintRoutes()
@@ -156,6 +147,14 @@ func migrateDB(db *gorm.DB) error {
 		&relational.ImplementedRequirement{},
 		&relational.ControlImplementation{},
 		&relational.SystemSecurityPlan{},
+		&relational.SelectControlById{},
+		&relational.Import{},
+		&relational.Merge{},
+		&relational.ParameterSetting{},
+		&relational.Addition{},
+		&relational.Alteration{},
+		&relational.Modify{},
+		&relational.Profile{},
 	)
 	return err
 }
@@ -178,10 +177,30 @@ func loadConfig() (config Config) {
 		port = fmt.Sprintf(":%s", appPort)
 	}
 
-	config = Config{
-		MongoURI: mongoURI,
-		AppPort:  port,
+	dbDriver := os.Getenv("CCF_DB_DRIVER")
+	if dbDriver == "" {
+		dbDriver = DefaultDBDriver
 	}
+
+	dbConnectionString, ok := os.LookupEnv("CCF_DB_CONNECTION")
+	if !ok {
+		switch dbDriver {
+		case "postgres":
+			dbConnectionString = "host=db user=postgres password=postgres dbname=ccf port=5432 sslmode=disable"
+		default:
+			log.Fatalf("Unrecognised db driver: %s", dbDriver)
+		}
+	}
+
+	log.Printf("dbConnectionString: %s", dbConnectionString)
+
+	config = Config{
+		MongoURI:           mongoURI,
+		AppPort:            port,
+		DBDriver:           dbDriver,
+		DBConnectionString: dbConnectionString,
+	}
+
 	return config
 }
 

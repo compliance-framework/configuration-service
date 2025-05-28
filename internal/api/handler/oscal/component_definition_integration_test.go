@@ -1289,6 +1289,163 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateIncorporatesCompo
 	})
 }
 
+func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateBackMatter() {
+	fmt.Println("Running TestCreateBackMatter")
+
+	suite.Run("Successfully creates back matter for a component definition", func() {
+		// Step 1: Create a base component definition
+		componentDefID := suite.createBaseComponentDefinition()
+
+		// Step 2: Prepare back matter resources to create
+		backMatter := oscaltypes.BackMatter{
+			Resources: &[]oscaltypes.Resource{
+				{
+					UUID:        uuid.New().String(),
+					Title:       "Security Policy Document",
+					Description: "Organization's security policy document",
+					DocumentIds: &[]oscaltypes.DocumentId{
+						{
+							Scheme:     "https://example.com/identifiers",
+							Identifier: "SEC-POL-001",
+						},
+					},
+					Citation: &oscaltypes.Citation{
+						Text: "Security Policy v1.0",
+						Links: &[]oscaltypes.Link{
+							{
+								Href:      "https://example.com/security-policy",
+								Rel:       "related",
+								MediaType: "text/html",
+								Text:      "Security Policy Link",
+							},
+						},
+					},
+				},
+				{
+					UUID:        uuid.New().String(),
+					Title:       "System Architecture Document",
+					Description: "System architecture and design document",
+					DocumentIds: &[]oscaltypes.DocumentId{
+						{
+							Scheme:     "https://example.com/identifiers",
+							Identifier: "ARCH-001",
+						},
+					},
+					Citation: &oscaltypes.Citation{
+						Text: "System Architecture v1.0",
+						Links: &[]oscaltypes.Link{
+							{
+								Href:      "https://example.com/architecture",
+								Rel:       "related",
+								MediaType: "text/html",
+								Text:      "Architecture Document Link",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		// Step 3: Send POST request to create back matter
+		rec, req := suite.createRequest(
+			http.MethodPost,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/back-matter", componentDefID),
+			backMatter,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to create back matter")
+
+		// Step 4: Verify the creation in the response
+		response := &handler.GenericDataResponse[oscaltypes.BackMatter]{}
+		err := json.Unmarshal(rec.Body.Bytes(), response)
+		suite.Require().NoError(err, "Failed to unmarshal creation response")
+
+		// Verify the response contains the correct number of resources
+		suite.Require().NotNil(response.Data.Resources)
+		suite.Equal(len(*backMatter.Resources), len(*response.Data.Resources), "Number of resources doesn't match")
+
+		// Verify each resource was created correctly
+		for i, resource := range *response.Data.Resources {
+			suite.Equal((*backMatter.Resources)[i].UUID, resource.UUID, "Resource UUID doesn't match")
+			suite.Equal((*backMatter.Resources)[i].Title, resource.Title, "Resource title doesn't match")
+			suite.Equal((*backMatter.Resources)[i].Description, resource.Description, "Resource description doesn't match")
+			suite.Require().NotNil(resource.DocumentIds)
+			suite.Require().NotNil((*backMatter.Resources)[i].DocumentIds)
+			suite.Equal((*(*backMatter.Resources)[i].DocumentIds)[0].Identifier, (*resource.DocumentIds)[0].Identifier, "Document ID doesn't match")
+		}
+
+		fmt.Printf("Successfully created back matter for component definition %s\n", componentDefID)
+
+		// Step 5: Verify the creations persist by retrieving the back matter
+		rec, req = suite.createRequest(
+			http.MethodGet,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/back-matter", componentDefID),
+			nil,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to get back matter")
+
+		getResponse := &handler.GenericDataResponse[oscaltypes.BackMatter]{}
+		err = json.Unmarshal(rec.Body.Bytes(), getResponse)
+		suite.Require().NoError(err, "Failed to unmarshal GET response")
+
+		// Verify the retrieved back matter matches the creations
+		suite.Require().NotNil(getResponse.Data.Resources)
+		suite.Equal(len(*backMatter.Resources), len(*getResponse.Data.Resources), "Number of retrieved resources doesn't match")
+		for i, resource := range *getResponse.Data.Resources {
+			suite.Equal((*backMatter.Resources)[i].UUID, resource.UUID, "Retrieved resource UUID doesn't match")
+			suite.Equal((*backMatter.Resources)[i].Title, resource.Title, "Retrieved resource title doesn't match")
+			suite.Equal((*backMatter.Resources)[i].Description, resource.Description, "Retrieved resource description doesn't match")
+		}
+	})
+
+	suite.Run("Fails to create back matter for non-existent component definition", func() {
+		nonExistentID := uuid.New().String()
+		backMatter := oscaltypes.BackMatter{
+			Resources: &[]oscaltypes.Resource{
+				{
+					UUID:        uuid.New().String(),
+					Title:       "Test Resource",
+					Description: "A test resource",
+				},
+			},
+		}
+
+		rec, req := suite.createRequest(
+			http.MethodPost,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/back-matter", nonExistentID),
+			backMatter,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+
+		suite.Equal(http.StatusNotFound, rec.Code, "Expected 404 for non-existent component definition")
+	})
+
+	suite.Run("Fails to create back matter with invalid data", func() {
+		componentDefID := suite.createBaseComponentDefinition()
+
+		// Create invalid back matter with empty required fields
+		invalidBackMatter := oscaltypes.BackMatter{
+			Resources: &[]oscaltypes.Resource{
+				{
+					UUID:        uuid.New().String(),
+					Title:       "", // Empty title should be invalid
+					Description: "", // Empty description should be invalid
+				},
+			},
+		}
+
+		rec, req := suite.createRequest(
+			http.MethodPost,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/back-matter", componentDefID),
+			invalidBackMatter,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+
+		suite.Equal(http.StatusBadRequest, rec.Code, "Expected 400 for invalid back matter data")
+	})
+}
+
 // Helper functions to create test data
 func createTestBackMatterResource(uuid string) oscaltypes.Resource {
 	return oscaltypes.Resource{
