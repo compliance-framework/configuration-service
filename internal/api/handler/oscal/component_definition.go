@@ -2,6 +2,7 @@ package oscal
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -44,7 +45,7 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.POST("/:id/components", h.CreateComponents)                                                                                    // integration tested
 	api.PUT("/:id/components", h.UpdateComponents)                                                                                     // integration tested
 	api.GET("/:id/components/:defined-component", h.GetDefinedComponent)                                                               // manually tested
-	api.POST("/:id/components/:defined-component", h.CreateDefinedComponent)                                                           // TODO
+	api.POST("/:id/components/:defined-component", h.CreateDefinedComponent)                                                           // integration tested
 	api.PUT("/:id/components/:defined-component", h.UpdateDefinedComponent)                                                            // integration tested
 	api.GET("/:id/components/:defined-component/control-implementations", h.GetControlImplementations)                                 // manually tested
 	api.POST("/:id/components/:defined-component/control-implementations", h.CreateControlImplementations)                             // TODO
@@ -54,7 +55,7 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.POST("/:id/components/:defined-component/control-implementations/implemented-requirements", h.CreateImplementedRequirements)   // TODO
 	// api.PUT("/:id/components/:defined-component/control-implementations/implemented-requirements", h.UpdateImplementedRequirements)
 	api.GET("/:id/components/:defined-component/control-implementations/implemented-requirements/statements", h.GetStatements) // manually tested
-	// api.POST("/:id/components/:defined-component/control-implementations/:control-implementation/implemented-requirements/:implemented-requirement/statements", h.CreateStatements) // TODO
+	// api.POST("/:id/components/:defined-component/control-implementations/:control-implementation/implemented-requirements/:implemented-requirement/statements", h.CreateStatements)
 	// api.PUT("/:id/components/:defined-component/control-implementations/:statement", h.UpdateSingleStatement)
 	api.GET("/:id/capabilities", h.GetCapabilities)                                       // manually tested
 	api.POST("/:id/capabilities", h.CreateCapabilities)                                   // TODO
@@ -850,6 +851,12 @@ func (h *ComponentDefinitionHandler) CreateDefinedComponent(ctx echo.Context) er
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
+	// Validate required fields
+	if oscalDefinedComponent.Type == "" || oscalDefinedComponent.Title == "" {
+		h.sugar.Warnw("Missing required fields in defined component", "component", oscalDefinedComponent)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(fmt.Errorf("type and title are required fields")))
+	}
+
 	// Begin transaction
 	tx := h.db.Begin()
 	if tx.Error != nil {
@@ -874,7 +881,7 @@ func (h *ComponentDefinitionHandler) CreateDefinedComponent(ctx echo.Context) er
 		"last_modified": now,
 		"oscal_version": versioning.GetLatestSupportedVersion(),
 	}
-	if err := tx.Model(&componentDefinition.Metadata).Updates(metadataUpdates).Error; err != nil {
+	if err := tx.Model(&componentDefinition.Metadata).Where("id = ?", componentDefinition.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
 		tx.Rollback()
 		h.sugar.Errorf("Failed to update metadata: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
@@ -987,7 +994,7 @@ func (h *ComponentDefinitionHandler) UpdateDefinedComponent(ctx echo.Context) er
 		"last_modified": now,
 		"oscal_version": versioning.GetLatestSupportedVersion(),
 	}
-	if err := tx.Model(&componentDefinition.Metadata).Updates(metadataUpdates).Error; err != nil {
+	if err := tx.Model(&componentDefinition.Metadata).Where("id = ?", componentDefinition.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
 		tx.Rollback()
 		h.sugar.Errorf("Failed to update metadata: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
