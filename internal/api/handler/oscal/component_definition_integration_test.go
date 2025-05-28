@@ -937,6 +937,161 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestUpdateCapability() {
 	})
 }
 
+func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateCapabilities() {
+	fmt.Println("Running TestCreateCapabilities")
+
+	suite.Run("Successfully creates capabilities for a component definition", func() {
+		// Step 1: Create a base component definition
+		componentDefID := suite.createBaseComponentDefinition()
+
+		// Step 2: Prepare capabilities to create
+		capabilities := []oscaltypes.Capability{
+			{
+				UUID:        uuid.New().String(),
+				Name:        "Security Monitoring",
+				Description: "Security monitoring capability",
+				ControlImplementations: &[]oscaltypes.ControlImplementationSet{
+					{
+						UUID:        uuid.New().String(),
+						Description: "Security monitoring control implementation",
+						ImplementedRequirements: []oscaltypes.ImplementedRequirementControlImplementation{
+							{
+								UUID:      uuid.New().String(),
+								ControlId: "SI-4",
+								Remarks:   "Information system monitoring",
+							},
+						},
+					},
+				},
+			},
+			{
+				UUID:        uuid.New().String(),
+				Name:        "Access Control",
+				Description: "Access control capability",
+				ControlImplementations: &[]oscaltypes.ControlImplementationSet{
+					{
+						UUID:        uuid.New().String(),
+						Description: "Access control implementation",
+						ImplementedRequirements: []oscaltypes.ImplementedRequirementControlImplementation{
+							{
+								UUID:      uuid.New().String(),
+								ControlId: "AC-1",
+								Remarks:   "Access control policy and procedures",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		// Step 3: Send POST request to create capabilities
+		rec, req := suite.createRequest(
+			http.MethodPost,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/capabilities", componentDefID),
+			capabilities,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to create capabilities")
+
+		// Step 4: Verify the creation in the response
+		response := &handler.GenericDataListResponse[oscaltypes.Capability]{}
+		err := json.Unmarshal(rec.Body.Bytes(), response)
+		suite.Require().NoError(err, "Failed to unmarshal creation response")
+
+		// Verify the response contains the correct number of capabilities
+		suite.Equal(len(capabilities), len(response.Data), "Number of capabilities doesn't match")
+
+		// Verify each capability was created correctly
+		for i, capability := range response.Data {
+			suite.Equal(capabilities[i].UUID, capability.UUID, "Capability UUID doesn't match")
+			suite.Equal(capabilities[i].Name, capability.Name, "Capability name doesn't match")
+			suite.Equal(capabilities[i].Description, capability.Description, "Capability description doesn't match")
+			suite.Require().NotNil(capability.ControlImplementations, "Control implementations should not be nil")
+			suite.Equal(len(*capabilities[i].ControlImplementations), len(*capability.ControlImplementations), "Number of control implementations doesn't match")
+			suite.Equal((*capabilities[i].ControlImplementations)[0].Description, (*capability.ControlImplementations)[0].Description, "Control implementation description doesn't match")
+			suite.Equal((*capabilities[i].ControlImplementations)[0].ImplementedRequirements[0].ControlId, (*capability.ControlImplementations)[0].ImplementedRequirements[0].ControlId, "Control ID doesn't match")
+			suite.Equal((*capabilities[i].ControlImplementations)[0].ImplementedRequirements[0].Remarks, (*capability.ControlImplementations)[0].ImplementedRequirements[0].Remarks, "Remarks don't match")
+		}
+
+		fmt.Printf("Successfully created %d capabilities for component definition %s\n", len(capabilities), componentDefID)
+
+		// Step 5: Verify the creations persist by retrieving the capabilities
+		rec, req = suite.createRequest(
+			http.MethodGet,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/capabilities", componentDefID),
+			nil,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to get capabilities")
+
+		getResponse := &handler.GenericDataListResponse[oscaltypes.Capability]{}
+		err = json.Unmarshal(rec.Body.Bytes(), getResponse)
+		suite.Require().NoError(err, "Failed to unmarshal GET response")
+
+		// Verify the retrieved capabilities match the creations
+		suite.Equal(len(capabilities), len(getResponse.Data), "Number of retrieved capabilities doesn't match")
+		for i, capability := range getResponse.Data {
+			suite.Equal(capabilities[i].UUID, capability.UUID, "Retrieved capability UUID doesn't match")
+			suite.Equal(capabilities[i].Name, capability.Name, "Retrieved capability name doesn't match")
+			suite.Equal(capabilities[i].Description, capability.Description, "Retrieved capability description doesn't match")
+		}
+	})
+
+	suite.Run("Fails to create capabilities for non-existent component definition", func() {
+		nonExistentID := uuid.New().String()
+		capabilities := []oscaltypes.Capability{
+			{
+				UUID:        uuid.New().String(),
+				Name:        "Test Capability",
+				Description: "A test capability",
+			},
+		}
+
+		rec, req := suite.createRequest(
+			http.MethodPost,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/capabilities", nonExistentID),
+			capabilities,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+
+		suite.Equal(http.StatusNotFound, rec.Code, "Expected 404 for non-existent component definition")
+	})
+
+	suite.Run("Fails to create capabilities with invalid data", func() {
+		componentDefID := suite.createBaseComponentDefinition()
+
+		// Create invalid capability with empty required fields
+		invalidCapabilities := []oscaltypes.Capability{
+			{
+				UUID:        uuid.New().String(),
+				Name:        "", // Empty name should be invalid
+				Description: "", // Empty description should be invalid
+				ControlImplementations: &[]oscaltypes.ControlImplementationSet{
+					{
+						UUID:        uuid.New().String(),
+						Description: "", // Empty description should be invalid
+						ImplementedRequirements: []oscaltypes.ImplementedRequirementControlImplementation{
+							{
+								UUID:      uuid.New().String(),
+								ControlId: "", // Empty control ID should be invalid
+							},
+						},
+					},
+				},
+			},
+		}
+
+		rec, req := suite.createRequest(
+			http.MethodPost,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/capabilities", componentDefID),
+			invalidCapabilities,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+
+		suite.Equal(http.StatusBadRequest, rec.Code, "Expected 400 for invalid capability data")
+	})
+}
+
 func (suite *ComponentDefinitionApiIntegrationSuite) TestUpdateImportComponentDefinitions() {
 	fmt.Println("Running TestUpdateImportComponentDefinitions")
 

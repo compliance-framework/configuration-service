@@ -52,7 +52,7 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.PUT("/:id/components/:defined-component/control-implementations", h.UpdateControlImplementations)                              // integration tested
 	api.PUT("/:id/components/:defined-component/control-implementations/:control-implementation", h.UpdateSingleControlImplementation) // integration tested
 	api.GET("/:id/components/:defined-component/control-implementations/implemented-requirements", h.GetImplementedRequirements)       // manually tested
-	api.POST("/:id/components/:defined-component/control-implementations/implemented-requirements", h.CreateImplementedRequirements)   // TODO
+	// api.POST("/:id/components/:defined-component/control-implementations/implemented-requirements", h.CreateImplementedRequirements)
 	// api.PUT("/:id/components/:defined-component/control-implementations/implemented-requirements", h.UpdateImplementedRequirements)
 	api.GET("/:id/components/:defined-component/control-implementations/implemented-requirements/statements", h.GetStatements) // manually tested
 	// api.POST("/:id/components/:defined-component/control-implementations/:control-implementation/implemented-requirements/:implemented-requirement/statements", h.CreateStatements)
@@ -1542,6 +1542,28 @@ func (h *ComponentDefinitionHandler) CreateCapabilities(ctx echo.Context) error 
 	if err := ctx.Bind(&capabilities); err != nil {
 		h.sugar.Warnw("Failed to bind capabilities", "error", err)
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Validate required fields
+	for _, capability := range capabilities {
+		if capability.Name == "" {
+			return ctx.JSON(http.StatusBadRequest, api.NewError(errors.New("capability name is required")))
+		}
+		if capability.Description == "" {
+			return ctx.JSON(http.StatusBadRequest, api.NewError(errors.New("capability description is required")))
+		}
+		if capability.ControlImplementations != nil {
+			for _, impl := range *capability.ControlImplementations {
+				if impl.Description == "" {
+					return ctx.JSON(http.StatusBadRequest, api.NewError(errors.New("control implementation description is required")))
+				}
+				for _, req := range impl.ImplementedRequirements {
+					if req.ControlId == "" {
+						return ctx.JSON(http.StatusBadRequest, api.NewError(errors.New("control ID is required")))
+					}
+				}
+			}
+		}
 	}
 
 	// Begin a transaction
