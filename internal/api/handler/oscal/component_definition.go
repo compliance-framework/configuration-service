@@ -48,7 +48,7 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.POST("/:id/components/:defined-component", h.CreateDefinedComponent)                                                           // integration tested
 	api.PUT("/:id/components/:defined-component", h.UpdateDefinedComponent)                                                            // integration tested
 	api.GET("/:id/components/:defined-component/control-implementations", h.GetControlImplementations)                                 // manually tested
-	api.POST("/:id/components/:defined-component/control-implementations", h.CreateControlImplementations)                             // TODO
+	api.POST("/:id/components/:defined-component/control-implementations", h.CreateControlImplementations)                             // integration tested
 	api.PUT("/:id/components/:defined-component/control-implementations", h.UpdateControlImplementations)                              // integration tested
 	api.PUT("/:id/components/:defined-component/control-implementations/:control-implementation", h.UpdateSingleControlImplementation) // integration tested
 	api.GET("/:id/components/:defined-component/control-implementations/implemented-requirements", h.GetImplementedRequirements)       // manually tested

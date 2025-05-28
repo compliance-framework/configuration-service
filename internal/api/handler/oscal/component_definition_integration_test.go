@@ -764,6 +764,110 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestUpdateControlImplementa
 	suite.Equal(len(updatedControlImpls), len(*getResponse.Data.ControlImplementations), "Number of control implementations doesn't match in GET response")
 }
 
+func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateControlImplementations() {
+	fmt.Println("Running TestCreateControlImplementations")
+
+	// Step 1: Create a base component definition with a component
+	componentDefID := suite.createBaseComponentDefinition()
+	componentUUID := uuid.New().String()
+
+	// Create a component without control implementations
+	component := oscaltypes.DefinedComponent{
+		UUID:        componentUUID,
+		Type:        "software",
+		Title:       "Sample Component",
+		Description: "A sample component for testing",
+		Purpose:     "Demonstration",
+	}
+
+	// Create the component
+	rec, req := suite.createRequest(
+		http.MethodPost,
+		fmt.Sprintf("/api/oscal/component-definitions/%s/components", componentDefID),
+		[]oscaltypes.DefinedComponent{component},
+	)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusOK, rec.Code, "Failed to create component")
+
+	// Step 2: Prepare control implementations to create
+	controlImpls := []oscaltypes.ControlImplementationSet{
+		{
+			UUID:        uuid.New().String(),
+			Source:      "https://example.com/security-controls",
+			Description: "Security control implementation",
+			SetParameters: &[]oscaltypes.SetParameter{
+				{
+					ParamId: "param-1",
+					Values:  []string{"value1"},
+				},
+			},
+			ImplementedRequirements: []oscaltypes.ImplementedRequirementControlImplementation{
+				{
+					UUID:      uuid.New().String(),
+					ControlId: "AC-1",
+					Remarks:   "Access control policy and procedures",
+				},
+			},
+		},
+		{
+			UUID:        uuid.New().String(),
+			Source:      "https://example.com/audit-controls",
+			Description: "Audit control implementation",
+			ImplementedRequirements: []oscaltypes.ImplementedRequirementControlImplementation{
+				{
+					UUID:      uuid.New().String(),
+					ControlId: "AU-1",
+					Remarks:   "Audit and accountability policy and procedures",
+				},
+			},
+		},
+	}
+
+	// Step 3: Send POST request to create control implementations
+	rec, req = suite.createRequest(
+		http.MethodPost,
+		fmt.Sprintf("/api/oscal/component-definitions/%s/components/%s/control-implementations", componentDefID, componentUUID),
+		controlImpls,
+	)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusOK, rec.Code, "Failed to create control implementations")
+
+	// Step 4: Verify the creation in the response
+	response := &handler.GenericDataListResponse[oscaltypes.ControlImplementationSet]{}
+	err := json.Unmarshal(rec.Body.Bytes(), response)
+	suite.Require().NoError(err, "Failed to unmarshal creation response")
+
+	// Verify the response contains the correct number of control implementations
+	suite.Equal(len(controlImpls), len(response.Data), "Number of control implementations doesn't match")
+
+	// Verify each control implementation was created correctly
+	for i, controlImpl := range response.Data {
+		suite.Equal(controlImpls[i].UUID, controlImpl.UUID, "Control implementation UUID doesn't match")
+		suite.Equal(controlImpls[i].Source, controlImpl.Source, "Control implementation source doesn't match")
+		suite.Equal(controlImpls[i].Description, controlImpl.Description, "Control implementation description doesn't match")
+		suite.Equal(len(controlImpls[i].ImplementedRequirements), len(controlImpl.ImplementedRequirements), "Number of implemented requirements doesn't match")
+		suite.Equal(controlImpls[i].ImplementedRequirements[0].ControlId, controlImpl.ImplementedRequirements[0].ControlId, "Control ID doesn't match")
+		suite.Equal(controlImpls[i].ImplementedRequirements[0].Remarks, controlImpl.ImplementedRequirements[0].Remarks, "Remarks don't match")
+	}
+
+	// Step 5: Verify the creations persist by retrieving the component
+	rec, req = suite.createRequest(
+		http.MethodGet,
+		fmt.Sprintf("/api/oscal/component-definitions/%s/components/%s", componentDefID, componentUUID),
+		nil,
+	)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusOK, rec.Code, "Failed to get component")
+
+	getResponse := &handler.GenericDataResponse[oscaltypes.DefinedComponent]{}
+	err = json.Unmarshal(rec.Body.Bytes(), getResponse)
+	suite.Require().NoError(err, "Failed to unmarshal GET response")
+
+	// Verify the component has the created control implementations
+	suite.Require().NotNil(getResponse.Data.ControlImplementations)
+	suite.Equal(len(controlImpls), len(*getResponse.Data.ControlImplementations), "Number of control implementations doesn't match in GET response")
+}
+
 func (suite *ComponentDefinitionApiIntegrationSuite) TestUpdateCapability() {
 	fmt.Println("Running TestUpdateCapability")
 
