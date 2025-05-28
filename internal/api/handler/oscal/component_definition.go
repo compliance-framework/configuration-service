@@ -58,7 +58,7 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	// api.POST("/:id/components/:defined-component/control-implementations/:control-implementation/implemented-requirements/:implemented-requirement/statements", h.CreateStatements)
 	// api.PUT("/:id/components/:defined-component/control-implementations/:statement", h.UpdateSingleStatement)
 	api.GET("/:id/capabilities", h.GetCapabilities)                                       // manually tested
-	api.POST("/:id/capabilities", h.CreateCapabilities)                                   // TODO
+	api.POST("/:id/capabilities", h.CreateCapabilities)                                   // integration tested
 	api.PUT("/:id/capabilities/:capability", h.UpdateCapability)                          // integration tested
 	api.GET("/:id/capabilities/incorporates-components", h.GetIncorporatesComponents)     // manually tested
 	api.POST("/:id/capabilities/incorporates-components", h.CreateIncorporatesComponents) // TODO
