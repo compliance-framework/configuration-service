@@ -730,6 +730,110 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestUpdateCapability() {
 	})
 }
 
+func (suite *ComponentDefinitionApiIntegrationSuite) TestUpdateImportComponentDefinitions() {
+	fmt.Println("Running TestUpdateImportComponentDefinitions")
+
+	suite.Run("Successfully updates import component definitions", func() {
+		// Step 1: Create a base component definition
+		componentDefID := suite.createBaseComponentDefinition()
+
+		// Step 2: Create initial import component definitions
+		initialImportDefs := []oscaltypes.ImportComponentDefinition{
+			{
+				Href: "https://example.com/components/base",
+			},
+			{
+				Href: "https://example.com/components/security",
+			},
+		}
+
+		// Create initial import component definitions
+		rec, req := suite.createRequest(
+			http.MethodPost,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/import-component-definitions", componentDefID),
+			initialImportDefs,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to create initial import component definitions")
+
+		// Step 3: Prepare updated import component definitions
+		updatedImportDefs := []oscaltypes.ImportComponentDefinition{
+			{
+				Href: "https://example.com/components/updated-base",
+			},
+			{
+				Href: "https://example.com/components/updated-security",
+			},
+			{
+				Href: "https://example.com/components/new-component",
+			},
+		}
+
+		// Step 4: Send PUT request to update import component definitions
+		rec, req = suite.createRequest(
+			http.MethodPut,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/import-component-definitions", componentDefID),
+			updatedImportDefs,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+
+		// Check response
+		suite.Equal(http.StatusOK, rec.Code, "Failed to update import component definitions")
+
+		// Unmarshal and verify response
+		importResponse := &handler.GenericDataListResponse[oscaltypes.ImportComponentDefinition]{}
+		err := json.Unmarshal(rec.Body.Bytes(), importResponse)
+		suite.Require().NoError(err, "Failed to unmarshal import component definitions response")
+
+		// Verify the response contains the correct number of import component definitions
+		suite.Equal(len(updatedImportDefs), len(importResponse.Data), "Number of import component definitions doesn't match")
+
+		// Verify each import component definition
+		for i, importDef := range importResponse.Data {
+			suite.Equal(updatedImportDefs[i].Href, importDef.Href, "Import component definition href doesn't match")
+		}
+
+		fmt.Printf("Successfully updated import component definitions for component definition %s\n", componentDefID)
+
+		// Step 5: Verify we can retrieve the updated import component definitions
+		rec, req = suite.createRequest(
+			http.MethodGet,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/import-component-definitions", componentDefID),
+			nil,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to get updated import component definitions")
+
+		getResponse := &handler.GenericDataListResponse[oscaltypes.ImportComponentDefinition]{}
+		err = json.Unmarshal(rec.Body.Bytes(), getResponse)
+		suite.Require().NoError(err, "Failed to unmarshal GET response")
+
+		// Verify the retrieved import component definitions match the updates
+		suite.Equal(len(updatedImportDefs), len(getResponse.Data), "Number of retrieved import component definitions doesn't match")
+		for i, importDef := range getResponse.Data {
+			suite.Equal(updatedImportDefs[i].Href, importDef.Href, "Retrieved import component definition href doesn't match")
+		}
+	})
+
+	suite.Run("Fails to update import component definitions for non-existent component definition", func() {
+		nonExistentID := uuid.New().String()
+		importDefs := []oscaltypes.ImportComponentDefinition{
+			{
+				Href: "https://example.com/components/test",
+			},
+		}
+
+		rec, req := suite.createRequest(
+			http.MethodPut,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/import-component-definitions", nonExistentID),
+			importDefs,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+
+		suite.Equal(http.StatusNotFound, rec.Code, "Expected 404 for non-existent component definition")
+	})
+}
+
 // Helper functions to create test data
 func createTestBackMatterResource(uuid string) oscaltypes.Resource {
 	return oscaltypes.Resource{

@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 
 	"github.com/compliance-framework/configuration-service/internal/api/handler"
@@ -40,7 +41,7 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.POST("/:id/import-component-definitions", h.CreateImportComponentDefinitions)                                                  // integration tested
 	api.PUT("/:id/import-component-definitions", h.UpdateImportComponentDefinitions)                                                   // TODO
 	api.GET("/:id/components", h.GetComponents)                                                                                        // manually tested
-	api.POST("/:id/components", h.CreateComponents)                                                                                    // TODO
+	api.POST("/:id/components", h.CreateComponents)                                                                                    // integration tested
 	api.PUT("/:id/components", h.UpdateComponents)                                                                                     // integration tested
 	api.GET("/:id/components/:defined-component", h.GetDefinedComponent)                                                               // manually tested
 	api.POST("/:id/components/:defined-component", h.CreateDefinedComponent)                                                           // TODO
@@ -470,10 +471,11 @@ func (h *ComponentDefinitionHandler) UpdateImportComponentDefinitions(ctx echo.C
 		newImportDefs = append(newImportDefs, relationalImportDef)
 	}
 
-	// Update the import component definitions using Updates
-	if err := tx.Model(&componentDefinition).Updates(map[string]interface{}{
-		"import_component_definitions": newImportDefs,
-	}).Error; err != nil {
+	// Wrap in JSONSlice for GORM
+	jsonSlice := datatypes.NewJSONSlice[relational.ImportComponentDefinition](newImportDefs)
+
+	// Update the import component definitions
+	if err := tx.Model(&componentDefinition).Update("import_component_definitions", jsonSlice).Error; err != nil {
 		tx.Rollback()
 		h.sugar.Errorf("Failed to update import component definitions: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
@@ -485,7 +487,7 @@ func (h *ComponentDefinitionHandler) UpdateImportComponentDefinitions(ctx echo.C
 		"last_modified": now,
 		"oscal_version": versioning.GetLatestSupportedVersion(),
 	}
-	if err := tx.Model(&componentDefinition.Metadata).Updates(metadataUpdates).Error; err != nil {
+	if err := tx.Model(&relational.Metadata{}).Where("id = ?", componentDefinition.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
 		tx.Rollback()
 		h.sugar.Errorf("Failed to update metadata: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
@@ -575,6 +577,22 @@ func (h *ComponentDefinitionHandler) CreateComponents(ctx echo.Context) error {
 	if err := ctx.Bind(&components); err != nil {
 		h.sugar.Warnw("Failed to bind components", "error", err)
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Validate required fields for each component
+	for _, component := range components {
+		if component.Type == "" {
+			return ctx.JSON(http.StatusBadRequest, api.NewError(errors.New("component type is required")))
+		}
+		if component.Title == "" {
+			return ctx.JSON(http.StatusBadRequest, api.NewError(errors.New("component title is required")))
+		}
+		if component.Description == "" {
+			return ctx.JSON(http.StatusBadRequest, api.NewError(errors.New("component description is required")))
+		}
+		if component.Purpose == "" {
+			return ctx.JSON(http.StatusBadRequest, api.NewError(errors.New("component purpose is required")))
+		}
 	}
 
 	// Begin a transaction
