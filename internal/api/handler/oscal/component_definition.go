@@ -55,14 +55,13 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.GET("/:id/components/:defined-component/control-implementations/statements", h.GetStatements)     // manually tested
 	api.POST("/:id/components/:defined-component/control-implementations/statements", h.CreateStatements) // TODO
 	// api.PUT("/:id/components/:defined-component/control-implementations/:statement", h.UpdateSingleStatement) // TODO
-	api.GET("/:id/capabilities", h.GetCapabilities)              // manually tested
-	api.POST("/:id/capabilities", h.CreateCapabilities)          // TODO
-	api.PUT("/:id/capabilities/:capability", h.UpdateCapability) // integration tested
-
-	api.GET("/:id/capabilities/incorporates-components", h.GetIncorporatesComponents)
+	api.GET("/:id/capabilities", h.GetCapabilities)                                       // manually tested
+	api.POST("/:id/capabilities", h.CreateCapabilities)                                   // TODO
+	api.PUT("/:id/capabilities/:capability", h.UpdateCapability)                          // integration tested
+	api.GET("/:id/capabilities/incorporates-components", h.GetIncorporatesComponents)     // manually tested
 	api.POST("/:id/capabilities/incorporates-components", h.CreateIncorporatesComponents) // TODO
-	api.GET("/:id/back-matter", h.GetBackMatter)
-	api.POST("/:id/back-matter", h.CreateBackMatter)
+	api.GET("/:id/back-matter", h.GetBackMatter)                                          // manually tested
+	api.POST("/:id/back-matter", h.CreateBackMatter)                                      // TODO
 }
 
 // List godoc
