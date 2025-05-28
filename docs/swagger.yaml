@@ -4070,7 +4070,7 @@ paths:
       summary: Create implemented requirements for a control implementation
       tags:
       - Oscal
-  /oscal/component-definitions/{id}/components/{defined-component}/control-implementations/statements:
+  /oscal/component-definitions/{id}/components/{defined-component}/control-implementations/implemented-requirements/statements:
     get:
       description: Retrieves all statements for a given defined component.
       parameters:
@@ -4106,6 +4106,7 @@ paths:
       summary: Get statements for a defined component
       tags:
       - Oscal
+  /oscal/component-definitions/{id}/components/{defined-component}/control-implementations/statements:
     post:
       consumes:
       - application/json
@@ -4119,6 +4120,16 @@ paths:
       - description: Defined Component ID
         in: path
         name: defined-component
+        required: true
+        type: string
+      - description: Control Implementation ID
+        in: path
+        name: control-implementation
+        required: true
+        type: string
+      - description: Implemented Requirement ID
+        in: path
+        name: implemented-requirement
         required: true
         type: string
       - description: Statements

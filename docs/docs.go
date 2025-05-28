@@ -3277,7 +3277,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/oscal/component-definitions/{id}/components/{defined-component}/control-implementations/statements": {
+        "/oscal/component-definitions/{id}/components/{defined-component}/control-implementations/implemented-requirements/statements": {
             "get": {
                 "description": "Retrieves all statements for a given defined component.",
                 "produces": [
@@ -3329,7 +3329,9 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
+            }
+        },
+        "/oscal/component-definitions/{id}/components/{defined-component}/control-implementations/statements": {
             "post": {
                 "description": "Creates new statements for a given control implementation.",
                 "consumes": [
@@ -3354,6 +3356,20 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Defined Component ID",
                         "name": "defined-component",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Control Implementation ID",
+                        "name": "control-implementation",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Implemented Requirement ID",
+                        "name": "implemented-requirement",
                         "in": "path",
                         "required": true
                     },

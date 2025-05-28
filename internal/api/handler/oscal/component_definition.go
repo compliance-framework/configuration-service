@@ -53,8 +53,8 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.GET("/:id/components/:defined-component/control-implementations/implemented-requirements", h.GetImplementedRequirements)       // manually tested
 	api.POST("/:id/components/:defined-component/control-implementations/implemented-requirements", h.CreateImplementedRequirements)   // TODO
 	// api.PUT("/:id/components/:defined-component/control-implementations/implemented-requirements", h.UpdateImplementedRequirements)
-	api.GET("/:id/components/:defined-component/control-implementations/statements", h.GetStatements)     // manually tested
-	api.POST("/:id/components/:defined-component/control-implementations/statements", h.CreateStatements) // TODO
+	api.GET("/:id/components/:defined-component/control-implementations/implemented-requirements/statements", h.GetStatements) // manually tested
+	// api.POST("/:id/components/:defined-component/control-implementations/:control-implementation/implemented-requirements/:implemented-requirement/statements", h.CreateStatements) // TODO
 	// api.PUT("/:id/components/:defined-component/control-implementations/:statement", h.UpdateSingleStatement)
 	api.GET("/:id/capabilities", h.GetCapabilities)                                       // manually tested
 	api.POST("/:id/capabilities", h.CreateCapabilities)                                   // TODO
@@ -1313,7 +1313,7 @@ func (h *ComponentDefinitionHandler) CreateImplementedRequirements(ctx echo.Cont
 //	@Failure		400					{object}	api.Error
 //	@Failure		404					{object}	api.Error
 //	@Failure		500					{object}	api.Error
-//	@Router			/oscal/component-definitions/{id}/components/{defined-component}/control-implementations/statements [get]
+//	@Router			/oscal/component-definitions/{id}/components/{defined-component}/control-implementations/implemented-requirements/statements [get]
 func (h *ComponentDefinitionHandler) GetStatements(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -1347,8 +1347,8 @@ func (h *ComponentDefinitionHandler) GetStatements(ctx echo.Context) error {
 
 	var oscalStatements []oscalTypes_1_1_3.ControlStatementImplementation
 	for _, controlImpl := range definedComponent.ControlImplementations {
-		for _, statement := range controlImpl.ImplementedRequirements {
-			for _, stmt := range statement.Statements {
+		for _, implementedReq := range controlImpl.ImplementedRequirements {
+			for _, stmt := range implementedReq.Statements {
 				oscalStatements = append(oscalStatements, *stmt.MarshalOscal())
 			}
 		}
@@ -1363,13 +1363,15 @@ func (h *ComponentDefinitionHandler) GetStatements(ctx echo.Context) error {
 //	@Tags			Oscal
 //	@Accept			json
 //	@Produce		json
-//	@Param			id					path		string												true	"Component Definition ID"
-//	@Param			defined-component	path		string												true	"Defined Component ID"
-//	@Param			statements			body		[]oscalTypes_1_1_3.ControlStatementImplementation	true	"Statements"
-//	@Success		200					{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.ControlStatementImplementation]
-//	@Failure		400					{object}	api.Error
-//	@Failure		404					{object}	api.Error
-//	@Failure		500					{object}	api.Error
+//	@Param			id						path		string												true	"Component Definition ID"
+//	@Param			defined-component		path		string												true	"Defined Component ID"
+//	@Param			control-implementation	path		string												true	"Control Implementation ID"
+//	@Param			implemented-requirement	path		string												true	"Implemented Requirement ID"
+//	@Param			statements				body		[]oscalTypes_1_1_3.ControlStatementImplementation	true	"Statements"
+//	@Success		200						{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.ControlStatementImplementation]
+//	@Failure		400						{object}	api.Error
+//	@Failure		404						{object}	api.Error
+//	@Failure		500						{object}	api.Error
 //	@Router			/oscal/component-definitions/{id}/components/{defined-component}/control-implementations/statements [post]
 func (h *ComponentDefinitionHandler) CreateStatements(ctx echo.Context) error {
 	idParam := ctx.Param("id")
@@ -1398,6 +1400,26 @@ func (h *ComponentDefinitionHandler) CreateStatements(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
+	controlImplementationID := ctx.Param("control-implementation")
+	var controlImplementation relational.ControlImplementation
+	if err := h.db.First(&controlImplementation, "id = ?", controlImplementationID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load control implementation", "id", controlImplementationID, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	implementedRequirementID := ctx.Param("implemented-requirement")
+	var implementedRequirement relational.ImplementedRequirement
+	if err := h.db.First(&implementedRequirement, "id = ?", implementedRequirementID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load implemented requirement", "id", implementedRequirementID, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
 	var statements []oscalTypes_1_1_3.ControlStatementImplementation
 	if err := ctx.Bind(&statements); err != nil {
 		h.sugar.Warnw("Failed to bind statements", "error", err)
@@ -1416,6 +1438,7 @@ func (h *ComponentDefinitionHandler) CreateStatements(ctx echo.Context) error {
 	for _, statement := range statements {
 		relationalStatement := relational.ControlStatementImplementation{}
 		relationalStatement.UnmarshalOscal(statement)
+		relationalStatement.ImplementedRequirementControlImplementationId = *implementedRequirement.ID
 		newStatements = append(newStatements, relationalStatement)
 	}
 
