@@ -247,6 +247,60 @@ func (sp *SetParameter) MarshalOscal() *oscaltypes113.SetParameter {
 	return &ret
 }
 
+type ResponsibleRole struct {
+	UUIDModel
+	RoleId  string                    `json:"role-id"` // required
+	Props   datatypes.JSONSlice[Prop] `json:"props"`
+	Links   datatypes.JSONSlice[Link] `json:"links"`
+	Remarks string                    `json:"remarks"`
+	Parties []Party                   `gorm:"many2many:responsible_role_parties;"`
+
+	ParentID   *uuid.UUID
+	ParentType string
+}
+
+func (rr *ResponsibleRole) UnmarshalOscal(or oscaltypes113.ResponsibleRole) *ResponsibleRole {
+	*rr = ResponsibleRole{
+		RoleId:  or.RoleId,
+		Props:   ConvertOscalToProps(or.Props),
+		Links:   ConvertOscalToLinks(or.Links),
+		Remarks: or.Remarks,
+		Parties: ConvertList(or.PartyUuids, func(olink string) Party {
+			id := uuid.MustParse(olink)
+			return Party{
+				UUIDModel: UUIDModel{
+					ID: &id,
+				},
+			}
+		}),
+	}
+	return rr
+}
+
+func (rr *ResponsibleRole) MarshalOscal() *oscaltypes113.ResponsibleRole {
+	ret := &oscaltypes113.ResponsibleRole{
+		RoleId: rr.RoleId,
+	}
+
+	if len(rr.Parties) > 0 {
+		uuids := make([]string, len(rr.Parties))
+		for i, p := range rr.Parties {
+			uuids[i] = p.UUIDModel.ID.String()
+		}
+		ret.PartyUuids = &uuids
+	}
+	if len(rr.Props) > 0 {
+		ret.Props = ConvertPropsToOscal(rr.Props)
+	}
+	if len(rr.Links) > 0 {
+		ret.Links = ConvertLinksToOscal(rr.Links)
+	}
+	if rr.Remarks != "" {
+		ret.Remarks = rr.Remarks
+	}
+	return ret
+}
+
 type OscalResponsibleRole oscaltypes113.ResponsibleRole
 
 func (rr *OscalResponsibleRole) UnmarshalOscal(osc oscaltypes113.ResponsibleRole) *OscalResponsibleRole {
