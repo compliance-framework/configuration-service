@@ -900,7 +900,7 @@ type SystemComponent struct {
 	Description      string                                    `json:"description"`
 	Purpose          string                                    `json:"purpose"`
 	Status           datatypes.JSONType[SystemComponentStatus] `json:"status"`
-	ResponsibleRoles datatypes.JSONSlice[OscalResponsibleRole] `json:"responsable-roles"`
+	ResponsibleRoles []ResponsibleRole                         `json:"responsable-roles" gorm:"polymorphic:Parent;"`
 	Protocols        datatypes.JSONSlice[Protocol]             `json:"protocols"`
 	Remarks          string                                    `json:"remarks"`
 	Props            datatypes.JSONSlice[Prop]                 `json:"props"`
@@ -923,8 +923,8 @@ func (sc *SystemComponent) UnmarshalOscal(osc oscalTypes_1_1_3.SystemComponent) 
 		Description: osc.Description,
 		Purpose:     osc.Purpose,
 		Status:      datatypes.NewJSONType[SystemComponentStatus](status),
-		ResponsibleRoles: ConvertList(osc.ResponsibleRoles, func(orr oscalTypes_1_1_3.ResponsibleRole) OscalResponsibleRole {
-			role := OscalResponsibleRole{}
+		ResponsibleRoles: ConvertList(osc.ResponsibleRoles, func(orr oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
+			role := ResponsibleRole{}
 			role.UnmarshalOscal(orr)
 			return role
 		}),
@@ -1156,14 +1156,14 @@ type ImplementedRequirement struct {
 	UUIDModel
 	ControlImplementationId uuid.UUID
 
-	ControlId        string                                    `json:"control-id"`
-	Props            datatypes.JSONSlice[Prop]                 `json:"props"`
-	Links            datatypes.JSONSlice[Link]                 `json:"links"`
-	SetParameters    datatypes.JSONSlice[SetParameter]         `json:"set-parameters"`
-	ResponsibleRoles datatypes.JSONSlice[OscalResponsibleRole] `json:"responsible-roles"`
-	Remarks          string                                    `json:"remarks"`
-	ByComponents     []ByComponent                             `json:"by-components" gorm:"Polymorphic:Parent"`
-	Statements       []Statement                               `json:"statements"`
+	ControlId        string                            `json:"control-id"`
+	Props            datatypes.JSONSlice[Prop]         `json:"props"`
+	Links            datatypes.JSONSlice[Link]         `json:"links"`
+	SetParameters    datatypes.JSONSlice[SetParameter] `json:"set-parameters"`
+	ResponsibleRoles []ResponsibleRole                 `json:"responsible-roles" gorm:"polymorphic:Parent;"`
+	Remarks          string                            `json:"remarks"`
+	ByComponents     []ByComponent                     `json:"by-components" gorm:"Polymorphic:Parent"`
+	Statements       []Statement                       `json:"statements"`
 }
 
 func (ir *ImplementedRequirement) UnmarshalOscal(oir oscalTypes_1_1_3.ImplementedRequirement) *ImplementedRequirement {
@@ -1180,8 +1180,8 @@ func (ir *ImplementedRequirement) UnmarshalOscal(oir oscalTypes_1_1_3.Implemente
 			param.UnmarshalOscal(op)
 			return param
 		}),
-		ResponsibleRoles: ConvertList(oir.ResponsibleRoles, func(op oscalTypes_1_1_3.ResponsibleRole) OscalResponsibleRole {
-			role := OscalResponsibleRole{}
+		ResponsibleRoles: ConvertList(oir.ResponsibleRoles, func(op oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
+			role := ResponsibleRole{}
 			role.UnmarshalOscal(op)
 			return role
 		}),
@@ -1256,7 +1256,7 @@ type ByComponent struct {
 	Props                datatypes.JSONSlice[Prop]                      `json:"props"`
 	Links                datatypes.JSONSlice[Link]                      `json:"links"`
 	SetParameters        datatypes.JSONSlice[SetParameter]              `json:"set-parameters"`
-	ResponsibleRoles     datatypes.JSONSlice[OscalResponsibleRole]      `json:"responsible-parties"`
+	ResponsibleRoles     []ResponsibleRole                              `json:"responsible-parties" gorm:"polymorphic:Parent;"`
 	Remarks              string                                         `json:"remarks"`
 	ImplementationStatus datatypes.JSONType[ImplementationStatus]       `json:"implementation-status"`
 	Export               *Export                                        `json:"export,omitempty"`
@@ -1282,8 +1282,8 @@ func (bc *ByComponent) UnmarshalOscal(obc oscalTypes_1_1_3.ByComponent) *ByCompo
 			param.UnmarshalOscal(op)
 			return param
 		}),
-		ResponsibleRoles: ConvertList(obc.ResponsibleRoles, func(orr oscalTypes_1_1_3.ResponsibleRole) OscalResponsibleRole {
-			role := OscalResponsibleRole{}
+		ResponsibleRoles: ConvertList(obc.ResponsibleRoles, func(orr oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
+			role := ResponsibleRole{}
 			role.UnmarshalOscal(orr)
 			return role
 		}),
@@ -1429,11 +1429,11 @@ func (e *Export) MarshalOscal() *oscalTypes_1_1_3.Export {
 
 type ProvidedControlImplementation struct {
 	UUIDModel
-	Description      string                                    `json:"description"`
-	Links            datatypes.JSONSlice[Link]                 `json:"links"`
-	Props            datatypes.JSONSlice[Prop]                 `json:"props"`
-	Remarks          string                                    `json:"remarks"`
-	ResponsibleRoles datatypes.JSONSlice[OscalResponsibleRole] `json:"responsible-roles"`
+	Description      string                    `json:"description"`
+	Links            datatypes.JSONSlice[Link] `json:"links"`
+	Props            datatypes.JSONSlice[Prop] `json:"props"`
+	Remarks          string                    `json:"remarks"`
+	ResponsibleRoles []ResponsibleRole         `json:"responsible-roles" gorm:"polymorphic:Parent;"`
 
 	ExportId uuid.UUID
 }
@@ -1448,8 +1448,8 @@ func (pci *ProvidedControlImplementation) UnmarshalOscal(opci oscalTypes_1_1_3.P
 		Props:       ConvertOscalToProps(opci.Props),
 		Links:       ConvertOscalToLinks(opci.Links),
 		Remarks:     opci.Remarks,
-		ResponsibleRoles: ConvertList(opci.ResponsibleRoles, func(or oscalTypes_1_1_3.ResponsibleRole) OscalResponsibleRole {
-			role := OscalResponsibleRole{}
+		ResponsibleRoles: ConvertList(opci.ResponsibleRoles, func(or oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
+			role := ResponsibleRole{}
 			role.UnmarshalOscal(or)
 			return role
 		}),
@@ -1488,12 +1488,12 @@ func (pci *ProvidedControlImplementation) MarshalOscal() *oscalTypes_1_1_3.Provi
 
 type ControlImplementationResponsibility struct {
 	UUIDModel
-	Description      string                                    `json:"description"` // required
-	Links            datatypes.JSONSlice[Link]                 `json:"links"`
-	Props            datatypes.JSONSlice[Prop]                 `json:"props"`
-	ProvidedUuid     uuid.UUID                                 `json:"provided-uuid"`
-	Remarks          string                                    `json:"remarks"`
-	ResponsibleRoles datatypes.JSONSlice[OscalResponsibleRole] `json:"responsible-roles"`
+	Description      string                    `json:"description"` // required
+	Links            datatypes.JSONSlice[Link] `json:"links"`
+	Props            datatypes.JSONSlice[Prop] `json:"props"`
+	ProvidedUuid     uuid.UUID                 `json:"provided-uuid"`
+	Remarks          string                    `json:"remarks"`
+	ResponsibleRoles []ResponsibleRole         `json:"responsible-roles" gorm:"polymorphic:Parent"`
 
 	ExportId uuid.UUID
 }
@@ -1516,8 +1516,8 @@ func (cir *ControlImplementationResponsibility) UnmarshalOscal(ocir oscalTypes_1
 		Remarks:      ocir.Remarks,
 		Props:        ConvertOscalToProps(ocir.Props),
 		Links:        ConvertOscalToLinks(ocir.Links),
-		ResponsibleRoles: ConvertList(ocir.ResponsibleRoles, func(or oscalTypes_1_1_3.ResponsibleRole) OscalResponsibleRole {
-			role := OscalResponsibleRole{}
+		ResponsibleRoles: ConvertList(ocir.ResponsibleRoles, func(or oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
+			role := ResponsibleRole{}
 			role.UnmarshalOscal(or)
 			return role
 		}),
@@ -1560,12 +1560,12 @@ func (cir *ControlImplementationResponsibility) MarshalOscal() *oscalTypes_1_1_3
 }
 
 type InheritedControlImplementation struct {
-	UUIDModel                                                  //required
-	ProvidedUuid     uuid.UUID                                 `json:"provided-uuid"`
-	Description      string                                    `json:"description"` //required
-	Links            datatypes.JSONSlice[Link]                 `json:"links"`
-	Props            datatypes.JSONSlice[Prop]                 `json:"props"`
-	ResponsibleRoles datatypes.JSONSlice[OscalResponsibleRole] `json:"responsible-roles"`
+	UUIDModel                                  //required
+	ProvidedUuid     uuid.UUID                 `json:"provided-uuid"`
+	Description      string                    `json:"description"` //required
+	Links            datatypes.JSONSlice[Link] `json:"links"`
+	Props            datatypes.JSONSlice[Prop] `json:"props"`
+	ResponsibleRoles []ResponsibleRole         `json:"responsible-roles" gorm:"polymorphic:Parent"`
 
 	ByComponentId uuid.UUID
 }
@@ -1584,8 +1584,8 @@ func (i *InheritedControlImplementation) UnmarshalOscal(oi oscalTypes_1_1_3.Inhe
 		Description:  oi.Description,
 		Links:        ConvertOscalToLinks(oi.Links),
 		Props:        ConvertOscalToProps(oi.Props),
-		ResponsibleRoles: ConvertList(oi.ResponsibleRoles, func(or oscalTypes_1_1_3.ResponsibleRole) OscalResponsibleRole {
-			role := OscalResponsibleRole{}
+		ResponsibleRoles: ConvertList(oi.ResponsibleRoles, func(or oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
+			role := ResponsibleRole{}
 			role.UnmarshalOscal(or)
 			return role
 		}),
@@ -1625,12 +1625,12 @@ func (i *InheritedControlImplementation) MarshalOscal() *oscalTypes_1_1_3.Inheri
 
 type SatisfiedControlImplementationResponsibility struct {
 	UUIDModel
-	ResponsibilityUuid uuid.UUID                                 `json:"responsibility-uuid"`
-	Description        string                                    `json:"description"`
-	Props              datatypes.JSONSlice[Prop]                 `json:"props"`
-	Links              datatypes.JSONSlice[Link]                 `json:"links"`
-	ResponsibleRoles   datatypes.JSONSlice[OscalResponsibleRole] `json:"responsible-roles"`
-	Remarks            string                                    `json:"remarks"`
+	ResponsibilityUuid uuid.UUID                 `json:"responsibility-uuid"`
+	Description        string                    `json:"description"`
+	Props              datatypes.JSONSlice[Prop] `json:"props"`
+	Links              datatypes.JSONSlice[Link] `json:"links"`
+	ResponsibleRoles   []ResponsibleRole         `json:"responsible-roles" gorm:"polymorphic:Parent"`
+	Remarks            string                    `json:"remarks"`
 
 	ByComponentId uuid.UUID `json:"by-component-id"`
 }
@@ -1651,8 +1651,8 @@ func (s *SatisfiedControlImplementationResponsibility) UnmarshalOscal(os oscalTy
 		Links:              ConvertOscalToLinks(os.Links),
 		Props:              ConvertOscalToProps(os.Props),
 		Remarks:            os.Remarks,
-		ResponsibleRoles: ConvertList(os.ResponsibleRoles, func(or oscalTypes_1_1_3.ResponsibleRole) OscalResponsibleRole {
-			role := OscalResponsibleRole{}
+		ResponsibleRoles: ConvertList(os.ResponsibleRoles, func(or oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
+			role := ResponsibleRole{}
 			role.UnmarshalOscal(or)
 			return role
 		}),
@@ -1701,12 +1701,12 @@ func (s *SatisfiedControlImplementationResponsibility) MarshalOscal() *oscalType
 
 type Statement struct {
 	UUIDModel
-	StatementId      string                                    `json:"statement-id"`
-	Props            datatypes.JSONSlice[Prop]                 `json:"props"`
-	Links            datatypes.JSONSlice[Link]                 `json:"links"`
-	ResponsibleRoles datatypes.JSONSlice[OscalResponsibleRole] `json:"responsible-roles"`
-	ByComponents     []ByComponent                             `json:"by-components,omitempty" gorm:"polymorphic:Parent"`
-	Remarks          string                                    `json:"remarks"`
+	StatementId      string                    `json:"statement-id"`
+	Props            datatypes.JSONSlice[Prop] `json:"props"`
+	Links            datatypes.JSONSlice[Link] `json:"links"`
+	ResponsibleRoles []ResponsibleRole         `json:"responsible-roles" gorm:"polymorphic:Parent"`
+	ByComponents     []ByComponent             `json:"by-components,omitempty" gorm:"polymorphic:Parent"`
+	Remarks          string                    `json:"remarks"`
 
 	ImplementedRequirementId uuid.UUID
 }
@@ -1721,8 +1721,8 @@ func (s *Statement) UnmarshalOscal(os oscalTypes_1_1_3.Statement) *Statement {
 		StatementId: os.StatementId,
 		Props:       ConvertOscalToProps(os.Props),
 		Links:       ConvertOscalToLinks(os.Links),
-		ResponsibleRoles: ConvertList(os.ResponsibleRoles, func(op oscalTypes_1_1_3.ResponsibleRole) OscalResponsibleRole {
-			role := OscalResponsibleRole{}
+		ResponsibleRoles: ConvertList(os.ResponsibleRoles, func(op oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
+			role := ResponsibleRole{}
 			role.UnmarshalOscal(op)
 			return role
 		}),
