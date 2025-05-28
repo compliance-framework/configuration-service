@@ -597,7 +597,7 @@ func TestResponsibleRole_MarshalUnmarshalOscal(t *testing.T) {
 	inputJson, err := json.Marshal(osc)
 	assert.NoError(t, err)
 
-	rr := &ResponsibleRole{}
+	rr := &OscalResponsibleRole{}
 	rr.UnmarshalOscal(osc)
 	output := rr.MarshalOscal()
 	outputJson, err := json.Marshal(output)

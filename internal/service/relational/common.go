@@ -247,14 +247,14 @@ func (sp *SetParameter) MarshalOscal() *oscaltypes113.SetParameter {
 	return &ret
 }
 
-type ResponsibleRole oscaltypes113.ResponsibleRole
+type OscalResponsibleRole oscaltypes113.ResponsibleRole
 
-func (rr *ResponsibleRole) UnmarshalOscal(osc oscaltypes113.ResponsibleRole) *ResponsibleRole {
-	*rr = ResponsibleRole(osc)
+func (rr *OscalResponsibleRole) UnmarshalOscal(osc oscaltypes113.ResponsibleRole) *OscalResponsibleRole {
+	*rr = OscalResponsibleRole(osc)
 	return rr
 }
 
-func (rr *ResponsibleRole) MarshalOscal() *oscaltypes113.ResponsibleRole {
+func (rr *OscalResponsibleRole) MarshalOscal() *oscaltypes113.ResponsibleRole {
 	ret := oscaltypes113.ResponsibleRole(*rr)
 	return &ret
 }

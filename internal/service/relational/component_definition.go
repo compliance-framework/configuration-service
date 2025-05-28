@@ -112,8 +112,8 @@ type DefinedComponent struct {
 	Remarks     string `json:"remarks"`
 
 	// TODO: Convert to a linker table that maps between roles that exist on UUID in the metadata
-	ResponsibleRoles       datatypes.JSONSlice[ResponsibleRole] `json:"responsible-roles"`
-	ControlImplementations []ControlImplementationSet           `json:"control-implementations" gorm:"many2many:defined_components_control_implementation_sets"`
+	ResponsibleRoles       datatypes.JSONSlice[OscalResponsibleRole] `json:"responsible-roles"`
+	ControlImplementations []ControlImplementationSet                `json:"control-implementations" gorm:"many2many:defined_components_control_implementation_sets"`
 
 	Props     datatypes.JSONSlice[Prop]     `json:"props"`
 	Links     datatypes.JSONSlice[Link]     `json:"links"`
@@ -141,8 +141,8 @@ func (dc *DefinedComponent) UnmarshalOscal(odc oscalTypes_1_1_3.DefinedComponent
 		return impl
 	})
 
-	roles := ConvertList(odc.ResponsibleRoles, func(rr oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
-		r := ResponsibleRole{}
+	roles := ConvertList(odc.ResponsibleRoles, func(rr oscalTypes_1_1_3.ResponsibleRole) OscalResponsibleRole {
+		r := OscalResponsibleRole{}
 		r.UnmarshalOscal(rr)
 		return r
 	})
@@ -163,7 +163,7 @@ func (dc *DefinedComponent) UnmarshalOscal(odc oscalTypes_1_1_3.DefinedComponent
 		Links:                  links,
 		Props:                  props,
 		ControlImplementations: cis,
-		ResponsibleRoles:       datatypes.NewJSONSlice[ResponsibleRole](roles),
+		ResponsibleRoles:       datatypes.NewJSONSlice[OscalResponsibleRole](roles),
 	}
 	return dc
 }
@@ -306,15 +306,15 @@ func (ci *ControlImplementationSet) MarshalOscal() *oscalTypes_1_1_3.ControlImpl
 // ImplementedRequirementControlImplementation represents an implemented requirement in OSCAL.
 // It includes control ID, description, set parameters, properties, links, remarks, responsible roles, and statements.
 type ImplementedRequirementControlImplementation struct {
-	UUIDModel                                             //required
-	ControlId        string                               `json:"control-id"`  //required
-	Description      string                               `json:"description"` //required
-	SetParameters    datatypes.JSONSlice[SetParameter]    `json:"set-parameters"`
-	Props            datatypes.JSONSlice[Prop]            `json:"props"`
-	Links            datatypes.JSONSlice[Link]            `json:"links"`
-	Remarks          string                               `json:"remarks"`
-	ResponsibleRoles datatypes.JSONSlice[ResponsibleRole] `json:"responsible-roles"`
-	Statements       []ControlStatementImplementation     `json:"statements"`
+	UUIDModel                                                  //required
+	ControlId        string                                    `json:"control-id"`  //required
+	Description      string                                    `json:"description"` //required
+	SetParameters    datatypes.JSONSlice[SetParameter]         `json:"set-parameters"`
+	Props            datatypes.JSONSlice[Prop]                 `json:"props"`
+	Links            datatypes.JSONSlice[Link]                 `json:"links"`
+	Remarks          string                                    `json:"remarks"`
+	ResponsibleRoles datatypes.JSONSlice[OscalResponsibleRole] `json:"responsible-roles"`
+	Statements       []ControlStatementImplementation          `json:"statements"`
 
 	ControlImplementationSetID uuid.UUID
 }
@@ -333,8 +333,8 @@ func (irci *ImplementedRequirementControlImplementation) UnmarshalOscal(oirci os
 		return sp
 	})
 
-	roles := ConvertList(oirci.ResponsibleRoles, func(rr oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
-		r := ResponsibleRole{}
+	roles := ConvertList(oirci.ResponsibleRoles, func(rr oscalTypes_1_1_3.ResponsibleRole) OscalResponsibleRole {
+		r := OscalResponsibleRole{}
 		r.UnmarshalOscal(rr)
 		return r
 	})
@@ -355,7 +355,7 @@ func (irci *ImplementedRequirementControlImplementation) UnmarshalOscal(oirci os
 		Props:            props,
 		Remarks:          oirci.Remarks,
 		SetParameters:    setParms,
-		ResponsibleRoles: datatypes.NewJSONSlice[ResponsibleRole](roles),
+		ResponsibleRoles: datatypes.NewJSONSlice[OscalResponsibleRole](roles),
 		Statements:       statements,
 	}
 	return irci
@@ -411,13 +411,13 @@ func (irci *ImplementedRequirementControlImplementation) MarshalOscal() *oscalTy
 // ControlStatementImplementation represents a control statement implementation in OSCAL.
 // It includes statement ID, description, properties, links, responsible roles, and remarks.
 type ControlStatementImplementation struct {
-	UUIDModel                                             // required
-	StatementId      string                               `json:"statement-id"` // required
-	Description      string                               `json:"description"`  // required
-	Props            datatypes.JSONSlice[Prop]            `json:"props"`
-	Links            datatypes.JSONSlice[Link]            `json:"links"`
-	ResponsibleRoles datatypes.JSONSlice[ResponsibleRole] `json:"responsible-roles"`
-	Remarks          string                               `json:"remarks"`
+	UUIDModel                                                  // required
+	StatementId      string                                    `json:"statement-id"` // required
+	Description      string                                    `json:"description"`  // required
+	Props            datatypes.JSONSlice[Prop]                 `json:"props"`
+	Links            datatypes.JSONSlice[Link]                 `json:"links"`
+	ResponsibleRoles datatypes.JSONSlice[OscalResponsibleRole] `json:"responsible-roles"`
+	Remarks          string                                    `json:"remarks"`
 
 	ImplementedRequirementControlImplementationId uuid.UUID
 }
@@ -428,8 +428,8 @@ func (s *ControlStatementImplementation) UnmarshalOscal(oci oscalTypes_1_1_3.Con
 	id := uuid.MustParse(oci.UUID)
 	links := ConvertOscalToLinks(oci.Links)
 	props := ConvertOscalToProps(oci.Props)
-	roles := ConvertList(oci.ResponsibleRoles, func(rr oscalTypes_1_1_3.ResponsibleRole) ResponsibleRole {
-		r := ResponsibleRole{}
+	roles := ConvertList(oci.ResponsibleRoles, func(rr oscalTypes_1_1_3.ResponsibleRole) OscalResponsibleRole {
+		r := OscalResponsibleRole{}
 		r.UnmarshalOscal(rr)
 		return r
 	})
@@ -443,7 +443,7 @@ func (s *ControlStatementImplementation) UnmarshalOscal(oci oscalTypes_1_1_3.Con
 		Links:            links,
 		Props:            props,
 		Remarks:          oci.Remarks,
-		ResponsibleRoles: datatypes.NewJSONSlice[ResponsibleRole](roles),
+		ResponsibleRoles: datatypes.NewJSONSlice[OscalResponsibleRole](roles),
 	}
 
 	return s
