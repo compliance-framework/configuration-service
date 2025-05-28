@@ -48,14 +48,14 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.PUT("/:id/components/:defined-component", h.UpdateDefinedComponent)                                                            // integration tested
 	api.GET("/:id/components/:defined-component/control-implementations", h.GetControlImplementations)                                 // manually tested
 	api.POST("/:id/components/:defined-component/control-implementations", h.CreateControlImplementations)                             // TODO
-	api.PUT("/:id/components/:defined-component/control-implementations", h.UpdateControlImplementations)                              // TODO
+	api.PUT("/:id/components/:defined-component/control-implementations", h.UpdateControlImplementations)                              // integration tested
 	api.PUT("/:id/components/:defined-component/control-implementations/:control-implementation", h.UpdateSingleControlImplementation) // integration tested
 	api.GET("/:id/components/:defined-component/control-implementations/implemented-requirements", h.GetImplementedRequirements)       // manually tested
 	api.POST("/:id/components/:defined-component/control-implementations/implemented-requirements", h.CreateImplementedRequirements)   // TODO
-	// api.PUT("/:id/components/:defined-component/control-implementations/implemented-requirements", h.UpdateImplementedRequirements) // TODO
+	// api.PUT("/:id/components/:defined-component/control-implementations/implemented-requirements", h.UpdateImplementedRequirements)
 	api.GET("/:id/components/:defined-component/control-implementations/statements", h.GetStatements)     // manually tested
 	api.POST("/:id/components/:defined-component/control-implementations/statements", h.CreateStatements) // TODO
-	// api.PUT("/:id/components/:defined-component/control-implementations/:statement", h.UpdateSingleStatement) // TODO
+	// api.PUT("/:id/components/:defined-component/control-implementations/:statement", h.UpdateSingleStatement)
 	api.GET("/:id/capabilities", h.GetCapabilities)                                       // manually tested
 	api.POST("/:id/capabilities", h.CreateCapabilities)                                   // TODO
 	api.PUT("/:id/capabilities/:capability", h.UpdateCapability)                          // integration tested
@@ -800,7 +800,9 @@ func (h *ComponentDefinitionHandler) GetDefinedComponent(ctx echo.Context) error
 
 	definedComponentID := ctx.Param("defined-component")
 	var definedComponent relational.DefinedComponent
-	if err := h.db.First(&definedComponent, "id = ?", definedComponentID).Error; err != nil {
+	if err := h.db.
+		Preload("ControlImplementations").
+		First(&definedComponent, "id = ?", definedComponentID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
 		}
@@ -1869,7 +1871,7 @@ func (h *ComponentDefinitionHandler) UpdateControlImplementations(ctx echo.Conte
 		"last_modified": now,
 		"oscal_version": versioning.GetLatestSupportedVersion(),
 	}
-	if err := tx.Model(&componentDefinition.Metadata).Updates(metadataUpdates).Error; err != nil {
+	if err := tx.Model(&relational.Metadata{}).Where("id = ?", componentDefinition.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
 		tx.Rollback()
 		h.sugar.Errorf("Failed to update metadata: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
