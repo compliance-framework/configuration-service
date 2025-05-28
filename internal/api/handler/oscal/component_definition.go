@@ -57,7 +57,7 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	// api.PUT("/:id/components/:defined-component/control-implementations/:statement", h.UpdateSingleStatement) // TODO
 	api.GET("/:id/capabilities", h.GetCapabilities)              // manually tested
 	api.POST("/:id/capabilities", h.CreateCapabilities)          // TODO
-	api.PUT("/:id/capabilities/:capability", h.UpdateCapability) // TODO
+	api.PUT("/:id/capabilities/:capability", h.UpdateCapability) // integration tested
 
 	api.GET("/:id/capabilities/incorporates-components", h.GetIncorporatesComponents)
 	api.POST("/:id/capabilities/incorporates-components", h.CreateIncorporatesComponents) // TODO
@@ -1005,7 +1005,7 @@ func (h *ComponentDefinitionHandler) GetControlImplementations(ctx echo.Context)
 	}
 
 	var componentDefinition relational.ComponentDefinition
-	if err := h.db.First(&componentDefinition, "id = ?", id).Error; err != nil {
+	if err := h.db.Preload("Capabilities").First(&componentDefinition, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
 		}
@@ -1552,17 +1552,37 @@ func (h *ComponentDefinitionHandler) GetIncorporatesComponents(ctx echo.Context)
 	}
 
 	var componentDefinition relational.ComponentDefinition
-	if err := h.db.First(&componentDefinition, "id = ?", id).Error; err != nil {
+	if err := h.db.
+		Preload("Capabilities").
+		First(&componentDefinition, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
 		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
+	// Debug logging
+	h.sugar.Infow("Loaded component definition",
+		"id", id,
+		"capabilities_count", len(componentDefinition.Capabilities))
+
 	var oscalIncorporatesComponents []oscalTypes_1_1_3.IncorporatesComponent
 	for _, capability := range componentDefinition.Capabilities {
+		h.sugar.Infow("Processing capability",
+			"capability_id", capability.ID,
+			"incorporates_components", capability.IncorporatesComponents)
+
 		for _, component := range capability.IncorporatesComponents {
 			oscalIncorporatesComponents = append(oscalIncorporatesComponents, oscalTypes_1_1_3.IncorporatesComponent(component))
 		}
 	}
+
+	// Debug logging
+	h.sugar.Infow("Returning incorporates components",
+		"count", len(oscalIncorporatesComponents),
+		"components", oscalIncorporatesComponents)
+
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.IncorporatesComponent]{Data: oscalIncorporatesComponents})
 }
 
@@ -1632,7 +1652,6 @@ func (h *ComponentDefinitionHandler) CreateIncorporatesComponents(ctx echo.Conte
 		h.sugar.Errorf("Failed to commit transaction: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
-
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.IncorporatesComponent]{
 		Data: incorporatesComponents,
 	})
