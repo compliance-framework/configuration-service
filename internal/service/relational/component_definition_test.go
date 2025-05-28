@@ -586,7 +586,7 @@ func TestResponsibleRole_MarshalUnmarshalOscal(t *testing.T) {
 	osc := oscalTypes_1_1_3.ResponsibleRole{
 		RoleId:     "test-role",
 		Remarks:    "test remarks",
-		PartyUuids: &[]string{"uuid-1", "uuid-2"},
+		PartyUuids: &[]string{"a6ecb154-014c-45a5-8617-96d2d1890941", "a6ecb154-014c-45a5-8617-96d2d1890941"},
 		Links: &[]oscalTypes_1_1_3.Link{
 			{Href: "http://example.com", Text: "example link"},
 		},
@@ -597,7 +597,7 @@ func TestResponsibleRole_MarshalUnmarshalOscal(t *testing.T) {
 	inputJson, err := json.Marshal(osc)
 	assert.NoError(t, err)
 
-	rr := &OscalResponsibleRole{}
+	rr := &ResponsibleRole{}
 	rr.UnmarshalOscal(osc)
 	output := rr.MarshalOscal()
 	outputJson, err := json.Marshal(output)

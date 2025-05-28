@@ -301,18 +301,6 @@ func (rr *ResponsibleRole) MarshalOscal() *oscaltypes113.ResponsibleRole {
 	return ret
 }
 
-type OscalResponsibleRole oscaltypes113.ResponsibleRole
-
-func (rr *OscalResponsibleRole) UnmarshalOscal(osc oscaltypes113.ResponsibleRole) *OscalResponsibleRole {
-	*rr = OscalResponsibleRole(osc)
-	return rr
-}
-
-func (rr *OscalResponsibleRole) MarshalOscal() *oscaltypes113.ResponsibleRole {
-	ret := oscaltypes113.ResponsibleRole(*rr)
-	return &ret
-}
-
 type Protocol oscaltypes113.Protocol
 
 func (p *Protocol) UnmarshalOscal(op oscaltypes113.Protocol) *Protocol {
