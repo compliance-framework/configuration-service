@@ -2046,6 +2046,14 @@ func (h *ComponentDefinitionHandler) UpdateCapability(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(tx.Error))
 	}
 
+	// First, clear the existing many-to-many relationships
+	if err := tx.Model(&relationalCapability).Association("ControlImplementations").Clear(); err != nil {
+		tx.Rollback()
+		h.sugar.Errorf("Failed to clear control implementations: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update the basic fields
 	updateFields := map[string]interface{}{
 		"name":                    relationalCapability.Name,
 		"description":             relationalCapability.Description,
@@ -2055,15 +2063,19 @@ func (h *ComponentDefinitionHandler) UpdateCapability(ctx echo.Context) error {
 		"incorporates_components": relationalCapability.IncorporatesComponents,
 	}
 
-	// Only update control implementations if provided
-	if len(relationalCapability.ControlImplementations) > 0 {
-		updateFields["control_implementations"] = relationalCapability.ControlImplementations
-	}
-
 	if err := tx.Model(&relational.Capability{}).Where("id = ?", capabilityID).Updates(updateFields).Error; err != nil {
 		tx.Rollback()
 		h.sugar.Errorf("Failed to update capability: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Now add the new control implementations
+	if len(relationalCapability.ControlImplementations) > 0 {
+		if err := tx.Model(&relationalCapability).Association("ControlImplementations").Replace(relationalCapability.ControlImplementations); err != nil {
+			tx.Rollback()
+			h.sugar.Errorf("Failed to update control implementations: %v", err)
+			return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		}
 	}
 
 	// Update metadata

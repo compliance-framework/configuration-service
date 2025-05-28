@@ -316,6 +316,49 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateComponents() {
 		suite.Require().NoError(err, "Failed to unmarshal GET response")
 		suite.Equal(len(components), len(getResponse.Data), "Number of retrieved components doesn't match")
 	})
+
+	suite.Run("Fails to create components for non-existent component definition", func() {
+		nonExistentID := uuid.New().String()
+		components := []oscaltypes.DefinedComponent{
+			{
+				UUID:        uuid.New().String(),
+				Type:        "software",
+				Title:       "Test Component",
+				Description: "A test component",
+				Purpose:     "Testing",
+			},
+		}
+
+		rec, req := suite.createRequest(
+			http.MethodPost,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/components", nonExistentID),
+			components,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+
+		suite.Equal(http.StatusNotFound, rec.Code, "Expected 404 for non-existent component definition")
+	})
+
+	suite.Run("Fails to create components with invalid data", func() {
+		componentDefID := suite.createBaseComponentDefinition()
+
+		// Create invalid component (missing required fields)
+		invalidComponents := []oscaltypes.DefinedComponent{
+			{
+				UUID: uuid.New().String(),
+				// Missing required fields like Type, Title, etc.
+			},
+		}
+
+		rec, req := suite.createRequest(
+			http.MethodPost,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/components", componentDefID),
+			invalidComponents,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+
+		suite.Equal(http.StatusBadRequest, rec.Code, "Expected 400 for invalid component data")
+	})
 }
 
 func (suite *ComponentDefinitionApiIntegrationSuite) TestUpdateComponents() {
