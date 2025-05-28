@@ -1564,6 +1564,16 @@ func (h *ComponentDefinitionHandler) CreateCapabilities(ctx echo.Context) error 
 				}
 			}
 		}
+		if capability.IncorporatesComponents != nil {
+			for _, component := range *capability.IncorporatesComponents {
+				if component.ComponentUuid == "" {
+					return ctx.JSON(http.StatusBadRequest, api.NewError(errors.New("component UUID is required for incorporates component")))
+				}
+				if component.Description == "" {
+					return ctx.JSON(http.StatusBadRequest, api.NewError(errors.New("description is required for incorporates component")))
+				}
+			}
+		}
 	}
 
 	// Begin a transaction

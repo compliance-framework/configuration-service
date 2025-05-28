@@ -1196,6 +1196,99 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestUpdateImportComponentDe
 	})
 }
 
+func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateIncorporatesComponents() {
+	fmt.Println("Running TestCreateIncorporatesComponents")
+
+	suite.Run("Successfully creates incorporates components for a component definition", func() {
+		// Step 1: Create a base component definition
+		componentDefID := suite.createBaseComponentDefinition()
+
+		// Step 2: Create a capability with incorporates components
+		capabilityUUID := uuid.New().String()
+		capability := createTestCapability(capabilityUUID, uuid.New().String())
+
+		// Add incorporates components to the capability
+		incorporatesComponents := []oscaltypes.IncorporatesComponent{
+			{
+				ComponentUuid: uuid.New().String(),
+				Description:   "First incorporated component",
+			},
+			{
+				ComponentUuid: uuid.New().String(),
+				Description:   "Second incorporated component",
+			},
+		}
+		capability.IncorporatesComponents = &incorporatesComponents
+
+		// Create the capability
+		rec, req := suite.createRequest(
+			http.MethodPost,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/capabilities", componentDefID),
+			[]oscaltypes.Capability{capability},
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to create capability")
+
+		// Verify the capability was created with incorporates components
+		rec, req = suite.createRequest(
+			http.MethodGet,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/capabilities", componentDefID),
+			nil,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to get capabilities")
+
+		var response handler.GenericDataListResponse[oscaltypes.Capability]
+		err := json.Unmarshal(rec.Body.Bytes(), &response)
+		suite.NoError(err, "Failed to unmarshal response")
+		suite.Equal(1, len(response.Data), "Expected one capability")
+		suite.Equal(2, len(*response.Data[0].IncorporatesComponents), "Expected two incorporates components")
+	})
+
+	suite.Run("Fails to create incorporates components for non-existent component definition", func() {
+		nonExistentID := uuid.New().String()
+		capability := createTestCapability(uuid.New().String(), uuid.New().String())
+		incorporatesComponents := []oscaltypes.IncorporatesComponent{
+			{
+				ComponentUuid: uuid.New().String(),
+				Description:   "Test component",
+			},
+		}
+		capability.IncorporatesComponents = &incorporatesComponents
+
+		rec, req := suite.createRequest(
+			http.MethodPost,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/capabilities", nonExistentID),
+			[]oscaltypes.Capability{capability},
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusNotFound, rec.Code, "Expected 404 for non-existent component definition")
+	})
+
+	suite.Run("Fails to create incorporates components with invalid data", func() {
+		// Create a base component definition
+		componentDefID := suite.createBaseComponentDefinition()
+
+		// Create a capability with invalid incorporates components
+		capability := createTestCapability(uuid.New().String(), uuid.New().String())
+		incorporatesComponents := []oscaltypes.IncorporatesComponent{
+			{
+				ComponentUuid: "", // Empty UUID should be invalid
+				Description:   "", // Empty description should be invalid
+			},
+		}
+		capability.IncorporatesComponents = &incorporatesComponents
+
+		rec, req := suite.createRequest(
+			http.MethodPost,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/capabilities", componentDefID),
+			[]oscaltypes.Capability{capability},
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusBadRequest, rec.Code, "Expected 400 for invalid incorporates component data")
+	})
+}
+
 // Helper functions to create test data
 func createTestBackMatterResource(uuid string) oscaltypes.Resource {
 	return oscaltypes.Resource{
