@@ -84,6 +84,9 @@ func main() {
 		"network_architecture_diagrams",
 		"data_flow_diagrams",
 		"responsible_role_parties",
+		"responsible_role_roles",
+		"metadata_roles",
+		"metadata_parties",
 	)
 	if err != nil {
 		panic(err)
