@@ -294,10 +294,9 @@ func (h *CatalogHandler) GetGroups(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 	var catalog relational.Catalog
-	query := h.db.
+	if err := h.db.
 		Preload("Groups", "parent_id IS NULL").
-		First(&catalog, "id = ?", id)
-	if query.Error != nil {
+		First(&catalog, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
 		}
