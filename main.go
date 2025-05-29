@@ -4,15 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/api/handler"
 	"github.com/compliance-framework/configuration-service/internal/api/handler/oscal"
 	"github.com/compliance-framework/configuration-service/internal/service/relational"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"log"
-	"os"
 
 	"github.com/joho/godotenv"
 
@@ -23,11 +24,14 @@ import (
 const (
 	DefaultMongoURI = "mongodb://localhost:27017"
 	DefaultPort     = ":8080"
+	DefaultDBDriver = "postgres"
 )
 
 type Config struct {
-	MongoURI string
-	AppPort  string
+	MongoURI           string
+	AppPort            string
+	DBDriver           string
+	DBConnectionString string
 }
 
 // @title						Continuous Compliance Framework API
@@ -60,16 +64,23 @@ func main() {
 
 	handler.RegisterHandlers(server, mongoDatabase, sugar)
 
-	db, err := gorm.Open(sqlite.Open("data/ccf.db"), &gorm.Config{})
-	if err != nil {
-		panic("failed to connect database")
+	//TODO: farm this out to specific function/file
+	var db *gorm.DB
+	switch config.DBDriver {
+	case "postgres":
+		db, err = gorm.Open(postgres.Open(config.DBConnectionString), &gorm.Config{
+			DisableForeignKeyConstraintWhenMigrating: true,
+		})
+	default:
+		panic("unsupported DB driver: " + config.DBDriver)
 	}
-
+	if err != nil {
+		sugar.Fatal("Failed to open database", "err", err)
+	}
 	err = migrateDB(db)
 	if err != nil {
 		sugar.Fatal("Failed to migrate database", "err", err)
 	}
-
 	oscal.RegisterHandlers(server, sugar, db)
 
 	server.PrintRoutes()
@@ -94,6 +105,7 @@ func connectMongo(ctx context.Context, clientOptions *options.ClientOptions, dat
 
 func migrateDB(db *gorm.DB) error {
 	err := db.AutoMigrate(
+		&relational.ResponsibleRole{},
 		&relational.Location{},
 		&relational.Party{},
 		&relational.BackMatterResource{},
@@ -136,6 +148,14 @@ func migrateDB(db *gorm.DB) error {
 		&relational.ImplementedRequirement{},
 		&relational.ControlImplementation{},
 		&relational.SystemSecurityPlan{},
+		&relational.SelectControlById{},
+		&relational.Import{},
+		&relational.Merge{},
+		&relational.ParameterSetting{},
+		&relational.Addition{},
+		&relational.Alteration{},
+		&relational.Modify{},
+		&relational.Profile{},
 	)
 	return err
 }
@@ -158,10 +178,30 @@ func loadConfig() (config Config) {
 		port = fmt.Sprintf(":%s", appPort)
 	}
 
-	config = Config{
-		MongoURI: mongoURI,
-		AppPort:  port,
+	dbDriver := os.Getenv("CCF_DB_DRIVER")
+	if dbDriver == "" {
+		dbDriver = DefaultDBDriver
 	}
+
+	dbConnectionString, ok := os.LookupEnv("CCF_DB_CONNECTION")
+	if !ok {
+		switch dbDriver {
+		case "postgres":
+			dbConnectionString = "host=db user=postgres password=postgres dbname=ccf port=5432 sslmode=disable"
+		default:
+			log.Fatalf("Unrecognised db driver: %s", dbDriver)
+		}
+	}
+
+	log.Printf("dbConnectionString: %s", dbConnectionString)
+
+	config = Config{
+		MongoURI:           mongoURI,
+		AppPort:            port,
+		DBDriver:           dbDriver,
+		DBConnectionString: dbConnectionString,
+	}
+
 	return config
 }
 
