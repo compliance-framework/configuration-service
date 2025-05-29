@@ -249,11 +249,13 @@ func (sp *SetParameter) MarshalOscal() *oscaltypes113.SetParameter {
 
 type ResponsibleRole struct {
 	UUIDModel
-	RoleId  string                    `json:"role-id"` // required
+	RoleID  string                    `json:"role-id"` // required
 	Props   datatypes.JSONSlice[Prop] `json:"props"`
 	Links   datatypes.JSONSlice[Link] `json:"links"`
 	Remarks string                    `json:"remarks"`
-	Parties []Party                   `gorm:"many2many:responsible_role_parties;"`
+
+	Parties []Party `gorm:"many2many:responsible_role_parties;"`
+	Role    Role
 
 	ParentID   *uuid.UUID
 	ParentType string
@@ -261,7 +263,8 @@ type ResponsibleRole struct {
 
 func (rr *ResponsibleRole) UnmarshalOscal(or oscaltypes113.ResponsibleRole) *ResponsibleRole {
 	*rr = ResponsibleRole{
-		RoleId:  or.RoleId,
+		RoleID:  or.RoleId,
+		Role:    Role{ID: or.RoleId},
 		Props:   ConvertOscalToProps(or.Props),
 		Links:   ConvertOscalToLinks(or.Links),
 		Remarks: or.Remarks,
@@ -279,7 +282,7 @@ func (rr *ResponsibleRole) UnmarshalOscal(or oscaltypes113.ResponsibleRole) *Res
 
 func (rr *ResponsibleRole) MarshalOscal() *oscaltypes113.ResponsibleRole {
 	ret := &oscaltypes113.ResponsibleRole{
-		RoleId: rr.RoleId,
+		RoleId: rr.RoleID,
 	}
 
 	if len(rr.Parties) > 0 {
