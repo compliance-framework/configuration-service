@@ -40,7 +40,7 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.GET("/:id/full", h.Full)                                                                                                       // manually tested
 	api.GET("/:id/import-component-definitions", h.GetImportComponentDefinitions)                                                      // manually tested
 	api.POST("/:id/import-component-definitions", h.CreateImportComponentDefinitions)                                                  // integration tested
-	api.PUT("/:id/import-component-definitions", h.UpdateImportComponentDefinitions)                                                   // todo
+	api.PUT("/:id/import-component-definitions", h.UpdateImportComponentDefinitions)                                                   // to test
 	api.GET("/:id/components", h.GetComponents)                                                                                        // manually tested
 	api.POST("/:id/components", h.CreateComponents)                                                                                    // integration tested
 	api.PUT("/:id/components", h.UpdateComponents)                                                                                     // integration tested
@@ -1230,88 +1230,88 @@ func (h *ComponentDefinitionHandler) GetImplementedRequirements(ctx echo.Context
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ImplementedRequirementControlImplementation]{Data: oscalImplementedRequirements})
 }
 
-// CreateImplementedRequirements godoc
-//
-//	@Summary		Create implemented requirements for a control implementation
-//	@Description	Creates new implemented requirements for a given control implementation.
-//	@Tags			Oscal
-//	@Accept			json
-//	@Produce		json
-//	@Param			id							path		string															true	"Component Definition ID"
-//	@Param			defined-component			path		string															true	"Defined Component ID"
-//	@Param			implemented-requirements	body		[]oscalTypes_1_1_3.ImplementedRequirementControlImplementation	true	"Implemented Requirements"
-//	@Success		200							{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.ImplementedRequirementControlImplementation]
-//	@Failure		400							{object}	api.Error
-//	@Failure		404							{object}	api.Error
-//	@Failure		500							{object}	api.Error
-//	@Router			/oscal/component-definitions/{id}/components/{defined-component}/control-implementations/implemented-requirements [post]
-func (h *ComponentDefinitionHandler) CreateImplementedRequirements(ctx echo.Context) error {
-	idParam := ctx.Param("id")
-	id, err := uuid.Parse(idParam)
-	if err != nil {
-		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-	}
+// // CreateImplementedRequirements godoc
+// //
+// //	@Summary		Create implemented requirements for a control implementation
+// //	@Description	Creates new implemented requirements for a given control implementation.
+// //	@Tags			Oscal
+// //	@Accept			json
+// //	@Produce		json
+// //	@Param			id							path		string															true	"Component Definition ID"
+// //	@Param			defined-component			path		string															true	"Defined Component ID"
+// //	@Param			implemented-requirements	body		[]oscalTypes_1_1_3.ImplementedRequirementControlImplementation	true	"Implemented Requirements"
+// //	@Success		200							{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.ImplementedRequirementControlImplementation]
+// //	@Failure		400							{object}	api.Error
+// //	@Failure		404							{object}	api.Error
+// //	@Failure		500							{object}	api.Error
+// //	@Router			/oscal/component-definitions/{id}/components/{defined-component}/control-implementations/implemented-requirements [post]
+// func (h *ComponentDefinitionHandler) CreateImplementedRequirements(ctx echo.Context) error {
+// 	idParam := ctx.Param("id")
+// 	id, err := uuid.Parse(idParam)
+// 	if err != nil {
+// 		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+// 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+// 	}
 
-	var componentDefinition relational.ComponentDefinition
-	if err := h.db.First(&componentDefinition, "id = ?", id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(err))
-		}
-		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-	}
+// 	var componentDefinition relational.ComponentDefinition
+// 	if err := h.db.First(&componentDefinition, "id = ?", id).Error; err != nil {
+// 		if errors.Is(err, gorm.ErrRecordNotFound) {
+// 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+// 		}
+// 		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
+// 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+// 	}
 
-	definedComponentID := ctx.Param("defined-component")
-	var definedComponent relational.DefinedComponent
-	if err := h.db.First(&definedComponent, "id = ?", definedComponentID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(err))
-		}
-		h.sugar.Warnw("Failed to load defined component", "id", definedComponentID, "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-	}
+// 	definedComponentID := ctx.Param("defined-component")
+// 	var definedComponent relational.DefinedComponent
+// 	if err := h.db.First(&definedComponent, "id = ?", definedComponentID).Error; err != nil {
+// 		if errors.Is(err, gorm.ErrRecordNotFound) {
+// 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+// 		}
+// 		h.sugar.Warnw("Failed to load defined component", "id", definedComponentID, "error", err)
+// 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+// 	}
 
-	var implementedRequirements []oscalTypes_1_1_3.ImplementedRequirementControlImplementation
-	if err := ctx.Bind(&implementedRequirements); err != nil {
-		h.sugar.Warnw("Failed to bind implemented requirements", "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-	}
+// 	var implementedRequirements []oscalTypes_1_1_3.ImplementedRequirementControlImplementation
+// 	if err := ctx.Bind(&implementedRequirements); err != nil {
+// 		h.sugar.Warnw("Failed to bind implemented requirements", "error", err)
+// 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+// 	}
 
-	// Begin a transaction
-	tx := h.db.Begin()
-	if tx.Error != nil {
-		h.sugar.Errorf("Failed to begin transaction: %v", tx.Error)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(tx.Error))
-	}
+// 	// Begin a transaction
+// 	tx := h.db.Begin()
+// 	if tx.Error != nil {
+// 		h.sugar.Errorf("Failed to begin transaction: %v", tx.Error)
+// 		return ctx.JSON(http.StatusInternalServerError, api.NewError(tx.Error))
+// 	}
 
-	// Convert to relational model
-	var newImplementedReqs []relational.ImplementedRequirementControlImplementation
-	for _, implReq := range implementedRequirements {
-		relationalImplReq := relational.ImplementedRequirementControlImplementation{}
-		relationalImplReq.UnmarshalOscal(implReq)
-		newImplementedReqs = append(newImplementedReqs, relationalImplReq)
-	}
+// 	// Convert to relational model
+// 	var newImplementedReqs []relational.ImplementedRequirementControlImplementation
+// 	for _, implReq := range implementedRequirements {
+// 		relationalImplReq := relational.ImplementedRequirementControlImplementation{}
+// 		relationalImplReq.UnmarshalOscal(implReq)
+// 		newImplementedReqs = append(newImplementedReqs, relationalImplReq)
+// 	}
 
-	// Create the implemented requirements
-	for _, implReq := range newImplementedReqs {
-		if err := tx.Create(&implReq).Error; err != nil {
-			tx.Rollback()
-			h.sugar.Errorf("Failed to create implemented requirement: %v", err)
-			return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-		}
-	}
+// 	// Create the implemented requirements
+// 	for _, implReq := range newImplementedReqs {
+// 		if err := tx.Create(&implReq).Error; err != nil {
+// 			tx.Rollback()
+// 			h.sugar.Errorf("Failed to create implemented requirement: %v", err)
+// 			return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+// 		}
+// 	}
 
-	// Commit the transaction
-	if err := tx.Commit().Error; err != nil {
-		h.sugar.Errorf("Failed to commit transaction: %v", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-	}
+// 	// Commit the transaction
+// 	if err := tx.Commit().Error; err != nil {
+// 		h.sugar.Errorf("Failed to commit transaction: %v", err)
+// 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+// 	}
 
-	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ImplementedRequirementControlImplementation]{
-		Data: implementedRequirements,
-	})
-}
+// 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ImplementedRequirementControlImplementation]{
+// 		Data: implementedRequirements,
+// 	})
+// }
 
 // GetStatements godoc
 //
@@ -1368,111 +1368,111 @@ func (h *ComponentDefinitionHandler) GetStatements(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ControlStatementImplementation]{Data: oscalStatements})
 }
 
-// CreateStatements godoc
-//
-//	@Summary		Create statements for a control implementation
-//	@Description	Creates new statements for a given control implementation.
-//	@Tags			Oscal
-//	@Accept			json
-//	@Produce		json
-//	@Param			id						path		string												true	"Component Definition ID"
-//	@Param			defined-component		path		string												true	"Defined Component ID"
-//	@Param			control-implementation	path		string												true	"Control Implementation ID"
-//	@Param			implemented-requirement	path		string												true	"Implemented Requirement ID"
-//	@Param			statements				body		[]oscalTypes_1_1_3.ControlStatementImplementation	true	"Statements"
-//	@Success		200						{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.ControlStatementImplementation]
-//	@Failure		400						{object}	api.Error
-//	@Failure		404						{object}	api.Error
-//	@Failure		500						{object}	api.Error
-//	@Router			/oscal/component-definitions/{id}/components/{defined-component}/control-implementations/statements [post]
-func (h *ComponentDefinitionHandler) CreateStatements(ctx echo.Context) error {
-	idParam := ctx.Param("id")
-	id, err := uuid.Parse(idParam)
-	if err != nil {
-		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-	}
+// // CreateStatements godoc
+// //
+// //	@Summary		Create statements for a control implementation
+// //	@Description	Creates new statements for a given control implementation.
+// //	@Tags			Oscal
+// //	@Accept			json
+// //	@Produce		json
+// //	@Param			id						path		string												true	"Component Definition ID"
+// //	@Param			defined-component		path		string												true	"Defined Component ID"
+// //	@Param			control-implementation	path		string												true	"Control Implementation ID"
+// //	@Param			implemented-requirement	path		string												true	"Implemented Requirement ID"
+// //	@Param			statements				body		[]oscalTypes_1_1_3.ControlStatementImplementation	true	"Statements"
+// //	@Success		200						{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.ControlStatementImplementation]
+// //	@Failure		400						{object}	api.Error
+// //	@Failure		404						{object}	api.Error
+// //	@Failure		500						{object}	api.Error
+// //	@Router			/oscal/component-definitions/{id}/components/{defined-component}/control-implementations/statements [post]
+// func (h *ComponentDefinitionHandler) CreateStatements(ctx echo.Context) error {
+// 	idParam := ctx.Param("id")
+// 	id, err := uuid.Parse(idParam)
+// 	if err != nil {
+// 		h.sugar.Warnw("Invalid component definition id", "id", idParam, "error", err)
+// 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+// 	}
 
-	var componentDefinition relational.ComponentDefinition
-	if err := h.db.First(&componentDefinition, "id = ?", id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(err))
-		}
-		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-	}
+// 	var componentDefinition relational.ComponentDefinition
+// 	if err := h.db.First(&componentDefinition, "id = ?", id).Error; err != nil {
+// 		if errors.Is(err, gorm.ErrRecordNotFound) {
+// 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+// 		}
+// 		h.sugar.Warnw("Failed to load component definition", "id", idParam, "error", err)
+// 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+// 	}
 
-	definedComponentID := ctx.Param("defined-component")
-	var definedComponent relational.DefinedComponent
-	if err := h.db.First(&definedComponent, "id = ?", definedComponentID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(err))
-		}
-		h.sugar.Warnw("Failed to load defined component", "id", definedComponentID, "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-	}
+// 	definedComponentID := ctx.Param("defined-component")
+// 	var definedComponent relational.DefinedComponent
+// 	if err := h.db.First(&definedComponent, "id = ?", definedComponentID).Error; err != nil {
+// 		if errors.Is(err, gorm.ErrRecordNotFound) {
+// 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+// 		}
+// 		h.sugar.Warnw("Failed to load defined component", "id", definedComponentID, "error", err)
+// 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+// 	}
 
-	controlImplementationID := ctx.Param("control-implementation")
-	var controlImplementation relational.ControlImplementation
-	if err := h.db.First(&controlImplementation, "id = ?", controlImplementationID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(err))
-		}
-		h.sugar.Warnw("Failed to load control implementation", "id", controlImplementationID, "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-	}
+// 	controlImplementationID := ctx.Param("control-implementation")
+// 	var controlImplementation relational.ControlImplementation
+// 	if err := h.db.First(&controlImplementation, "id = ?", controlImplementationID).Error; err != nil {
+// 		if errors.Is(err, gorm.ErrRecordNotFound) {
+// 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+// 		}
+// 		h.sugar.Warnw("Failed to load control implementation", "id", controlImplementationID, "error", err)
+// 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+// 	}
 
-	implementedRequirementID := ctx.Param("implemented-requirement")
-	var implementedRequirement relational.ImplementedRequirement
-	if err := h.db.First(&implementedRequirement, "id = ?", implementedRequirementID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(err))
-		}
-		h.sugar.Warnw("Failed to load implemented requirement", "id", implementedRequirementID, "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-	}
+// 	implementedRequirementID := ctx.Param("implemented-requirement")
+// 	var implementedRequirement relational.ImplementedRequirement
+// 	if err := h.db.First(&implementedRequirement, "id = ?", implementedRequirementID).Error; err != nil {
+// 		if errors.Is(err, gorm.ErrRecordNotFound) {
+// 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+// 		}
+// 		h.sugar.Warnw("Failed to load implemented requirement", "id", implementedRequirementID, "error", err)
+// 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+// 	}
 
-	var statements []oscalTypes_1_1_3.ControlStatementImplementation
-	if err := ctx.Bind(&statements); err != nil {
-		h.sugar.Warnw("Failed to bind statements", "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-	}
+// 	var statements []oscalTypes_1_1_3.ControlStatementImplementation
+// 	if err := ctx.Bind(&statements); err != nil {
+// 		h.sugar.Warnw("Failed to bind statements", "error", err)
+// 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+// 	}
 
-	// Begin a transaction
-	tx := h.db.Begin()
-	if tx.Error != nil {
-		h.sugar.Errorf("Failed to begin transaction: %v", tx.Error)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(tx.Error))
-	}
+// 	// Begin a transaction
+// 	tx := h.db.Begin()
+// 	if tx.Error != nil {
+// 		h.sugar.Errorf("Failed to begin transaction: %v", tx.Error)
+// 		return ctx.JSON(http.StatusInternalServerError, api.NewError(tx.Error))
+// 	}
 
-	// Convert to relational model
-	var newStatements []relational.ControlStatementImplementation
-	for _, statement := range statements {
-		relationalStatement := relational.ControlStatementImplementation{}
-		relationalStatement.UnmarshalOscal(statement)
-		relationalStatement.ImplementedRequirementControlImplementationId = *implementedRequirement.ID
-		newStatements = append(newStatements, relationalStatement)
-	}
+// 	// Convert to relational model
+// 	var newStatements []relational.ControlStatementImplementation
+// 	for _, statement := range statements {
+// 		relationalStatement := relational.ControlStatementImplementation{}
+// 		relationalStatement.UnmarshalOscal(statement)
+// 		relationalStatement.ImplementedRequirementControlImplementationId = *implementedRequirement.ID
+// 		newStatements = append(newStatements, relationalStatement)
+// 	}
 
-	// Create the statements
-	for _, statement := range newStatements {
-		if err := tx.Create(&statement).Error; err != nil {
-			tx.Rollback()
-			h.sugar.Errorf("Failed to create statement: %v", err)
-			return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-		}
-	}
+// 	// Create the statements
+// 	for _, statement := range newStatements {
+// 		if err := tx.Create(&statement).Error; err != nil {
+// 			tx.Rollback()
+// 			h.sugar.Errorf("Failed to create statement: %v", err)
+// 			return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+// 		}
+// 	}
 
-	// Commit the transaction
-	if err := tx.Commit().Error; err != nil {
-		h.sugar.Errorf("Failed to commit transaction: %v", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-	}
+// 	// Commit the transaction
+// 	if err := tx.Commit().Error; err != nil {
+// 		h.sugar.Errorf("Failed to commit transaction: %v", err)
+// 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+// 	}
 
-	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ControlStatementImplementation]{
-		Data: statements,
-	})
-}
+// 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.ControlStatementImplementation]{
+// 		Data: statements,
+// 	})
+// }
 
 // GetCapabilities godoc
 //
