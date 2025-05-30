@@ -40,7 +40,7 @@ func (h *ComponentDefinitionHandler) Register(api *echo.Group) {
 	api.GET("/:id/full", h.Full)                                                                                                       // manually tested
 	api.GET("/:id/import-component-definitions", h.GetImportComponentDefinitions)                                                      // manually tested
 	api.POST("/:id/import-component-definitions", h.CreateImportComponentDefinitions)                                                  // integration tested
-	api.PUT("/:id/import-component-definitions", h.UpdateImportComponentDefinitions)                                                   // integration tested
+	api.PUT("/:id/import-component-definitions", h.UpdateImportComponentDefinitions)                                                   // todo
 	api.GET("/:id/components", h.GetComponents)                                                                                        // manually tested
 	api.POST("/:id/components", h.CreateComponents)                                                                                    // integration tested
 	api.PUT("/:id/components", h.UpdateComponents)                                                                                     // integration tested
@@ -137,7 +137,12 @@ func (h *ComponentDefinitionHandler) Get(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.ComponentDefinition]{Data: *componentDefinition.MarshalOscal()})
+	response := responseComponentDefinition{
+		UUID:     *componentDefinition.ID,
+		Metadata: *componentDefinition.Metadata.MarshalOscal(),
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[responseComponentDefinition]{Data: response})
 }
 
 // Create godoc
@@ -245,9 +250,9 @@ func (h *ComponentDefinitionHandler) Update(ctx echo.Context) error {
 
 	// Update metadata
 	now = time.Now()
-	metadataUpdates := map[string]interface{}{
-		"last_modified": now,
-		"oscal_version": versioning.GetLatestSupportedVersion(),
+	metadataUpdates := &relational.Metadata{
+		LastModified: &now,
+		OscalVersion: versioning.GetLatestSupportedVersion(),
 	}
 	if err := tx.Model(&relational.Metadata{}).Where("id = ?", existingComponent.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
 		tx.Rollback()
@@ -400,9 +405,9 @@ func (h *ComponentDefinitionHandler) CreateImportComponentDefinitions(ctx echo.C
 
 	// Update metadata
 	now := time.Now()
-	metadataUpdates := map[string]interface{}{
-		"last_modified": now,
-		"oscal_version": versioning.GetLatestSupportedVersion(),
+	metadataUpdates := &relational.Metadata{
+		LastModified: &now,
+		OscalVersion: versioning.GetLatestSupportedVersion(),
 	}
 	if err := tx.Model(&relational.Metadata{}).Where("id = ?", componentDefinition.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
 		tx.Rollback()
@@ -484,9 +489,9 @@ func (h *ComponentDefinitionHandler) UpdateImportComponentDefinitions(ctx echo.C
 
 	// Update metadata
 	now := time.Now()
-	metadataUpdates := map[string]interface{}{
-		"last_modified": now,
-		"oscal_version": versioning.GetLatestSupportedVersion(),
+	metadataUpdates := &relational.Metadata{
+		LastModified: &now,
+		OscalVersion: versioning.GetLatestSupportedVersion(),
 	}
 	if err := tx.Model(&relational.Metadata{}).Where("id = ?", componentDefinition.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
 		tx.Rollback()
@@ -623,9 +628,9 @@ func (h *ComponentDefinitionHandler) CreateComponents(ctx echo.Context) error {
 
 	// Update metadata
 	now := time.Now()
-	metadataUpdates := map[string]interface{}{
-		"last_modified": now,
-		"oscal_version": versioning.GetLatestSupportedVersion(),
+	metadataUpdates := &relational.Metadata{
+		LastModified: &now,
+		OscalVersion: versioning.GetLatestSupportedVersion(),
 	}
 	if err := tx.Model(&relational.Metadata{}).Where("id = ?", componentDefinition.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
 		tx.Rollback()
@@ -746,9 +751,9 @@ func (h *ComponentDefinitionHandler) UpdateComponents(ctx echo.Context) error {
 
 	// Update metadata
 	now := time.Now()
-	metadataUpdates := map[string]interface{}{
-		"last_modified": now,
-		"oscal_version": versioning.GetLatestSupportedVersion(),
+	metadataUpdates := &relational.Metadata{
+		LastModified: &now,
+		OscalVersion: versioning.GetLatestSupportedVersion(),
 	}
 	if err := tx.Model(&relational.Metadata{}).Where("id = ?", componentDefinition.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
 		tx.Rollback()
@@ -877,9 +882,9 @@ func (h *ComponentDefinitionHandler) CreateDefinedComponent(ctx echo.Context) er
 
 	// Update metadata
 	now := time.Now()
-	metadataUpdates := map[string]interface{}{
-		"last_modified": now,
-		"oscal_version": versioning.GetLatestSupportedVersion(),
+	metadataUpdates := &relational.Metadata{
+		LastModified: &now,
+		OscalVersion: versioning.GetLatestSupportedVersion(),
 	}
 	if err := tx.Model(&componentDefinition.Metadata).Where("id = ?", componentDefinition.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
 		tx.Rollback()
@@ -990,9 +995,9 @@ func (h *ComponentDefinitionHandler) UpdateDefinedComponent(ctx echo.Context) er
 
 	// Update metadata
 	now := time.Now()
-	metadataUpdates := map[string]interface{}{
-		"last_modified": now,
-		"oscal_version": versioning.GetLatestSupportedVersion(),
+	metadataUpdates := &relational.Metadata{
+		LastModified: &now,
+		OscalVersion: versioning.GetLatestSupportedVersion(),
 	}
 	if err := tx.Model(&componentDefinition.Metadata).Where("id = ?", componentDefinition.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
 		tx.Rollback()
@@ -1951,9 +1956,9 @@ func (h *ComponentDefinitionHandler) UpdateControlImplementations(ctx echo.Conte
 
 	// Update metadata
 	now := time.Now()
-	metadataUpdates := map[string]interface{}{
-		"last_modified": now,
-		"oscal_version": versioning.GetLatestSupportedVersion(),
+	metadataUpdates := &relational.Metadata{
+		LastModified: &now,
+		OscalVersion: versioning.GetLatestSupportedVersion(),
 	}
 	if err := tx.Model(&relational.Metadata{}).Where("id = ?", componentDefinition.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
 		tx.Rollback()
@@ -2058,9 +2063,9 @@ func (h *ComponentDefinitionHandler) UpdateSingleControlImplementation(ctx echo.
 
 	// Update metadata
 	now := time.Now()
-	metadataUpdates := map[string]interface{}{
-		"last_modified": now,
-		"oscal_version": versioning.GetLatestSupportedVersion(),
+	metadataUpdates := &relational.Metadata{
+		LastModified: &now,
+		OscalVersion: versioning.GetLatestSupportedVersion(),
 	}
 	if err := tx.Model(&relational.Metadata{}).Where("id = ?", componentDefinition.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
 		tx.Rollback()
@@ -2184,9 +2189,9 @@ func (h *ComponentDefinitionHandler) UpdateCapability(ctx echo.Context) error {
 
 	// Update metadata
 	now := time.Now()
-	metadataUpdates := map[string]interface{}{
-		"last_modified": now,
-		"oscal_version": versioning.GetLatestSupportedVersion(),
+	metadataUpdates := &relational.Metadata{
+		LastModified: &now,
+		OscalVersion: versioning.GetLatestSupportedVersion(),
 	}
 	if err := tx.Model(&relational.Metadata{}).Where("id = ?", componentDefinition.Metadata.ID).Updates(metadataUpdates).Error; err != nil {
 		tx.Rollback()
