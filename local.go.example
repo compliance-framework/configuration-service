@@ -4,24 +4,40 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-
+	"github.com/compliance-framework/configuration-service/internal/logging"
 	"github.com/compliance-framework/configuration-service/internal/service/relational"
 	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
+	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	gormLogger "gorm.io/gorm/logger"
+	"log"
+	"os"
 )
 
 func main() {
 
+	zapLogger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatalf("Can't initialize zap logger: %v", err)
+	}
+	sugar := zapLogger.Sugar()
+	var gormLogLevel gormLogger.LogLevel
+	if os.Getenv("CCF_DB_DEBUG") == "1" {
+		gormLogLevel = gormLogger.Info
+	} else {
+		gormLogLevel = gormLogger.Warn
+	}
 	db, err := gorm.Open(postgres.Open("host=localhost user=postgres password=postgres dbname=ccf port=5432 sslmode=disable"), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
+		Logger:                                   logging.NewZapGormLogger(sugar, gormLogLevel),
 	})
 	if err != nil {
 		panic("failed to connect database")
 	}
 
 	err = db.Migrator().DropTable(
+		&relational.ResponsibleRole{},
 		&relational.Location{},
 		&relational.Party{},
 		&relational.BackMatterResource{},
@@ -82,6 +98,10 @@ func main() {
 		"authorization_boundary_diagrams",
 		"network_architecture_diagrams",
 		"data_flow_diagrams",
+		"responsible_role_parties",
+		"responsible_role_roles",
+		"metadata_roles",
+		"metadata_parties",
 	)
 	if err != nil {
 		panic(err)
@@ -89,6 +109,7 @@ func main() {
 
 	// Migrate the schema
 	err = db.AutoMigrate(
+		&relational.ResponsibleRole{},
 		&relational.Location{},
 		&relational.Party{},
 		&relational.BackMatterResource{},
@@ -155,6 +176,7 @@ func main() {
 		"testdata/sp800_53_component_definition_sample.json",
 		"testdata/example-ssp.json",
 		"testdata/sp800_53_profile.json",
+		"testdata/sp800-53-component-aws.json",
 	}
 
 	for _, f := range files {
