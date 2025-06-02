@@ -1608,12 +1608,12 @@ func createTestComponent(componentUUID, implUUID, reqUUID string) oscaltypes.Def
 				},
 			},
 		},
-		ResponsibleRoles: &[]oscaltypes.ResponsibleRole{
-			{
-				RoleId:     "owner",
-				PartyUuids: &[]string{uuid.New().String()},
-				Remarks:    "Primary system owner",
-			},
+		// ResponsibleRoles: &[]oscaltypes.ResponsibleRole{
+		// 	{
+		// 		RoleId:     "owner",
+		// 		PartyUuids: &[]string{uuid.New().String()},
+		// 		Remarks:    "Primary system owner",
+		// 	},
 		},
 	}
 }
