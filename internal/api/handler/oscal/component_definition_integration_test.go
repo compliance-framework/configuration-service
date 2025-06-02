@@ -1614,7 +1614,7 @@ func createTestComponent(componentUUID, implUUID, reqUUID string) oscaltypes.Def
 		// 		PartyUuids: &[]string{uuid.New().String()},
 		// 		Remarks:    "Primary system owner",
 		// 	},
-		},
+		// },
 	}
 }
 
