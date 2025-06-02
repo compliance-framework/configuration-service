@@ -598,170 +598,260 @@ func (suite *ComponentDefinitionApiIntegrationSuite) TestUpdateDefinedComponent(
 func (suite *ComponentDefinitionApiIntegrationSuite) TestUpdateSingleControlImplementation() {
 	fmt.Println("Running TestUpdateSingleControlImplementation")
 
-	// Step 1: Create a base component definition with a component and control implementation
-	componentDefID := suite.createBaseComponentDefinition()
-	componentUUID := uuid.New().String()
-	controlImplUUID := uuid.New().String()
-	implementedReqUUID := uuid.New().String()
+	suite.Run("Successfully updates a single control implementation", func() {
+		// Step 1: Create a base component definition
+		componentDefID := suite.createBaseComponentDefinition()
 
-	component := createTestComponent(componentUUID, controlImplUUID, implementedReqUUID)
-	components := []oscaltypes.DefinedComponent{component}
+		// Step 2: Create a component with initial control implementation
+		componentUUID := uuid.New().String()
+		controlImplUUID := uuid.New().String()
+		implementedReqUUID := uuid.New().String()
 
-	// Create the component
-	rec, req := suite.createRequest(
-		http.MethodPost,
-		fmt.Sprintf("/api/oscal/component-definitions/%s/components", componentDefID),
-		components,
-	)
-	suite.server.E().ServeHTTP(rec, req)
-	suite.Equal(http.StatusOK, rec.Code, "Failed to create component")
+		component := createTestComponent(componentUUID, controlImplUUID, implementedReqUUID)
+		components := []oscaltypes.DefinedComponent{component}
 
-	// Step 2: Prepare an update for the control implementation
-	updatedSource := "https://example.com/updated-source"
-	updatedDescription := "Updated control implementation description"
-	updatedSetParameters := &[]oscaltypes.SetParameter{
-		{
-			ParamId: "param-1",
-			Values:  []string{"value1"},
-		},
-	}
-	updatedImplementedRequirements := []oscaltypes.ImplementedRequirementControlImplementation{
-		{
-			UUID:      implementedReqUUID,
-			ControlId: "AC-1",
-			Remarks:   "Updated remarks",
-		},
-	}
+		// Create the component
+		rec, req := suite.createRequest(
+			http.MethodPost,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/components", componentDefID),
+			components,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to create component")
 
-	updatedControlImpl := oscaltypes.ControlImplementationSet{
-		UUID:                    controlImplUUID,
-		Source:                  updatedSource,
-		Description:             updatedDescription,
-		SetParameters:           updatedSetParameters,
-		ImplementedRequirements: updatedImplementedRequirements,
-	}
+		// Step 3: Prepare an update for the control implementation
+		updatedSource := "https://example.com/updated-source"
+		updatedDescription := "Updated control implementation description"
+		updatedSetParameters := &[]oscaltypes.SetParameter{
+			{
+				ParamId: "param-1",
+				Values:  []string{"value1"},
+			},
+		}
+		updatedImplementedRequirements := []oscaltypes.ImplementedRequirementControlImplementation{
+			{
+				UUID:      implementedReqUUID,
+				ControlId: "AC-1",
+				Remarks:   "Updated remarks",
+			},
+		}
 
-	// Step 3: Send PUT request to update the control implementation
-	rec, req = suite.createRequest(
-		http.MethodPut,
-		fmt.Sprintf("/api/oscal/component-definitions/%s/components/%s/control-implementations/%s", componentDefID, componentUUID, controlImplUUID),
-		updatedControlImpl,
-	)
-	suite.server.E().ServeHTTP(rec, req)
-	suite.Equal(http.StatusOK, rec.Code, "Failed to update control implementation")
+		updatedControlImpl := oscaltypes.ControlImplementationSet{
+			UUID:                    controlImplUUID,
+			Source:                  updatedSource,
+			Description:             updatedDescription,
+			SetParameters:           updatedSetParameters,
+			ImplementedRequirements: updatedImplementedRequirements,
+		}
 
-	// Step 4: Verify the update in the response
-	response := &handler.GenericDataResponse[oscaltypes.ControlImplementationSet]{}
-	err := json.Unmarshal(rec.Body.Bytes(), response)
-	suite.Require().NoError(err, "Failed to unmarshal update response")
-	suite.Equal(updatedSource, response.Data.Source)
-	suite.Equal(updatedDescription, response.Data.Description)
-	suite.Require().NotNil(response.Data.SetParameters)
-	suite.Equal((*updatedSetParameters)[0].ParamId, (*response.Data.SetParameters)[0].ParamId)
-	suite.Equal(updatedImplementedRequirements[0].Remarks, response.Data.ImplementedRequirements[0].Remarks)
+		// Step 4: Send PUT request to update the control implementation
+		rec, req = suite.createRequest(
+			http.MethodPut,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/components/%s/control-implementations/%s", componentDefID, componentUUID, controlImplUUID),
+			updatedControlImpl,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to update control implementation")
+
+		// Step 5: Verify the update in the response
+		response := &handler.GenericDataResponse[oscaltypes.ControlImplementationSet]{}
+		err := json.Unmarshal(rec.Body.Bytes(), response)
+		suite.Require().NoError(err, "Failed to unmarshal update response")
+		suite.Equal(updatedSource, response.Data.Source)
+		suite.Equal(updatedDescription, response.Data.Description)
+		suite.Require().NotNil(response.Data.SetParameters)
+		suite.Equal((*updatedSetParameters)[0].ParamId, (*response.Data.SetParameters)[0].ParamId)
+		suite.Equal(updatedImplementedRequirements[0].Remarks, response.Data.ImplementedRequirements[0].Remarks)
+
+		// Step 6: Verify the update persists by retrieving the component
+		rec, req = suite.createRequest(
+			http.MethodGet,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/components/%s", componentDefID, componentUUID),
+			nil,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to get updated component")
+
+		getResponse := &handler.GenericDataResponse[oscaltypes.DefinedComponent]{}
+		err = json.Unmarshal(rec.Body.Bytes(), getResponse)
+		suite.Require().NoError(err, "Failed to unmarshal GET response")
+
+		// Verify the component has the updated control implementation
+		suite.Require().NotNil(getResponse.Data.ControlImplementations)
+		suite.Equal(1, len(*getResponse.Data.ControlImplementations), "Expected one control implementation")
+		suite.Equal(updatedSource, (*getResponse.Data.ControlImplementations)[0].Source)
+		suite.Equal(updatedDescription, (*getResponse.Data.ControlImplementations)[0].Description)
+	})
+
+	suite.Run("Fails to update non-existent control implementation", func() {
+		// Step 1: Create a base component definition
+		componentDefID := suite.createBaseComponentDefinition()
+
+		// Step 2: Create a component without control implementations
+		componentUUID := uuid.New().String()
+		component := oscaltypes.DefinedComponent{
+			UUID:        componentUUID,
+			Type:        "software",
+			Title:       "Sample Component",
+			Description: "A sample component for testing",
+			Purpose:     "Demonstration",
+		}
+
+		// Create the component
+		rec, req := suite.createRequest(
+			http.MethodPost,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/components", componentDefID),
+			[]oscaltypes.DefinedComponent{component},
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to create component")
+
+		// Step 3: Try to update a non-existent control implementation
+		nonExistentControlImplUUID := uuid.New().String()
+		updatedControlImpl := oscaltypes.ControlImplementationSet{
+			UUID:        nonExistentControlImplUUID,
+			Source:      "https://example.com/updated-source",
+			Description: "Updated control implementation description",
+		}
+
+		rec, req = suite.createRequest(
+			http.MethodPut,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/components/%s/control-implementations/%s", componentDefID, componentUUID, nonExistentControlImplUUID),
+			updatedControlImpl,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusNotFound, rec.Code, "Expected 404 for non-existent control implementation")
+	})
 }
 
 func (suite *ComponentDefinitionApiIntegrationSuite) TestUpdateControlImplementations() {
 	fmt.Println("Running TestUpdateControlImplementations")
 
-	// Step 1: Create a base component definition with a component and control implementation
-	componentDefID := suite.createBaseComponentDefinition()
-	componentUUID := uuid.New().String()
-	controlImplUUID := uuid.New().String()
-	implementedReqUUID := uuid.New().String()
+	suite.Run("Successfully updates control implementations", func() {
+		// Step 1: Create a base component definition
+		componentDefID := suite.createBaseComponentDefinition()
 
-	component := createTestComponent(componentUUID, controlImplUUID, implementedReqUUID)
-	components := []oscaltypes.DefinedComponent{component}
+		// Step 2: Create a component with initial control implementations
+		componentUUID := uuid.New().String()
+		controlImplUUID := uuid.New().String()
+		implementedReqUUID := uuid.New().String()
 
-	// Create the component
-	rec, req := suite.createRequest(
-		http.MethodPost,
-		fmt.Sprintf("/api/oscal/component-definitions/%s/components", componentDefID),
-		components,
-	)
-	suite.server.E().ServeHTTP(rec, req)
-	suite.Equal(http.StatusOK, rec.Code, "Failed to create component")
+		component := createTestComponent(componentUUID, controlImplUUID, implementedReqUUID)
+		components := []oscaltypes.DefinedComponent{component}
 
-	// Step 2: Prepare updated control implementations
-	updatedControlImpls := []oscaltypes.ControlImplementationSet{
-		{
-			UUID:        controlImplUUID,
-			Source:      "https://example.com/updated-source",
-			Description: "Updated control implementation description",
-			SetParameters: &[]oscaltypes.SetParameter{
-				{
-					ParamId: "param-1",
-					Values:  []string{"value1"},
+		// Create the component
+		rec, req := suite.createRequest(
+			http.MethodPost,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/components", componentDefID),
+			components,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to create component")
+
+		// Step 3: Prepare updated control implementations
+		updatedControlImpls := []oscaltypes.ControlImplementationSet{
+			{
+				UUID:        controlImplUUID,
+				Source:      "https://example.com/updated-source",
+				Description: "Updated control implementation description",
+				SetParameters: &[]oscaltypes.SetParameter{
+					{
+						ParamId: "param-1",
+						Values:  []string{"value1"},
+					},
+				},
+				ImplementedRequirements: []oscaltypes.ImplementedRequirementControlImplementation{
+					{
+						UUID:      implementedReqUUID,
+						ControlId: "AC-1",
+						Remarks:   "Updated remarks",
+					},
 				},
 			},
-			ImplementedRequirements: []oscaltypes.ImplementedRequirementControlImplementation{
-				{
-					UUID:      implementedReqUUID,
-					ControlId: "AC-1",
-					Remarks:   "Updated remarks",
+			{
+				UUID:        uuid.New().String(),
+				Source:      "https://example.com/new-source",
+				Description: "New control implementation",
+				ImplementedRequirements: []oscaltypes.ImplementedRequirementControlImplementation{
+					{
+						UUID:        uuid.New().String(),
+						ControlId:   "AC-2",
+						Description: "New requirement description",
+					},
 				},
 			},
-		},
-		{
-			UUID:        uuid.New().String(),
-			Source:      "https://example.com/new-source",
-			Description: "New control implementation",
-			ImplementedRequirements: []oscaltypes.ImplementedRequirementControlImplementation{
-				{
-					UUID:        uuid.New().String(),
-					ControlId:   "AC-2",
-					Description: "New requirement description",
-				},
+		}
+
+		// Step 4: Send PUT request to update control implementations
+		rec, req = suite.createRequest(
+			http.MethodPut,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/components/%s/control-implementations", componentDefID, componentUUID),
+			updatedControlImpls,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to update control implementations")
+
+		// Step 5: Verify the update in the response
+		response := &handler.GenericDataListResponse[oscaltypes.ControlImplementationSet]{}
+		err := json.Unmarshal(rec.Body.Bytes(), response)
+		suite.Require().NoError(err, "Failed to unmarshal update response")
+
+		// Verify the response contains the correct number of control implementations
+		suite.Equal(len(updatedControlImpls), len(response.Data), "Number of control implementations doesn't match")
+
+		// Verify the first control implementation was updated correctly
+		suite.Equal(updatedControlImpls[0].Source, response.Data[0].Source)
+		suite.Equal(updatedControlImpls[0].Description, response.Data[0].Description)
+		suite.Require().NotNil(response.Data[0].SetParameters)
+		suite.Equal((*updatedControlImpls[0].SetParameters)[0].ParamId, (*response.Data[0].SetParameters)[0].ParamId)
+		suite.Equal(updatedControlImpls[0].ImplementedRequirements[0].Remarks, response.Data[0].ImplementedRequirements[0].Remarks)
+
+		// Verify the second control implementation was added correctly
+		suite.Equal(updatedControlImpls[1].Source, response.Data[1].Source)
+		suite.Equal(updatedControlImpls[1].Description, response.Data[1].Description)
+		suite.Equal(updatedControlImpls[1].ImplementedRequirements[0].ControlId, response.Data[1].ImplementedRequirements[0].ControlId)
+		suite.Equal(updatedControlImpls[1].ImplementedRequirements[0].Description, response.Data[1].ImplementedRequirements[0].Description)
+
+		// Step 6: Verify the updates persist by retrieving the component
+		rec, req = suite.createRequest(
+			http.MethodGet,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/components/%s", componentDefID, componentUUID),
+			nil,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code, "Failed to get updated component")
+
+		getResponse := &handler.GenericDataResponse[oscaltypes.DefinedComponent]{}
+		err = json.Unmarshal(rec.Body.Bytes(), getResponse)
+		suite.Require().NoError(err, "Failed to unmarshal GET response")
+
+		// Verify the component has the updated control implementations
+		suite.Require().NotNil(getResponse.Data.ControlImplementations)
+		suite.Equal(len(updatedControlImpls), len(*getResponse.Data.ControlImplementations), "Number of control implementations doesn't match in GET response")
+	})
+
+	suite.Run("Fails to update control implementations for non-existent component", func() {
+		// Step 1: Create a base component definition
+		componentDefID := suite.createBaseComponentDefinition()
+
+		// Step 2: Try to update control implementations for a non-existent component
+		nonExistentComponentUUID := uuid.New().String()
+		updatedControlImpls := []oscaltypes.ControlImplementationSet{
+			{
+				UUID:        uuid.New().String(),
+				Source:      "https://example.com/updated-source",
+				Description: "Updated control implementation description",
 			},
-		},
-	}
+		}
 
-	// Step 3: Send PUT request to update control implementations
-	rec, req = suite.createRequest(
-		http.MethodPut,
-		fmt.Sprintf("/api/oscal/component-definitions/%s/components/%s/control-implementations", componentDefID, componentUUID),
-		updatedControlImpls,
-	)
-	suite.server.E().ServeHTTP(rec, req)
-	suite.Equal(http.StatusOK, rec.Code, "Failed to update control implementations")
-
-	// Step 4: Verify the update in the response
-	response := &handler.GenericDataListResponse[oscaltypes.ControlImplementationSet]{}
-	err := json.Unmarshal(rec.Body.Bytes(), response)
-	suite.Require().NoError(err, "Failed to unmarshal update response")
-
-	// Verify the response contains the correct number of control implementations
-	suite.Equal(len(updatedControlImpls), len(response.Data), "Number of control implementations doesn't match")
-
-	// Verify the first control implementation was updated correctly
-	suite.Equal(updatedControlImpls[0].Source, response.Data[0].Source)
-	suite.Equal(updatedControlImpls[0].Description, response.Data[0].Description)
-	suite.Require().NotNil(response.Data[0].SetParameters)
-	suite.Equal((*updatedControlImpls[0].SetParameters)[0].ParamId, (*response.Data[0].SetParameters)[0].ParamId)
-	suite.Equal(updatedControlImpls[0].ImplementedRequirements[0].Remarks, response.Data[0].ImplementedRequirements[0].Remarks)
-
-	// Verify the second control implementation was added correctly
-	suite.Equal(updatedControlImpls[1].Source, response.Data[1].Source)
-	suite.Equal(updatedControlImpls[1].Description, response.Data[1].Description)
-	suite.Equal(updatedControlImpls[1].ImplementedRequirements[0].ControlId, response.Data[1].ImplementedRequirements[0].ControlId)
-	suite.Equal(updatedControlImpls[1].ImplementedRequirements[0].Description, response.Data[1].ImplementedRequirements[0].Description)
-
-	// Step 5: Verify the updates persist by retrieving the component
-	rec, req = suite.createRequest(
-		http.MethodGet,
-		fmt.Sprintf("/api/oscal/component-definitions/%s/components/%s", componentDefID, componentUUID),
-		nil,
-	)
-	suite.server.E().ServeHTTP(rec, req)
-	suite.Equal(http.StatusOK, rec.Code, "Failed to get updated component")
-
-	getResponse := &handler.GenericDataResponse[oscaltypes.DefinedComponent]{}
-	err = json.Unmarshal(rec.Body.Bytes(), getResponse)
-	suite.Require().NoError(err, "Failed to unmarshal GET response")
-
-	// Verify the component has the updated control implementations
-	suite.Require().NotNil(getResponse.Data.ControlImplementations)
-	suite.Equal(len(updatedControlImpls), len(*getResponse.Data.ControlImplementations), "Number of control implementations doesn't match in GET response")
+		rec, req := suite.createRequest(
+			http.MethodPut,
+			fmt.Sprintf("/api/oscal/component-definitions/%s/components/%s/control-implementations", componentDefID, nonExistentComponentUUID),
+			updatedControlImpls,
+		)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusNotFound, rec.Code, "Expected 404 for non-existent component")
+	})
 }
 
 func (suite *ComponentDefinitionApiIntegrationSuite) TestCreateControlImplementations() {
