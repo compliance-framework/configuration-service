@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/compliance-framework/configuration-service/internal/logging"
 	"github.com/compliance-framework/configuration-service/internal/service/relational"
 	oscaltypes113 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
@@ -11,8 +14,6 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	gormLogger "gorm.io/gorm/logger"
-	"log"
-	"os"
 )
 
 func main() {
@@ -109,6 +110,7 @@ func main() {
 
 	// Migrate the schema
 	err = db.AutoMigrate(
+		&relational.ResponsiblePartyParties{},
 		&relational.ResponsibleRole{},
 		&relational.Location{},
 		&relational.Party{},
