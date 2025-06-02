@@ -28,7 +28,7 @@ type Metadata struct {
 	ResponsibleParties []ResponsibleParty              `gorm:"many2many:metadata_responsible_parties;"`
 	Revisions          []Revision                      `json:"revisions"`
 	Roles              []Role                          `json:"roles" gorm:"many2many:metadata_roles"`
-	Locations          []Location                      `json:"locations"`
+	Locations          []Location                      `json:"locations" gorm:"many2many:metadata_locations"`
 	Parties            []Party                         `json:"parties" gorm:"many2many:metadata_parties"`
 	Actions            []Action                        `json:"actions"`
 	Remarks            string                          `json:"remarks"`
@@ -291,7 +291,6 @@ func (p *PartyExternalID) MarshalOscal() *oscaltypes113.PartyExternalIdentifier 
 
 type Party struct {
 	UUIDModel
-
 	Type                  PartyType                            `json:"type"`
 	Name                  *string                              `json:"name"`
 	ShortName             *string                              `json:"short-name"`
@@ -517,11 +516,7 @@ func (r *Revision) MarshalOscal() *oscaltypes113.RevisionHistoryEntry {
 }
 
 type Role struct {
-	ID string `json:"id" gorm:"primary_key;"`
-
-	// Roles only exist on a metadata object. We'll link them straight there with a BelongsTo relationship
-	MetadataID uuid.UUID `json:"metadata-id"`
-
+	ID          string                    `json:"id" gorm:"primary_key;"`
 	Title       string                    `json:"title"`
 	ShortName   *string                   `json:"short-name"`
 	Description *string                   `json:"description"`
@@ -572,10 +567,6 @@ func (r *Role) MarshalOscal() *oscaltypes113.Role {
 
 type Location struct {
 	UUIDModel
-
-	// Locations only exist on a metadata object. We'll link them straight there with a BelongsTo relationship
-	MetadataID uuid.UUID `json:"metadata-id"`
-
 	Title            *string                              `json:"title"`
 	Address          *datatypes.JSONType[Address]         `json:"address"`
 	EmailAddresses   datatypes.JSONSlice[string]          `json:"email-addresses"`
