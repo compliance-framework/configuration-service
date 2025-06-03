@@ -6,20 +6,16 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/api/handler"
 	"github.com/compliance-framework/configuration-service/internal/api/handler/oscal"
-	logging "github.com/compliance-framework/configuration-service/internal/logging"
 	"github.com/compliance-framework/configuration-service/internal/service"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	gormLogger "gorm.io/gorm/logger"
 )
 
 const (
@@ -33,6 +29,7 @@ type Config struct {
 	AppPort            string
 	DBDriver           string
 	DBConnectionString string
+	DBDebug            bool
 }
 
 func RunServer(cmd *cobra.Command, args []string) {
@@ -57,26 +54,9 @@ func RunServer(cmd *cobra.Command, args []string) {
 
 	handler.RegisterHandlers(server, mongoDatabase, sugar)
 
-	var gormLogLevel gormLogger.LogLevel
-	if os.Getenv("CCF_DB_DEBUG") == "1" {
-		gormLogLevel = gormLogger.Info
-	} else {
-		gormLogLevel = gormLogger.Warn
-	}
-
-	//TODO: farm this out to specific function/file
-	var db *gorm.DB
-	switch config.DBDriver {
-	case "postgres":
-		db, err = gorm.Open(postgres.Open(config.DBConnectionString), &gorm.Config{
-			DisableForeignKeyConstraintWhenMigrating: true,
-			Logger:                                   logging.NewZapGormLogger(sugar, gormLogLevel),
-		})
-	default:
-		panic("unsupported DB driver: " + config.DBDriver)
-	}
+	db, err := connectSQLDb(config, sugar)
 	if err != nil {
-		sugar.Fatal("Failed to open database", "err", err)
+		sugar.Fatal("Failed to connect to SQL database", "err", err)
 	}
 
 	err = service.MigrateUp(db)
@@ -88,21 +68,6 @@ func RunServer(cmd *cobra.Command, args []string) {
 	server.PrintRoutes()
 
 	checkErr(server.Start(config.AppPort), sugar)
-}
-
-func connectMongo(ctx context.Context, clientOptions *options.ClientOptions, databaseName string) (*mongo.Database, error) {
-	client, err := mongo.Connect(ctx, clientOptions)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = client.Ping(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return client.Database(databaseName), nil
 }
 
 func loadConfig(logger *zap.SugaredLogger) (config Config) {
@@ -138,6 +103,12 @@ func loadConfig(logger *zap.SugaredLogger) (config Config) {
 		}
 	}
 
+	dbDebugEnv := os.Getenv("CCF_DB_DEBUG")
+	if dbDebugEnv == "" {
+		dbDebugEnv = "false"
+	}
+	dbDebug := dbDebugEnv == "1" || strings.ToLower(dbDebugEnv) == "true"
+
 	logger.Infof("dbConnectionString: %s", dbConnectionString)
 
 	config = Config{
@@ -145,6 +116,7 @@ func loadConfig(logger *zap.SugaredLogger) (config Config) {
 		AppPort:            port,
 		DBDriver:           dbDriver,
 		DBConnectionString: dbConnectionString,
+		DBDebug:            dbDebug,
 	}
 
 	return config
