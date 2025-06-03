@@ -55,7 +55,7 @@ func MigrateUp(db *gorm.DB) error {
 		&relational.Diagram{},
 
 		&relational.AssessmentPlan{},
-		&relational.LocalDefinition{},
+		&relational.LocalDefinitions{},
 		&relational.LocalObjective{},
 		&relational.Task{},
 		&relational.TaskDependency{},
@@ -135,7 +135,7 @@ func MigrateDown(db *gorm.DB) error {
 		"back_matter_resources",
 
 		&relational.AssessmentPlan{},
-		&relational.LocalDefinition{},
+		&relational.LocalDefinitions{},
 		&relational.LocalObjective{},
 		&relational.Task{},
 		&relational.TaskDependency{},
