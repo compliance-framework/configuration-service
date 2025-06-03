@@ -207,9 +207,9 @@ func (c *Group) MarshalOscal() *oscalTypes_1_1_3.Group {
 }
 
 type Control struct {
-	CatalogID uuid.UUID                      `gorm:"primary_key"`
 	ID        string                         `json:"id" gorm:"primary_key"` // required
-	Title     string                         `json:"title"`                 // required
+	CatalogID uuid.UUID                      `gorm:"primary_key"`
+	Title     string                         `json:"title"` // required
 	Class     *string                        `json:"class"`
 	Params    datatypes.JSONSlice[Parameter] `json:"params"`
 	Parts     datatypes.JSONSlice[Part]      `json:"parts"`

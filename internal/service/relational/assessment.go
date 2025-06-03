@@ -150,10 +150,13 @@ type Result struct {
 	End                *time.Time
 	Props              datatypes.JSONSlice[Prop]
 	Links              datatypes.JSONSlice[Link]
-	LocalDefinitions   LocalDefinitions `gorm:"polymorphic:Parent"`
-	ReviewedControls   ReviewedControls `gorm:"polymorphic:Parent"`
-	Attestations       []Attestation    `gorm:"many2many:assessment_result_attestations"`
-	AssessmentLog      *AssessmentLog   `gorm:"polymorphic:Parent"`
+	LocalDefinitionsID uuid.UUID
+	LocalDefinitions   LocalDefinitions
+	ReviewedControlsID uuid.UUID
+	ReviewedControls   ReviewedControls
+	Attestations       []Attestation
+	AssessmentLogID    *uuid.UUID
+	AssessmentLog      *AssessmentLog
 
 	// TODO - These are being defined as part of POAMs
 	//Observations []Observation `gorm:"polymorphic:Parent"`
@@ -162,16 +165,17 @@ type Result struct {
 }
 
 func (i *Result) UnmarshalOscal(op oscalTypes_1_1_3.Result) *Result {
+	id := uuid.MustParse(op.UUID)
 	*i = Result{
+		UUIDModel: UUIDModel{
+			ID: &id,
+		},
 		Title:            op.Title,
 		Description:      op.Description,
 		Remarks:          &op.Remarks,
 		Start:            &op.Start,
+		End:              op.End,
 		ReviewedControls: *(&ReviewedControls{}).UnmarshalOscal(op.ReviewedControls),
-	}
-	if op.End != nil {
-		t := *op.End
-		i.End = &t
 	}
 	if op.Props != nil {
 		i.Props = ConvertOscalToProps(op.Props)
@@ -199,13 +203,16 @@ func (i *Result) UnmarshalOscal(op oscalTypes_1_1_3.Result) *Result {
 
 func (i *Result) MarshalOscal() *oscalTypes_1_1_3.Result {
 	ret := oscalTypes_1_1_3.Result{
+		UUID:        i.ID.String(),
 		Title:       i.Title,
 		Description: i.Description,
-		Remarks:     *i.Remarks,
 		// LocalDefinitions
 		LocalDefinitions: i.LocalDefinitions.MarshalOscal(),
 		// ReviewedControls
 		ReviewedControls: *i.ReviewedControls.MarshalOscal(),
+	}
+	if i.Remarks != nil {
+		ret.Remarks = *i.Remarks
 	}
 	if i.Start != nil {
 		ret.Start = *i.Start
@@ -237,8 +244,7 @@ func (i *Result) MarshalOscal() *oscalTypes_1_1_3.Result {
 
 type AssessmentLog struct {
 	UUIDModel
-	ResultID uuid.UUID
-	Entries  []AssessmentLogEntry
+	Entries []AssessmentLogEntry
 }
 
 func (i *AssessmentLog) UnmarshalOscal(op oscalTypes_1_1_3.AssessmentLog) *AssessmentLog {
@@ -483,6 +489,7 @@ func (i *IdentifiedSubject) MarshalOscal() *oscalTypes_1_1_3.IdentifiedSubject {
 }
 
 type Attestation struct {
+	ResultID           uuid.UUID
 	ResponsibleParties []ResponsibleParty                  `gorm:"many2many:attestation_responsible_parties"`
 	Parts              datatypes.JSONSlice[AssessmentPart] // required
 }

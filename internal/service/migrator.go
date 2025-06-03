@@ -71,6 +71,17 @@ func MigrateUp(db *gorm.DB) error {
 		&relational.ControlSelection{},
 		&relational.ControlObjectiveSelection{},
 		&relational.SelectObjectiveById{},
+
+		&relational.ResponsibleRole{},
+
+		&relational.AssessmentResult{},
+		&relational.Activity{},
+		&relational.Step{},
+		&relational.Task{},
+		&relational.AssessedControlsSelectControlById{},
+		&relational.Result{},
+		&relational.AssessmentLog{},
+		&relational.AssessmentLogEntry{},
 	)
 	return err
 }
@@ -170,6 +181,7 @@ func MigrateDown(db *gorm.DB) error {
 		"merges",
 		"metadata_parties",
 		"metadata_roles",
+		"metadata_locations",
 		"modifies",
 		"parameter_settings",
 		"profiles",
@@ -181,6 +193,16 @@ func MigrateDown(db *gorm.DB) error {
 		"task_subjects",
 		"task_tasks",
 		"uses_component_responsible_parties",
+
+		&relational.AssessmentResult{},
+		&relational.Activity{},
+		&relational.Step{},
+		&relational.Task{},
+		&relational.AssessedControlsSelectControlById{},
+		&relational.Result{},
+		&relational.AssessmentLog{},
+		&relational.AssessmentLogEntry{},
+		"assessed_controls_select_control_by_id_statements",
 	)
 	return err
 }
