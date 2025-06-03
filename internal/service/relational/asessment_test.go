@@ -10,8 +10,6 @@ import (
 
 func TestAssessmentResult_OscalMarshalling(t *testing.T) {
 	t.Run("Full Assessment Result", func(t *testing.T) {
-		// SP800-53 ensures that a FULL catalog can be unmarshalled, and re-marshalled, producing the same JSON object.
-		// This proves our entire schema for a Catalog works correctly.
 		f, err := os.Open("./testdata/full_ar.json")
 		assert.NoError(t, err)
 		defer f.Close()
