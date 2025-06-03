@@ -26,6 +26,7 @@ type AssessmentPlan struct {
 func (i *AssessmentPlan) UnmarshalOscal(op oscalTypes_1_1_3.AssessmentPlan) *AssessmentPlan {
 	*i = AssessmentPlan{
 		ImportSSP: datatypes.NewJSONType[ImportSsp](ImportSsp(op.ImportSsp)),
+		Metadata:  *(&Metadata{}).UnmarshalOscal(op.Metadata),
 	}
 	// Metadata and BackMatter are polymorphic, skip for now or implement if necessary
 	// Tasks
@@ -63,6 +64,7 @@ func (i *AssessmentPlan) UnmarshalOscal(op oscalTypes_1_1_3.AssessmentPlan) *Ass
 func (i *AssessmentPlan) MarshalOscal() *oscalTypes_1_1_3.AssessmentPlan {
 	ret := oscalTypes_1_1_3.AssessmentPlan{
 		ImportSsp:          oscalTypes_1_1_3.ImportSsp(i.ImportSSP.Data()),
+		Metadata:           *i.Metadata.MarshalOscal(),
 		ReviewedControls:   *i.ReviewedControls.MarshalOscal(),
 		AssessmentAssets:   i.AssessmentAssets.MarshalOscal(),
 		LocalDefinitions:   i.LocalDefinitions.MarshalOscal(),
@@ -103,6 +105,7 @@ type AssessmentResult struct {
 func (i *AssessmentResult) UnmarshalOscal(op oscalTypes_1_1_3.AssessmentResults) *AssessmentResult {
 	*i = AssessmentResult{
 		ImportAp: datatypes.NewJSONType(*(&ImportAp{}).UnmarshalOscal(op.ImportAp)),
+		Metadata: *(&Metadata{}).UnmarshalOscal(op.Metadata),
 	}
 	// LocalDefinitions
 	if op.LocalDefinitions != nil {
@@ -121,6 +124,7 @@ func (i *AssessmentResult) UnmarshalOscal(op oscalTypes_1_1_3.AssessmentResults)
 func (i *AssessmentResult) MarshalOscal() *oscalTypes_1_1_3.AssessmentResults {
 	ret := oscalTypes_1_1_3.AssessmentResults{
 		ImportAp:         oscalTypes_1_1_3.ImportAp(i.ImportAp.Data()),
+		Metadata:         *i.Metadata.MarshalOscal(),
 		LocalDefinitions: i.LocalDefinitions.MarshalOscal(),
 	}
 	// LocalDefinitions
@@ -819,7 +823,11 @@ type Task struct {
 }
 
 func (i *Task) UnmarshalOscal(op oscalTypes_1_1_3.Task) *Task {
+	id := uuid.MustParse(op.UUID)
 	*i = Task{
+		UUIDModel: UUIDModel{
+			ID: &id,
+		},
 		Type:        op.Type,
 		Title:       op.Title,
 		Description: &op.Description,
@@ -876,6 +884,7 @@ func (i *Task) UnmarshalOscal(op oscalTypes_1_1_3.Task) *Task {
 
 func (i *Task) MarshalOscal() *oscalTypes_1_1_3.Task {
 	ret := &oscalTypes_1_1_3.Task{
+		UUID:        i.ID.String(),
 		Type:        i.Type,
 		Title:       i.Title,
 		Description: *i.Description,
@@ -1296,12 +1305,17 @@ type Activity struct {
 	Links datatypes.JSONSlice[Link] `json:"links"`
 	Steps []Step
 
-	RelatedControls  ReviewedControls  `gorm:"polymorphic:Parent"`
+	RelatedControls  *ReviewedControls `gorm:"polymorphic:Parent"`
 	ResponsibleRoles []ResponsibleRole `gorm:"polymorphic:Parent"`
 }
 
 func (i *Activity) UnmarshalOscal(op oscalTypes_1_1_3.Activity) *Activity {
+	id := uuid.MustParse(op.UUID)
 	*i = Activity{
+		UUIDModel: UUIDModel{
+			ID: &id,
+		},
+		Title:       &op.Title,
 		Description: op.Description,
 		Remarks:     &op.Remarks,
 	}
@@ -1320,7 +1334,7 @@ func (i *Activity) UnmarshalOscal(op oscalTypes_1_1_3.Activity) *Activity {
 	}
 	// RelatedControls
 	if op.RelatedControls != nil {
-		i.RelatedControls = *(&ReviewedControls{}).UnmarshalOscal(*op.RelatedControls)
+		i.RelatedControls = (&ReviewedControls{}).UnmarshalOscal(*op.RelatedControls)
 	}
 	// ResponsibleRoles
 	if op.ResponsibleRoles != nil {
@@ -1334,8 +1348,12 @@ func (i *Activity) UnmarshalOscal(op oscalTypes_1_1_3.Activity) *Activity {
 
 func (i *Activity) MarshalOscal() *oscalTypes_1_1_3.Activity {
 	ret := &oscalTypes_1_1_3.Activity{
+		UUID:        i.ID.String(),
 		Description: i.Description,
 		Remarks:     *i.Remarks,
+	}
+	if i.Title != nil {
+		ret.Title = *i.Title
 	}
 	if len(i.Props) > 0 {
 		ret.Props = ConvertPropsToOscal(i.Props)
@@ -1350,8 +1368,11 @@ func (i *Activity) MarshalOscal() *oscalTypes_1_1_3.Activity {
 		}
 		ret.Steps = &steps
 	}
-	rc := i.RelatedControls.MarshalOscal()
-	ret.RelatedControls = rc
+
+	if i.RelatedControls != nil {
+		rc := i.RelatedControls.MarshalOscal()
+		ret.RelatedControls = rc
+	}
 	if len(i.ResponsibleRoles) > 0 {
 		rrs := make([]oscalTypes_1_1_3.ResponsibleRole, len(i.ResponsibleRoles))
 		for idx := range i.ResponsibleRoles {
@@ -1374,11 +1395,15 @@ type Step struct {
 	Links datatypes.JSONSlice[Link] `json:"links"`
 
 	ResponsibleRoles []ResponsibleRole `gorm:"polymorphic:Parent;"`
-	ReviewedControls ReviewedControls  `gorm:"polymorphic:Parent"`
+	ReviewedControls *ReviewedControls `gorm:"polymorphic:Parent"`
 }
 
 func (i *Step) UnmarshalOscal(op oscalTypes_1_1_3.Step) *Step {
+	id := uuid.MustParse(op.UUID)
 	*i = Step{
+		UUIDModel: UUIDModel{
+			ID: &id,
+		},
 		Title:       &op.Title,
 		Description: op.Description,
 		Remarks:     &op.Remarks,
@@ -1398,13 +1423,14 @@ func (i *Step) UnmarshalOscal(op oscalTypes_1_1_3.Step) *Step {
 	}
 	// ReviewedControls
 	if op.ReviewedControls != nil {
-		i.ReviewedControls = *(&ReviewedControls{}).UnmarshalOscal(*op.ReviewedControls)
+		i.ReviewedControls = (&ReviewedControls{}).UnmarshalOscal(*op.ReviewedControls)
 	}
 	return i
 }
 
 func (i *Step) MarshalOscal() *oscalTypes_1_1_3.Step {
 	ret := &oscalTypes_1_1_3.Step{
+		UUID:        i.ID.String(),
 		Title:       *i.Title,
 		Description: i.Description,
 		Remarks:     *i.Remarks,
@@ -1422,7 +1448,9 @@ func (i *Step) MarshalOscal() *oscalTypes_1_1_3.Step {
 		}
 		ret.ResponsibleRoles = &rrs
 	}
-	ret.ReviewedControls = i.ReviewedControls.MarshalOscal()
+	if i.ReviewedControls != nil {
+		ret.ReviewedControls = i.ReviewedControls.MarshalOscal()
+	}
 	return ret
 }
 
@@ -1468,9 +1496,12 @@ func (i *ReviewedControls) UnmarshalOscal(op oscalTypes_1_1_3.ReviewedControls) 
 }
 
 func (i *ReviewedControls) MarshalOscal() *oscalTypes_1_1_3.ReviewedControls {
-	ret := &oscalTypes_1_1_3.ReviewedControls{
-		Description: *i.Description,
-		Remarks:     *i.Remarks,
+	ret := &oscalTypes_1_1_3.ReviewedControls{}
+	if i.Description != nil {
+		ret.Description = *i.Description
+	}
+	if i.Remarks != nil {
+		ret.Remarks = *i.Remarks
 	}
 	if len(i.Props) > 0 {
 		ret.Props = ConvertPropsToOscal(i.Props)
@@ -1689,13 +1720,15 @@ func (s *AssessedControlsSelectControlById) UnmarshalOscal(o oscalTypes_1_1_3.As
 }
 
 func (s *AssessedControlsSelectControlById) MarshalOscal() oscalTypes_1_1_3.AssessedControlsSelectControlById {
-	statementIDs := []string{}
-	for _, statement := range s.Statements {
-		statementIDs = append(statementIDs, statement.StatementId)
-	}
 	controls := oscalTypes_1_1_3.AssessedControlsSelectControlById{
-		ControlId:    s.ControlID,
-		StatementIds: &statementIDs,
+		ControlId: s.ControlID,
+	}
+	if len(s.Statements) > 0 {
+		statementIDs := []string{}
+		for _, statement := range s.Statements {
+			statementIDs = append(statementIDs, statement.StatementId)
+		}
+		controls.StatementIds = &statementIDs
 	}
 	return controls
 }
