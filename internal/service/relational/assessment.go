@@ -821,9 +821,9 @@ type Task struct {
 	Dependencies         []TaskDependency // Different struct, as each dependency can have additional remarks
 	Tasks                []Task           `gorm:"many2many:task_tasks"` // Sub tasks
 	AssociatedActivities []AssociatedActivity
-	Subjects             []AssessmentSubject                               `gorm:"many2many:task_subjects"`
-	ResponsibleRole      []ResponsibleRole                                 `gorm:"many2many:task_responsible_roles"`
-	Timing               *datatypes.JSONType[oscalTypes_1_1_3.EventTiming] // Using Oscal types TODO have further discussion
+	Subjects             []AssessmentSubject `gorm:"many2many:task_subjects"`
+	ResponsibleRole      []ResponsibleRole   `gorm:"polymorphic:Parent;"`
+	Timing               *datatypes.JSONType[oscalTypes_1_1_3.EventTiming]
 
 	ParentID   *uuid.UUID
 	ParentType string
