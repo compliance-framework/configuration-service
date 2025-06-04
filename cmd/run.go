@@ -23,7 +23,7 @@ func RunServer(cmd *cobra.Command, args []string) {
 	defer zapLogger.Sync() // flushes buffer, if any
 	sugar := zapLogger.Sugar()
 
-	config := NewConfig()
+	config := NewConfig(sugar)
 
 	mongoDatabase, err := connectMongo(ctx, options.Client().ApplyURI(config.MongoURI), "cf")
 	if err != nil {
