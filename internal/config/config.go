@@ -33,7 +33,7 @@ func NewConfig(logger *zap.SugaredLogger) *Config {
 		)
 	}
 
-	dbDriver := strings.ToLower(viper.GetString("db_driver"))
+	dbDriver := stripQuotes(strings.ToLower(viper.GetString("db_driver")))
 
 	if !slices.Contains(DriverOptions, dbDriver) {
 		logger.Fatal(
@@ -57,8 +57,17 @@ func NewConfig(logger *zap.SugaredLogger) *Config {
 		MongoURI:           viper.GetString("mongo_uri"),
 		AppPort:            appPort,
 		DBDriver:           dbDriver,
-		DBConnectionString: viper.GetString("db_connection"),
+		DBConnectionString: stripQuotes(viper.GetString("db_connection")),
 		DBDebug:            viper.GetBool("db_debug"),
 	}
 
+}
+
+func stripQuotes(s string) string {
+	if len(s) >= 2 {
+		if (s[0] == '"' && s[len(s)-1] == '"') || (s[0] == '\'' && s[len(s)-1] == '\'') {
+			return s[1 : len(s)-1]
+		}
+	}
+	return s
 }
