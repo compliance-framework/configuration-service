@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/compliance-framework/configuration-service/cmd/oscal"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -47,6 +48,7 @@ func init() {
 
 	// Subcommands
 	rootCmd.AddCommand(RunCmd)
+	rootCmd.AddCommand(oscal.RootCmd)
 
 }
 

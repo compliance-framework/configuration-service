@@ -1,4 +1,4 @@
-package cmd
+package service
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	gormLogger "gorm.io/gorm/logger"
 )
 
-func connectSQLDb(config *config.Config, sugar *zap.SugaredLogger) (*gorm.DB, error) {
+func ConnectSQLDb(config *config.Config, sugar *zap.SugaredLogger) (*gorm.DB, error) {
 	gormLogLevel := gormLogger.Warn
 	if config.DBDebug {
 		gormLogLevel = gormLogger.Info
@@ -42,7 +42,7 @@ func connectSQLDb(config *config.Config, sugar *zap.SugaredLogger) (*gorm.DB, er
 	return db, nil
 }
 
-func connectMongo(ctx context.Context, clientOptions *options.ClientOptions, databaseName string) (*mongo.Database, error) {
+func ConnectMongo(ctx context.Context, clientOptions *options.ClientOptions, databaseName string) (*mongo.Database, error) {
 	client, err := mongo.Connect(ctx, clientOptions)
 
 	if err != nil {

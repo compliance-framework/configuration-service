@@ -34,13 +34,13 @@ func RunServer(cmd *cobra.Command, args []string) {
 
 	config := config.NewConfig(sugar)
 
-	mongoDatabase, err := connectMongo(ctx, options.Client().ApplyURI(config.MongoURI), "cf")
+	mongoDatabase, err := service.ConnectMongo(ctx, options.Client().ApplyURI(config.MongoURI), "cf")
 	if err != nil {
 		sugar.Fatal(err)
 	}
 	defer mongoDatabase.Client().Disconnect(ctx)
 
-	db, err := connectSQLDb(config, sugar)
+	db, err := service.ConnectSQLDb(config, sugar)
 	if err != nil {
 		sugar.Fatal("Failed to connect to SQL database", "err", err)
 	}
