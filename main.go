@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/compliance-framework/configuration-service/cmd"
 	// adjust as needed
 )
@@ -16,6 +18,6 @@ import (
 // @externalDocs.url			https://swagger.io/resources/open-api/
 func main() {
 	if err := cmd.Execute(); err != nil {
-		panic("Error executing command: " + err.Error())
+		os.Exit(1)
 	}
 }
