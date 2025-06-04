@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/compliance-framework/configuration-service/internal/config"
 	logging "github.com/compliance-framework/configuration-service/internal/logging"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -13,7 +14,7 @@ import (
 	gormLogger "gorm.io/gorm/logger"
 )
 
-func connectSQLDb(config *Config, sugar *zap.SugaredLogger) (*gorm.DB, error) {
+func connectSQLDb(config *config.Config, sugar *zap.SugaredLogger) (*gorm.DB, error) {
 	gormLogLevel := gormLogger.Warn
 	if config.DBDebug {
 		gormLogLevel = gormLogger.Info

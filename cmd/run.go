@@ -7,6 +7,7 @@ import (
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/api/handler"
 	"github.com/compliance-framework/configuration-service/internal/api/handler/oscal"
+	"github.com/compliance-framework/configuration-service/internal/config"
 	"github.com/compliance-framework/configuration-service/internal/service"
 	"github.com/spf13/cobra"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -23,7 +24,7 @@ func RunServer(cmd *cobra.Command, args []string) {
 	defer zapLogger.Sync() // flushes buffer, if any
 	sugar := zapLogger.Sugar()
 
-	config := NewConfig(sugar)
+	config := config.NewConfig(sugar)
 
 	mongoDatabase, err := connectMongo(ctx, options.Client().ApplyURI(config.MongoURI), "cf")
 	if err != nil {

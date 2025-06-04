@@ -4,26 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"slices"
-	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
-
-var (
-	DriverOptions = []string{"postgres"}
-)
-
-type Config struct {
-	MongoURI           string
-	AppPort            string
-	DBDriver           string
-	DBConnectionString string
-	DBDebug            bool
-}
 
 var (
 	rootCmd = &cobra.Command{
@@ -37,49 +22,6 @@ var (
 		Run:   RunServer,
 	}
 )
-
-func NewConfig(logger *zap.SugaredLogger) *Config {
-	// for non-default but required variables, make sure the user is aware
-	if !viper.IsSet("mongo_uri") {
-		logger.Fatal("MONGO_URI is not set. Please set it in the environment or .env file.")
-	}
-
-	if !viper.IsSet("db_driver") {
-		logger.Fatal(
-			"CCF_DB_DRIVER is not set. Please set it in the environment or .env file. Expected values: ",
-			strings.Join(DriverOptions, ", "),
-		)
-	}
-
-	dbDriver := strings.ToLower(viper.GetString("db_driver"))
-
-	if !slices.Contains(DriverOptions, dbDriver) {
-		logger.Fatal(
-			"CCF_DB_DRIVER is set to an unsupported value: ",
-			viper.GetString("db_driver"),
-			". Supported values are: ",
-			strings.Join(DriverOptions, ", "),
-		)
-	}
-
-	if !viper.IsSet("db_connection") {
-		logger.Fatal("CCF_DB_CONNECTION is not set. Please set it in the environment or .env file.")
-	}
-
-	appPort := viper.GetString("app_port")
-	if !strings.HasPrefix(appPort, ":") {
-		appPort = ":" + appPort
-	}
-
-	return &Config{
-		MongoURI:           viper.GetString("mongo_uri"),
-		AppPort:            appPort,
-		DBDriver:           dbDriver,
-		DBConnectionString: viper.GetString("db_connection"),
-		DBDebug:            viper.GetBool("db_debug"),
-	}
-
-}
 
 func configSetDefaults() {
 	viper.SetDefault("app_port", ":8080")
@@ -96,6 +38,7 @@ func configEnvKeys() {
 }
 
 func init() {
+	// Initialize viper & godotenv
 	if err := godotenv.Load(".env"); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			panic("Error loading .env file: " + err.Error())
@@ -104,6 +47,11 @@ func init() {
 	configSetDefaults()
 	configEnvKeys()
 
+	// Global persistent flags
+	rootCmd.PersistentFlags().BoolP("debug", "d", false, "Enable debug mode for the database connection")
+	viper.BindPFlag("db_debug", rootCmd.PersistentFlags().Lookup("debug"))
+
+	// Subcommands
 	rootCmd.AddCommand(runCmd)
 
 }
