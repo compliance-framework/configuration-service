@@ -15,12 +15,6 @@ var (
 		Use:   "conf-service",
 		Short: "Compliance Framework Configuration Service",
 	}
-
-	runCmd = &cobra.Command{
-		Use:   "run",
-		Short: "Run the configuration service API",
-		Run:   RunServer,
-	}
 )
 
 func configSetDefaults() {
@@ -52,7 +46,7 @@ func init() {
 	viper.BindPFlag("db_debug", rootCmd.PersistentFlags().Lookup("debug"))
 
 	// Subcommands
-	rootCmd.AddCommand(runCmd)
+	rootCmd.AddCommand(RunCmd)
 
 }
 

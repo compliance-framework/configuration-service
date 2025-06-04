@@ -14,6 +14,14 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	RunCmd = &cobra.Command{
+		Use:   "run",
+		Short: "Run the configuration service API",
+		Run:   RunServer,
+	}
+)
+
 func RunServer(cmd *cobra.Command, args []string) {
 	ctx := context.Background()
 
