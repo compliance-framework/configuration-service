@@ -66,9 +66,14 @@ func NewConfig(logger *zap.SugaredLogger) *Config {
 		logger.Fatal("CCF_DB_CONNECTION is not set. Please set it in the environment or .env file.")
 	}
 
+	appPort := viper.GetString("app_port")
+	if !strings.HasPrefix(appPort, ":") {
+		appPort = ":" + appPort
+	}
+
 	return &Config{
 		MongoURI:           viper.GetString("mongo_uri"),
-		AppPort:            viper.GetString("app_port"),
+		AppPort:            appPort,
 		DBDriver:           dbDriver,
 		DBConnectionString: viper.GetString("db_connection"),
 		DBDebug:            viper.GetBool("db_debug"),
@@ -77,7 +82,7 @@ func NewConfig(logger *zap.SugaredLogger) *Config {
 }
 
 func configSetDefaults() {
-	viper.SetDefault("app_port", "8080")
+	viper.SetDefault("app_port", ":8080")
 	viper.SetDefault("db_debug", "false")
 }
 
