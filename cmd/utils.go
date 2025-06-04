@@ -13,7 +13,7 @@ import (
 	gormLogger "gorm.io/gorm/logger"
 )
 
-func connectSQLDb(config Config, sugar *zap.SugaredLogger) (*gorm.DB, error) {
+func connectSQLDb(config *Config, sugar *zap.SugaredLogger) (*gorm.DB, error) {
 	gormLogLevel := gormLogger.Warn
 	if config.DBDebug {
 		gormLogLevel = gormLogger.Info
