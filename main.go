@@ -15,5 +15,7 @@ import (
 // @externalDocs.description	OpenAPI
 // @externalDocs.url			https://swagger.io/resources/open-api/
 func main() {
-	_ = cmd.Execute()
+	if err := cmd.Execute(); err != nil {
+		panic("Error executing command: " + err.Error())
+	}
 }
