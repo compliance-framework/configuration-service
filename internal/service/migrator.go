@@ -91,6 +91,8 @@ func MigrateUp(db *gorm.DB) error {
 		&relational.Result{},
 		&relational.AssessmentLog{},
 		&relational.AssessmentLogEntry{},
+
+		&relational.User{},
 	)
 	return err
 }
@@ -219,6 +221,8 @@ func MigrateDown(db *gorm.DB) error {
 		&relational.AssessmentLog{},
 		&relational.AssessmentLogEntry{},
 		"assessed_controls_select_control_by_id_statements",
+
+		&relational.User{},
 	)
 	return err
 }
