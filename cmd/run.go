@@ -6,6 +6,7 @@ import (
 
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/api/handler"
+	"github.com/compliance-framework/configuration-service/internal/api/handler/auth"
 	"github.com/compliance-framework/configuration-service/internal/api/handler/oscal"
 	"github.com/compliance-framework/configuration-service/internal/config"
 	"github.com/compliance-framework/configuration-service/internal/service"
@@ -54,6 +55,7 @@ func RunServer(cmd *cobra.Command, args []string) {
 
 	handler.RegisterHandlers(server, mongoDatabase, sugar)
 	oscal.RegisterHandlers(server, sugar, db)
+	auth.RegisterHandlers(server, sugar, db, config)
 
 	server.PrintRoutes()
 

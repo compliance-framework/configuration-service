@@ -31,6 +31,7 @@ func configEnvKeys() {
 	viper.BindEnv("db_driver")
 	viper.BindEnv("db_connection")
 	viper.BindEnv("db_debug")
+	viper.BindEnv("jwt_secret")
 }
 
 func init() {

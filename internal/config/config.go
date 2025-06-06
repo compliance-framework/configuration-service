@@ -18,6 +18,7 @@ type Config struct {
 	DBDriver           string
 	DBConnectionString string
 	DBDebug            bool
+	JWTSecret          string
 }
 
 func NewConfig(logger *zap.SugaredLogger) *Config {
@@ -48,6 +49,11 @@ func NewConfig(logger *zap.SugaredLogger) *Config {
 		logger.Fatal("CCF_DB_CONNECTION is not set. Please set it in the environment or .env file.")
 	}
 
+	if !viper.IsSet("jwt_secret") {
+		logger.Warn("Using 'change-me' as JWT secret. This is insecure and should be changed in production.")
+		viper.Set("jwt_secret", "change-me")
+	}
+
 	appPort := viper.GetString("app_port")
 	if !strings.HasPrefix(appPort, ":") {
 		appPort = ":" + appPort
@@ -59,6 +65,7 @@ func NewConfig(logger *zap.SugaredLogger) *Config {
 		DBDriver:           dbDriver,
 		DBConnectionString: stripQuotes(viper.GetString("db_connection")),
 		DBDebug:            viper.GetBool("db_debug"),
+		JWTSecret:          stripQuotes(viper.GetString("jwt_secret")),
 	}
 
 }
