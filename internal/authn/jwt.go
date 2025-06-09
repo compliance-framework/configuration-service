@@ -1,0 +1,38 @@
+package authn
+
+import (
+	"crypto/rsa"
+	"time"
+
+	"github.com/compliance-framework/configuration-service/internal/service/relational"
+	"github.com/golang-jwt/jwt/v5"
+)
+
+type UserClaims struct {
+	jwt.RegisteredClaims
+	GivenName  string `json:"given_name"`
+	FamilyName string `json:"family_name"`
+}
+
+func GenerateJWTToken(user *relational.User, privateKey *rsa.PrivateKey) (*string, error) {
+	now := time.Now()
+	claims := UserClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    "compliance-framework",
+			Subject:   user.Email,
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
+			NotBefore: jwt.NewNumericDate(now),
+		},
+		GivenName:  user.FirstName,
+		FamilyName: user.LastName,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	tokenString, err := token.SignedString(privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tokenString, nil
+}
