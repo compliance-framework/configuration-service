@@ -1,6 +1,9 @@
 package auth
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"net/http"
 	"time"
@@ -37,6 +40,7 @@ func NewAuthHandler(logger *zap.SugaredLogger, db *gorm.DB, config *config.Confi
 
 func (h *AuthHandler) Register(api *echo.Group) {
 	api.POST("/login", h.LoginUser)
+	api.GET("/publickey", h.GetPublicKey)
 }
 
 // LoginUser godoc
@@ -73,7 +77,7 @@ func (h *AuthHandler) LoginUser(ctx echo.Context) error {
 		return ctx.JSON(http.StatusUnauthorized, api.NewError(errors.New("invalid email or password")))
 	}
 
-	token, err := generateJWTToken(&user, h.config.JWTSecret)
+	token, err := generateJWTToken(&user, h.config.JWTPrivateKey)
 	if err != nil {
 		h.sugar.Errorw("Failed to generate JWT token", "error", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
@@ -86,7 +90,21 @@ func (h *AuthHandler) LoginUser(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[response]{Data: ret})
 }
 
-func generateJWTToken(user *relational.User, secretKey string) (*string, error) {
+func (h *AuthHandler) GetPublicKey(ctx echo.Context) error {
+	pubASN1, err := x509.MarshalPKIXPublicKey(h.config.JWTPublicKey)
+	if err != nil {
+		h.sugar.Errorw("Failed to marshal public key", "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	pubPem := pem.EncodeToMemory(&pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: pubASN1,
+	})
+
+	return ctx.String(http.StatusOK, string(pubPem))
+}
+
+func generateJWTToken(user *relational.User, privateKey *rsa.PrivateKey) (*string, error) {
 	now := time.Now()
 	claims := UserClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -100,8 +118,8 @@ func generateJWTToken(user *relational.User, secretKey string) (*string, error) 
 		FamilyName: user.LastName,
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(secretKey))
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	tokenString, err := token.SignedString(privateKey)
 	if err != nil {
 		return nil, err
 	}
