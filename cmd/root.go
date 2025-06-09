@@ -32,6 +32,8 @@ func configEnvKeys() {
 	viper.BindEnv("db_connection")
 	viper.BindEnv("db_debug")
 	viper.BindEnv("jwt_secret")
+	viper.BindEnv("jwt_private_key")
+	viper.BindEnv("jwt_public_key")
 }
 
 func init() {
