@@ -3,8 +3,10 @@ package auth
 import (
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
+	"math/big"
 	"net/http"
 	"time"
 
@@ -30,6 +32,50 @@ type AuthHandler struct {
 	config *config.Config
 }
 
+type JWK struct {
+	Kty string `json:"kty"`
+	N   string `json:"n"`
+	E   string `json:"e"`
+	Alg string `json:"alg,omitempty"`
+	Use string `json:"use,omitempty"`
+	KID string `json:"kid,omitempty"`
+}
+
+func (j *JWK) UnmarhalPublicKey(pubKey *rsa.PublicKey) (*JWK, error) {
+	if pubKey == nil {
+		return nil, errors.New("public key is nil")
+	}
+
+	n := pubKey.N.Bytes()
+	e := big.NewInt(int64(pubKey.E)).Bytes()
+
+	return &JWK{
+		Kty: "RSA",
+		N:   base64.RawURLEncoding.EncodeToString(n),
+		E:   base64.RawURLEncoding.EncodeToString(e),
+	}, nil
+}
+
+func (j *JWK) MarshalPublicKey() (*rsa.PublicKey, error) {
+	nBytes, err := base64.RawURLEncoding.DecodeString(j.N)
+	if err != nil {
+		return nil, err
+	}
+
+	eBytes, err := base64.RawURLEncoding.DecodeString(j.E)
+	if err != nil {
+		return nil, err
+	}
+
+	n := new(big.Int).SetBytes(nBytes)
+	e := new(big.Int).SetBytes(eBytes)
+
+	return &rsa.PublicKey{
+		N: n,
+		E: int(e.Int64()),
+	}, nil
+}
+
 func NewAuthHandler(logger *zap.SugaredLogger, db *gorm.DB, config *config.Config) *AuthHandler {
 	return &AuthHandler{
 		sugar:  logger,
@@ -40,7 +86,8 @@ func NewAuthHandler(logger *zap.SugaredLogger, db *gorm.DB, config *config.Confi
 
 func (h *AuthHandler) Register(api *echo.Group) {
 	api.POST("/login", h.LoginUser)
-	api.GET("/publickey", h.GetPublicKey)
+	api.GET("/publickey.pub", h.GetPublicKeyPEM)
+	api.GET("/publickey", h.GetJWK)
 }
 
 // LoginUser godoc
@@ -90,7 +137,7 @@ func (h *AuthHandler) LoginUser(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[response]{Data: ret})
 }
 
-func (h *AuthHandler) GetPublicKey(ctx echo.Context) error {
+func (h *AuthHandler) GetPublicKeyPEM(ctx echo.Context) error {
 	pubASN1, err := x509.MarshalPKIXPublicKey(h.config.JWTPublicKey)
 	if err != nil {
 		h.sugar.Errorw("Failed to marshal public key", "error", err)
@@ -102,6 +149,16 @@ func (h *AuthHandler) GetPublicKey(ctx echo.Context) error {
 	})
 
 	return ctx.String(http.StatusOK, string(pubPem))
+}
+
+func (h *AuthHandler) GetJWK(ctx echo.Context) error {
+	jwk := &JWK{}
+	jwk, err := jwk.UnmarhalPublicKey(h.config.JWTPublicKey)
+	if err != nil {
+		h.sugar.Errorw("Failed to unmarshal public key to JWK", "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	return ctx.JSON(http.StatusOK, jwk)
 }
 
 func generateJWTToken(user *relational.User, privateKey *rsa.PrivateKey) (*string, error) {
