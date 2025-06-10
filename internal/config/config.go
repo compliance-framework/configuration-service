@@ -69,7 +69,7 @@ func NewConfig(logger *zap.SugaredLogger) *Config {
 	)
 	if !viper.IsSet("jwt_private_key") || !viper.IsSet("jwt_public_key") {
 		logger.Warn("No JWT key files have been provided. Generating new keys. Any original JWTs that weere generated with previous keys will no longer be valid.")
-		jwtPrivateKey, jwtPublicKey, err = generateKeyPair(2048)
+		jwtPrivateKey, jwtPublicKey, err = GenerateKeyPair(2048)
 		if err != nil {
 			logger.Fatalw("Failed to generate RSA key pair", "error", err)
 		}
@@ -172,7 +172,7 @@ func loadRSAPublicKey(path string) (*rsa.PublicKey, error) {
 	return pubKey, nil
 }
 
-func generateKeyPair(bitsize int) (*rsa.PrivateKey, *rsa.PublicKey, error) {
+func GenerateKeyPair(bitsize int) (*rsa.PrivateKey, *rsa.PublicKey, error) {
 	privKey, err := rsa.GenerateKey(rand.Reader, bitsize)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to generate RSA private key: %w", err)
