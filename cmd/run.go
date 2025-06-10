@@ -54,7 +54,7 @@ func RunServer(cmd *cobra.Command, args []string) {
 	server := api.NewServer(ctx, sugar)
 
 	handler.RegisterHandlers(server, mongoDatabase, sugar)
-	oscal.RegisterHandlers(server, sugar, db)
+	oscal.RegisterHandlers(server, sugar, db, config)
 	auth.RegisterHandlers(server, sugar, db, config)
 
 	server.PrintRoutes()
