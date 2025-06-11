@@ -6,8 +6,8 @@ import (
 	"github.com/compliance-framework/configuration-service/cmd"
 )
 
-
 // Swagger documentation
+//
 //	@title									Continuous Compliance Framework API
 //	@version								1
 //	@description							This is the API for the Continuous Compliance Framework.
