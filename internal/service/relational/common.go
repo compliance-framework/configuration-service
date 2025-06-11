@@ -32,7 +32,7 @@ func ConvertOscalToProps(data *[]oscaltypes113.Property) datatypes.JSONSlice[Pro
 		prop.UnmarshalOscal(op)
 		return prop
 	})
-	return datatypes.NewJSONSlice[Prop](props)
+	return datatypes.NewJSONSlice(props)
 }
 
 func ConvertPropsToOscal(data datatypes.JSONSlice[Prop]) *[]oscaltypes113.Property {
@@ -56,7 +56,7 @@ func ConvertOscalToLinks(data *[]oscaltypes113.Link) datatypes.JSONSlice[Link] {
 		link.UnmarshalOscal(ol)
 		return link
 	})
-	return datatypes.NewJSONSlice[Link](links)
+	return datatypes.NewJSONSlice(links)
 }
 
 func ConvertLinksToOscal(data datatypes.JSONSlice[Link]) *[]oscaltypes113.Link {
@@ -174,6 +174,7 @@ func (t *TelephoneNumber) MarshalOscal() *oscaltypes113.TelephoneNumber {
 	return tn
 }
 
+
 type ResponsiblePartyParties struct {
 	ResponsiblePartyID *uuid.UUID `gorm:"primaryKey"`
 	PartyID            *uuid.UUID `gorm:"primaryKey"`
@@ -188,6 +189,10 @@ type ResponsibleParty struct {
 	RoleID  string `json:"role-id"` // required
 	Role    Role
 	Parties []ResponsiblePartyParties
+
+	// Polymorphic relationship - allows ResponsibleParty to belong to different parent types
+	ParentID   *uuid.UUID
+	ParentType string
 }
 
 func (r *ResponsibleParty) UnmarshalOscal(or oscaltypes113.ResponsibleParty) *ResponsibleParty {
