@@ -18,7 +18,7 @@ type JWK struct {
 	KID string `json:"kid,omitempty"`
 }
 
-func (j *JWK) UnmarhalPublicKey(pubKey *rsa.PublicKey) (*JWK, error) {
+func (j *JWK) UnmarshalPublicKey(pubKey *rsa.PublicKey) (*JWK, error) {
 	if pubKey == nil {
 		return nil, errors.New("public key is nil")
 	}

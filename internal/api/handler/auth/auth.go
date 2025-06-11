@@ -136,7 +136,7 @@ func (h *AuthHandler) GetPublicKeyPEM(ctx echo.Context) error {
 
 func (h *AuthHandler) GetJWK(ctx echo.Context) error {
 	jwk := &authn.JWK{}
-	jwk, err := jwk.UnmarhalPublicKey(h.config.JWTPublicKey)
+	jwk, err := jwk.UnmarshalPublicKey(h.config.JWTPublicKey)
 	if err != nil {
 		h.sugar.Errorw("Failed to unmarshal public key to JWK", "error", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
