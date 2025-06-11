@@ -153,7 +153,7 @@ func loadRSAPublicKey(path string) (*rsa.PublicKey, error) {
 	if block == nil || (block.Type != "PUBLIC KEY" && block.Type != "RSA PUBLIC KEY") {
 		return nil, fmt.Errorf("failed to decode PEM block containing public key")
 	}
-	var pubIfc interface{}
+	var pubIfc any
 	if block.Type == "PUBLIC KEY" {
 		pubIfc, err = x509.ParsePKIXPublicKey(block.Bytes)
 		if err != nil {

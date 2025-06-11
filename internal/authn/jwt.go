@@ -27,31 +27,26 @@ func GenerateJWTToken(user *relational.User, privateKey *rsa.PrivateKey) (*strin
 		GivenName:  user.FirstName,
 		FamilyName: user.LastName,
 	}
-
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	tokenString, err := token.SignedString(privateKey)
 	if err != nil {
 		return nil, err
 	}
-
 	return &tokenString, nil
 }
 
 func VerifyJWTToken(tokenString string, publicKey *rsa.PublicKey) (*UserClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &UserClaims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, jwt.ErrSignatureInvalid
 		}
 		return publicKey, nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
-
 	if claims, ok := token.Claims.(*UserClaims); ok && token.Valid {
 		return claims, nil
 	}
-
 	return nil, jwt.ErrTokenMalformed
 }

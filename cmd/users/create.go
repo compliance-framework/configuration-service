@@ -75,7 +75,6 @@ func AddUser(cmd *cobra.Command, args []string) {
 		"lastName", newUser.LastName,
 		"password", password,
 	)
-
 }
 
 func generatePassword(length int) (string, error) {

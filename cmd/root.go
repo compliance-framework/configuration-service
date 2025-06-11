@@ -54,7 +54,6 @@ func init() {
 	rootCmd.AddCommand(RunCmd)
 	rootCmd.AddCommand(oscal.RootCmd)
 	rootCmd.AddCommand(users.RootCmd)
-
 }
 
 func Execute() error {
