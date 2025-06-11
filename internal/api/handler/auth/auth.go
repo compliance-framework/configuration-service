@@ -31,12 +31,13 @@ func NewAuthHandler(logger *zap.SugaredLogger, db *gorm.DB, config *config.Confi
 
 func (h *AuthHandler) Register(api *echo.Group) {
 	api.POST("/login", h.LoginUser)
+	api.POST("/token", h.GetOAuth2Token)
 	api.GET("/publickey.pub", h.GetPublicKeyPEM)
 	api.GET("/publickey", h.GetJWK)
 }
 
 // LoginUser godoc
-// @Summary      Login user
+//	@Summary	Login user
 
 func (h *AuthHandler) LoginUser(ctx echo.Context) error {
 	type loginRequest struct {
@@ -80,6 +81,46 @@ func (h *AuthHandler) LoginUser(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[response]{Data: ret})
+}
+
+func (h *AuthHandler) GetOAuth2Token(ctx echo.Context) error {
+	type response struct {
+		AccessToken string `json:"access_token"`
+		TokenType   string `json:"token_type"`
+		ExpiresIn   int    `json:"expires_in"`
+	}
+
+	username := ctx.FormValue("username")
+	password := ctx.FormValue("password")
+
+	var user relational.User
+	if err := h.db.Where("email = ?", username).First(&user).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			h.sugar.Warnw("User not found", "username", username)
+			return ctx.JSON(http.StatusUnauthorized, api.NewError(errors.New("invalid email or password")))
+		}
+		h.sugar.Errorw("Failed to query user", "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	if !user.CheckPassword(password) {
+		h.sugar.Warnw("Invalid password attempt", "username", username)
+		return ctx.JSON(http.StatusUnauthorized, api.NewError(errors.New("invalid email or password")))
+	}
+
+	token, err := authn.GenerateJWTToken(&user, h.config.JWTPrivateKey)
+	if err != nil {
+		h.sugar.Errorw("Failed to generate JWT token", "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	ret := &response{
+		AccessToken: *token,
+		TokenType:   "bearer",
+		ExpiresIn:   86400,
+	}
+
+	return ctx.JSON(http.StatusOK, ret)
 }
 
 func (h *AuthHandler) GetPublicKeyPEM(ctx echo.Context) error {

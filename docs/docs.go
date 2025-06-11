@@ -1069,6 +1069,11 @@ const docTemplate = `{
         },
         "/oscal/catalogs": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves all catalogs.",
                 "produces": [
                     "application/json"
@@ -1099,6 +1104,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Creates a new OSCAL Catalog.",
                 "consumes": [
                     "application/json"
@@ -1145,42 +1155,12 @@ const docTemplate = `{
         },
         "/oscal/catalogs/{id}": {
             "get": {
-                "description": "Retrieves a single Catalog by its unique ID.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "Get a Catalog",
-                "parameters": [
+                "security": [
                     {
-                        "type": "string",
-                        "description": "Catalog ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
+                        "OAuth2Password": []
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscal_Get_responseCatalog"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -1190,6 +1170,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Updates an existing OSCAL Catalog.",
                 "consumes": [
                     "application/json"
@@ -1249,42 +1234,12 @@ const docTemplate = `{
         },
         "/oscal/catalogs/{id}/back-matter": {
             "get": {
-                "description": "Retrieves the back-matter for a given Catalog.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "Get back-matter for a Catalog",
-                "parameters": [
+                "security": [
                     {
-                        "type": "string",
-                        "description": "Catalog ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
+                        "OAuth2Password": []
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_BackMatter"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -1296,42 +1251,12 @@ const docTemplate = `{
         },
         "/oscal/catalogs/{id}/controls": {
             "get": {
-                "description": "Retrieves the top-level controls for a given Catalog.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "List controls for a Catalog",
-                "parameters": [
+                "security": [
                     {
-                        "type": "string",
-                        "description": "Catalog ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
+                        "OAuth2Password": []
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_Control"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -1341,6 +1266,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Adds a top-level control under the specified Catalog.",
                 "consumes": [
                     "application/json"
@@ -1394,6 +1324,11 @@ const docTemplate = `{
         },
         "/oscal/catalogs/{id}/controls/{control}": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves a single Control by its ID for a given Catalog.",
                 "produces": [
                     "application/json"
@@ -1446,6 +1381,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Updates the properties of an existing Control under the specified Catalog.",
                 "consumes": [
                     "application/json"
@@ -1512,6 +1452,11 @@ const docTemplate = `{
         },
         "/oscal/catalogs/{id}/controls/{control}/controls": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves the controls directly under a specific Control in a given Catalog.",
                 "produces": [
                     "application/json"
@@ -1564,6 +1509,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Adds a child control under the specified Catalog Control.",
                 "consumes": [
                     "application/json"
@@ -1624,42 +1574,12 @@ const docTemplate = `{
         },
         "/oscal/catalogs/{id}/groups": {
             "get": {
-                "description": "Retrieves the top-level groups for a given Catalog.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Oscal"
-                ],
-                "summary": "List groups for a Catalog",
-                "parameters": [
+                "security": [
                     {
-                        "type": "string",
-                        "description": "Catalog ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
+                        "OAuth2Password": []
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_Group"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -1669,6 +1589,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Adds a top-level group under the specified Catalog.",
                 "consumes": [
                     "application/json"
@@ -1722,6 +1647,11 @@ const docTemplate = `{
         },
         "/oscal/catalogs/{id}/groups/{group}": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves a single Group by its ID for a given Catalog.",
                 "produces": [
                     "application/json"
@@ -1774,6 +1704,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Updates the properties of an existing Group under the specified Catalog.",
                 "consumes": [
                     "application/json"
@@ -1840,6 +1775,11 @@ const docTemplate = `{
         },
         "/oscal/catalogs/{id}/groups/{group}/controls": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves the controls directly under a specific Group in a given Catalog.",
                 "produces": [
                     "application/json"
@@ -1892,6 +1832,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Adds a control under the specified Catalog and Group.",
                 "consumes": [
                     "application/json"
@@ -1952,6 +1897,11 @@ const docTemplate = `{
         },
         "/oscal/catalogs/{id}/groups/{group}/groups": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves the sub-groups of a specific Group in a given Catalog.",
                 "produces": [
                     "application/json"
@@ -2004,6 +1954,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Adds a sub-group under the specified Catalog and Group.",
                 "consumes": [
                     "application/json"
@@ -2064,6 +2019,11 @@ const docTemplate = `{
         },
         "/oscal/component-definitions": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves all component definitions.",
                 "produces": [
                     "application/json"
@@ -2085,6 +2045,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -2094,6 +2060,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Creates a new component definition.",
                 "consumes": [
                     "application/json"
@@ -2129,6 +2100,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -2140,6 +2117,11 @@ const docTemplate = `{
         },
         "/oscal/component-definitions/{id}": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves a single component definition by its unique ID.",
                 "produces": [
                     "application/json"
@@ -2170,6 +2152,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -2185,6 +2173,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Updates an existing component definition.",
                 "consumes": [
                     "application/json"
@@ -2227,6 +2220,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -2244,6 +2243,11 @@ const docTemplate = `{
         },
         "/oscal/component-definitions/{id}/back-matter": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves the back-matter for a given Component Definition.",
                 "produces": [
                     "application/json"
@@ -2274,6 +2278,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -2289,6 +2299,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Creates new back-matter for a given component definition.",
                 "consumes": [
                     "application/json"
@@ -2331,6 +2346,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -2348,6 +2369,11 @@ const docTemplate = `{
         },
         "/oscal/component-definitions/{id}/capabilities": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves all capabilities for a given component definition.",
                 "produces": [
                     "application/json"
@@ -2378,6 +2404,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -2393,6 +2425,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Creates new capabilities for a given component definition.",
                 "consumes": [
                     "application/json"
@@ -2438,6 +2475,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -2455,6 +2498,11 @@ const docTemplate = `{
         },
         "/oscal/component-definitions/{id}/capabilities/incorporates-components": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves all incorporates components for a given component definition.",
                 "produces": [
                     "application/json"
@@ -2485,6 +2533,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -2500,6 +2554,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Creates new incorporates components for a given component definition.",
                 "consumes": [
                     "application/json"
@@ -2545,6 +2604,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -2562,6 +2627,11 @@ const docTemplate = `{
         },
         "/oscal/component-definitions/{id}/capabilities/{capability}": {
             "put": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Updates a single capability for a given component definition.",
                 "consumes": [
                     "application/json"
@@ -2611,6 +2681,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -2628,6 +2704,11 @@ const docTemplate = `{
         },
         "/oscal/component-definitions/{id}/components": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves all components for a given component definition.",
                 "produces": [
                     "application/json"
@@ -2658,6 +2739,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -2673,6 +2760,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Updates the components for a given component definition.",
                 "consumes": [
                     "application/json"
@@ -2718,6 +2810,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -2733,6 +2831,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Creates new components for a given component definition.",
                 "consumes": [
                     "application/json"
@@ -2778,6 +2881,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -2795,6 +2904,11 @@ const docTemplate = `{
         },
         "/oscal/component-definitions/{id}/components/{defined-component}": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves a defined component for a given component definition.",
                 "produces": [
                     "application/json"
@@ -2832,6 +2946,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -2847,6 +2967,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Updates a defined component for a given component definition.",
                 "consumes": [
                     "application/json"
@@ -2896,6 +3021,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -2911,6 +3042,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Creates a new defined component for a given component definition.",
                 "consumes": [
                     "application/json"
@@ -2953,6 +3089,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -2970,6 +3112,11 @@ const docTemplate = `{
         },
         "/oscal/component-definitions/{id}/components/{defined-component}/control-implementations": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves all control implementations for a given defined component.",
                 "produces": [
                     "application/json"
@@ -3007,6 +3154,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -3022,6 +3175,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Updates control implementations for a given defined component.",
                 "consumes": [
                     "application/json"
@@ -3074,6 +3232,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -3089,6 +3253,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Creates new control implementations for a given defined component.",
                 "consumes": [
                     "application/json"
@@ -3141,6 +3310,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -3158,6 +3333,11 @@ const docTemplate = `{
         },
         "/oscal/component-definitions/{id}/components/{defined-component}/control-implementations/implemented-requirements": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves all implemented requirements for a given defined component.",
                 "produces": [
                     "application/json"
@@ -3195,6 +3375,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -3212,6 +3398,11 @@ const docTemplate = `{
         },
         "/oscal/component-definitions/{id}/components/{defined-component}/control-implementations/implemented-requirements/statements": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves all statements for a given defined component.",
                 "produces": [
                     "application/json"
@@ -3249,6 +3440,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -3266,6 +3463,11 @@ const docTemplate = `{
         },
         "/oscal/component-definitions/{id}/components/{defined-component}/control-implementations/{control-implementation}": {
             "put": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Updates a specific control implementation for a given defined component.",
                 "consumes": [
                     "application/json"
@@ -3322,6 +3524,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -3339,6 +3547,11 @@ const docTemplate = `{
         },
         "/oscal/component-definitions/{id}/full": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves a complete Component Definition by its ID, including all metadata and revisions.",
                 "produces": [
                     "application/json"
@@ -3369,6 +3582,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -3386,6 +3605,11 @@ const docTemplate = `{
         },
         "/oscal/component-definitions/{id}/import-component-definitions": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves all import component definitions for a given defined component.",
                 "produces": [
                     "application/json"
@@ -3423,6 +3647,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -3438,6 +3668,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Updates the import component definitions for a given component definition.",
                 "produces": [
                     "application/json"
@@ -3480,6 +3715,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -3495,6 +3736,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Creates new import component definitions for a given component definition.",
                 "produces": [
                     "application/json"
@@ -3537,6 +3783,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -3554,6 +3806,11 @@ const docTemplate = `{
         },
         "/oscal/parties": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves all parties.",
                 "produces": [
                     "application/json"
@@ -3575,6 +3832,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -3586,6 +3849,11 @@ const docTemplate = `{
         },
         "/oscal/parties/{id}": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves a single Party by its unique ID.",
                 "produces": [
                     "application/json"
@@ -3616,6 +3884,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -3633,6 +3907,11 @@ const docTemplate = `{
         },
         "/oscal/profiles": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves all OSCAL profiles",
                 "produces": [
                     "application/json"
@@ -3655,6 +3934,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -3664,6 +3949,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Creates a new OSCAL Profile.",
                 "consumes": [
                     "application/json"
@@ -3700,6 +3990,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -3711,6 +4007,11 @@ const docTemplate = `{
         },
         "/oscal/profiles/{id}": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Get an OSCAL profile with the uuid provided",
                 "produces": [
                     "application/json"
@@ -3742,6 +4043,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -3759,6 +4066,11 @@ const docTemplate = `{
         },
         "/oscal/profiles/{id}/back-matter": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Get the BackMatter for a specific profile",
                 "produces": [
                     "application/json"
@@ -3790,6 +4102,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -3807,6 +4125,11 @@ const docTemplate = `{
         },
         "/oscal/profiles/{id}/full": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves the full OSCAL Profile, including all nested content.",
                 "produces": [
                     "application/json"
@@ -3838,6 +4161,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -3855,6 +4184,11 @@ const docTemplate = `{
         },
         "/oscal/profiles/{id}/imports": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "List imports for a specific profile",
                 "produces": [
                     "application/json"
@@ -3886,6 +4220,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -3903,6 +4243,11 @@ const docTemplate = `{
         },
         "/oscal/profiles/{id}/merge": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves the merge section for a specific profile.",
                 "produces": [
                     "application/json"
@@ -3934,6 +4279,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -3951,6 +4302,11 @@ const docTemplate = `{
         },
         "/oscal/profiles/{id}/modify": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves the modify section for a specific profile.",
                 "produces": [
                     "application/json"
@@ -3999,6 +4355,11 @@ const docTemplate = `{
         },
         "/oscal/profiles/{id}/resolve": {
             "post": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Resolves a Profiled identified by the \"profile ID\" param and stores a new catalog in the database",
                 "produces": [
                     "application/json"
@@ -4030,8 +4391,8 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
-                    "404": {
-                        "description": "Not Found",
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/api.Error"
                         }
@@ -4047,6 +4408,11 @@ const docTemplate = `{
         },
         "/oscal/roles": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves all roles.",
                 "produces": [
                     "application/json"
@@ -4068,6 +4434,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -4079,6 +4451,11 @@ const docTemplate = `{
         },
         "/oscal/roles/{id}": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves a single Role by its unique ID.",
                 "produces": [
                     "application/json"
@@ -4109,6 +4486,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -4126,6 +4509,11 @@ const docTemplate = `{
         },
         "/oscal/system-security-plans": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves all System Security Plans.",
                 "produces": [
                     "application/json"
@@ -4147,6 +4535,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -4156,6 +4550,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Creates a System Security Plan from input.",
                 "produces": [
                     "application/json"
@@ -4177,6 +4576,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -4194,6 +4599,11 @@ const docTemplate = `{
         },
         "/oscal/system-security-plans/{id}": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves a single System Security Plan by its unique ID.",
                 "produces": [
                     "application/json"
@@ -4224,6 +4634,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -4241,6 +4657,11 @@ const docTemplate = `{
         },
         "/oscal/system-security-plans/{id}/control-implementation": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves the Control Implementation for a given System Security Plan.",
                 "produces": [
                     "application/json"
@@ -4271,6 +4692,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -4288,6 +4715,11 @@ const docTemplate = `{
         },
         "/oscal/system-security-plans/{id}/system-characteristics": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves the System Characteristics for a given System Security Plan.",
                 "produces": [
                     "application/json"
@@ -4318,6 +4750,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -4333,6 +4771,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Updates the System Characteristics for a given System Security Plan.",
                 "consumes": [
                     "application/json"
@@ -4375,6 +4818,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -4392,6 +4841,11 @@ const docTemplate = `{
         },
         "/oscal/system-security-plans/{id}/system-characteristics/authorization-boundary": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves the Authorization Boundary for a given System Security Plan.",
                 "produces": [
                     "application/json"
@@ -4422,6 +4876,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -4439,6 +4899,11 @@ const docTemplate = `{
         },
         "/oscal/system-security-plans/{id}/system-characteristics/authorization-boundary/diagrams/{diagram}": {
             "put": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Updates a specific Diagram under the Authorization Boundary of a System Security Plan.",
                 "consumes": [
                     "application/json"
@@ -4488,6 +4953,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -4505,6 +4976,11 @@ const docTemplate = `{
         },
         "/oscal/system-security-plans/{id}/system-characteristics/data-flow": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves the Data Flow for a given System Security Plan.",
                 "produces": [
                     "application/json"
@@ -4535,6 +5011,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -4552,6 +5034,11 @@ const docTemplate = `{
         },
         "/oscal/system-security-plans/{id}/system-characteristics/data-flow/diagrams/{diagram}": {
             "put": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Updates a specific Diagram under the Data Flow of a System Security Plan.",
                 "consumes": [
                     "application/json"
@@ -4601,6 +5088,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -4618,6 +5111,11 @@ const docTemplate = `{
         },
         "/oscal/system-security-plans/{id}/system-characteristics/network-architecture": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves the Network Architecture for a given System Security Plan.",
                 "produces": [
                     "application/json"
@@ -4648,6 +5146,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -4665,6 +5169,11 @@ const docTemplate = `{
         },
         "/oscal/system-security-plans/{id}/system-characteristics/network-architecture/diagrams/{diagram}": {
             "put": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Updates a specific Diagram under the Network Architecture of a System Security Plan.",
                 "consumes": [
                     "application/json"
@@ -4714,6 +5223,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -4731,6 +5246,11 @@ const docTemplate = `{
         },
         "/oscal/system-security-plans/{id}/system-implementation": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves the System Implementation for a given System Security Plan.",
                 "produces": [
                     "application/json"
@@ -4761,6 +5281,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -4778,6 +5304,11 @@ const docTemplate = `{
         },
         "/oscal/system-security-plans/{id}/system-implementation/components": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves components in the System Implementation for a given System Security Plan.",
                 "produces": [
                     "application/json"
@@ -4808,6 +5339,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -4825,6 +5362,11 @@ const docTemplate = `{
         },
         "/oscal/system-security-plans/{id}/system-implementation/inventory-items": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves inventory items in the System Implementation for a given System Security Plan.",
                 "produces": [
                     "application/json"
@@ -4855,6 +5397,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -4872,6 +5420,11 @@ const docTemplate = `{
         },
         "/oscal/system-security-plans/{id}/system-implementation/leveraged-authorizations": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves leveraged authorizations in the System Implementation for a given System Security Plan.",
                 "produces": [
                     "application/json"
@@ -4902,6 +5455,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -4919,6 +5478,11 @@ const docTemplate = `{
         },
         "/oscal/system-security-plans/{id}/system-implementation/users": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
                 "description": "Retrieves users in the System Implementation for a given System Security Plan.",
                 "produces": [
                     "application/json"
@@ -4945,6 +5509,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/api.Error"
                         }
@@ -5801,19 +6371,6 @@ const docTemplate = `{
                 }
             }
         },
-        "handler.GenericDataResponse-oscal_Get_responseCatalog": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/oscal.Get.responseCatalog"
-                        }
-                    ]
-                }
-            }
-        },
         "handler.GenericDataResponse-oscal_Get_responseComponentDefinition": {
             "type": "object",
             "properties": {
@@ -5967,17 +6524,6 @@ const docTemplate = `{
                 },
                 "query": {
                     "$ref": "#/definitions/labelfilter.Query"
-                }
-            }
-        },
-        "oscal.Get.responseCatalog": {
-            "type": "object",
-            "properties": {
-                "metadata": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.Metadata"
-                },
-                "uuid": {
-                    "type": "string"
                 }
             }
         },
@@ -9153,6 +9699,13 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "OAuth2Password": {
+            "type": "oauth2",
+            "flow": "password",
+            "tokenUrl": "/api/auth/token"
         }
     },
     "externalDocs": {
