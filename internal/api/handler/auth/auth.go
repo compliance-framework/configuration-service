@@ -3,6 +3,7 @@ package auth
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/api/handler"
@@ -86,6 +87,16 @@ func (h *AuthHandler) LoginUser(ctx echo.Context) error {
 	ret := response{
 		AuthToken: *token,
 	}
+
+	cookie := new(http.Cookie)
+
+	cookie.Name = "ccf_auth_token"
+	cookie.Value = *token
+	cookie.Expires = time.Now().Add(time.Hour * 24)
+	cookie.HttpOnly = true
+	cookie.Secure = true
+	cookie.Path = "/"
+	ctx.SetCookie(cookie)
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[response]{Data: ret})
 }
