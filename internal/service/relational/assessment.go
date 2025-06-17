@@ -209,21 +209,21 @@ func (i *Result) UnmarshalOscal(op oscalTypes_1_1_3.Result) *Result {
 	if op.Observations != nil {
 		i.Observations = make([]Observation, len(*op.Observations))
 		for idx, obs := range *op.Observations {
-			i.Observations[idx] = *(&Observation{}).UnmarshalOscal(obs, i.ID, "Result")
+			i.Observations[idx] = *(&Observation{}).UnmarshalOscal(obs)
 		}
 	}
 	// Findings
 	if op.Findings != nil {
 		i.Findings = make([]Finding, len(*op.Findings))
 		for idx, finding := range *op.Findings {
-			i.Findings[idx] = *(&Finding{}).UnmarshalOscal(finding, i.ID, "Result")
+			i.Findings[idx] = *(&Finding{}).UnmarshalOscal(finding)
 		}
 	}
 	// Risks
 	if op.Risks != nil {
 		i.Risks = make([]Risk, len(*op.Risks))
 		for idx, risk := range *op.Risks {
-			i.Risks[idx] = *(&Risk{}).UnmarshalOscal(risk, *i.ID, "Result")
+			i.Risks[idx] = *(&Risk{}).UnmarshalOscal(risk)
 		}
 	}
 	return i

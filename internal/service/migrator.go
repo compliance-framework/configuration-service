@@ -223,9 +223,12 @@ func MigrateDown(db *gorm.DB) error {
 		&relational.Finding{},
 		"finding_related_observations",
 		"finding_related_risks",
-		"poam_item_related_findings",
 		"poam_item_related_observations",
+		"poam_item_related_findings",
 		"poam_item_related_risks",
+		"poam_observations",
+		"poam_findings",
+		"poam_risks",
 
 		&relational.User{},
 	)
