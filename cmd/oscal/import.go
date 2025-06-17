@@ -72,7 +72,7 @@ func importFile(db *gorm.DB, sugar *zap.SugaredLogger, f *os.File) error {
 
 	if info.IsDir() {
 
-		files, err := os.ReadDir(info.Name())
+		files, err := os.ReadDir(f.Name())
 		if err != nil {
 			return err
 		}
