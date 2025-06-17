@@ -1177,16 +1177,16 @@ func (h *PlanOfActionAndMilestonesHandler) Delete(ctx echo.Context) error {
 	// Delete all related entities and main record in a transaction
 	err = h.db.Transaction(func(tx *gorm.DB) error {
 		// Delete all related entities first (cascading delete)
-		if err := h.db.Model(&existingPoam).Association("Findings").Clear(); err != nil {
+		if err := h.db.Model(&existingPoam).Association("Observations").Clear(); err != nil {
 			return fmt.Errorf("failed to delete observations: %v", err)
 		}
 
 		if err := h.db.Model(&existingPoam).Association("Findings").Clear(); err != nil {
-			return fmt.Errorf("failed to delete risks: %v", err)
+			return fmt.Errorf("failed to delete findings: %v", err)
 		}
 
-		if err := h.db.Model(&existingPoam).Association("Findings").Clear(); err != nil {
-			return fmt.Errorf("failed to delete findings: %v", err)
+		if err := h.db.Model(&existingPoam).Association("Risks").Clear(); err != nil {
+			return fmt.Errorf("failed to delete risks: %v", err)
 		}
 
 		if err := tx.Where("plan_of_action_and_milestones_id = ?", id).Delete(&relational.PoamItem{}).Error; err != nil {
