@@ -33,8 +33,8 @@ func newMigrateCMD() *cobra.Command {
 		Short: "Refresh the database schema",
 		Long:  "Completely remove and recreate the database schema for CCF",
 		Run: func(cmd *cobra.Command, args []string) {
-			migrateUp(cmd, args)
 			migrateDown(cmd, args)
+			migrateUp(cmd, args)
 		},
 	})
 
