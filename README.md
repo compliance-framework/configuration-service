@@ -33,7 +33,7 @@ The Configuration Service ships with a built in CLI, which can be used to run ad
 
 Some examples include:
 ```shell
-$ go run main.go users run # Run the API itself
+$ go run main.go run # Run the API itself
 
 $ go run main.go users add # Create a new user in the CCF API which can be used to authenticate with
 
