@@ -25,7 +25,7 @@ func NewHeartbeatHandler(sugar *zap.SugaredLogger, db *gorm.DB) *HeartbeatHandle
 
 func (h *HeartbeatHandler) Register(api *echo.Group) {
 	api.POST("", h.Create)
-	//api.GET("/over-time", h.OverTime)
+	api.GET("/over-time", h.OverTime)
 }
 
 type HeartbeatCreateRequest struct {
@@ -57,17 +57,29 @@ func (h *HeartbeatHandler) Create(ctx echo.Context) error {
 	return ctx.NoContent(http.StatusCreated)
 }
 
-//// OverTime purposefully has no swagger doc to prevent it showing up in the swagger ui. This is for internal use only.
-//func (h *HeartbeatHandler) OverTime(ctx echo.Context) error {
-//	// Bind the incoming JSON payload into a slice of SDK findings.
-//	results, err := h.heartbeatService.GetIntervalledHeartbeats(ctx.Request().Context())
-//
-//	if err != nil {
-//		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-//	}
-//
-//	// Wrap the result in GenericDataResponse.
-//	return ctx.JSON(http.StatusOK, GenericDataListResponse[service.HeartbeatOverTimeGroup]{
-//		Data: results,
-//	})
-//}
+// OverTime purposefully has no swagger doc to prevent it showing up in the swagger ui. This is for internal use only.
+func (h *HeartbeatHandler) OverTime(ctx echo.Context) error {
+
+	type HeartbeatInterval struct {
+		Interval time.Time `json:"interval"`
+		Total    int64     `json:"total"`
+	}
+
+	var results []HeartbeatInterval
+	if err := h.db.Raw(`
+		select count(*) as total, "interval"
+		from (
+			select distinct on (uuid, date_bin('2 min', created_at, now())) uuid, date_bin('2 min', created_at, now()) as "interval"
+			from heartbeats
+			order by date_bin('2 min', created_at, now())
+		) as heartbeat_intervalled
+		group by "interval"
+	`).Scan(&results).Error; err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Wrap the result in GenericDataResponse.
+	return ctx.JSON(http.StatusOK, GenericDataListResponse[HeartbeatInterval]{
+		Data: results,
+	})
+}

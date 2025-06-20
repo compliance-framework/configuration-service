@@ -12,8 +12,8 @@ import (
 type Heartbeat struct {
 	relational.UUIDModel
 
-	UUID      uuid.UUID
-	CreatedAt time.Time
+	UUID      uuid.UUID `gorm:"index"`
+	CreatedAt time.Time `gorm:"index"`
 }
 
 type HeartbeatService struct {
