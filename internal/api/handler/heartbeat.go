@@ -3,42 +3,53 @@ package handler
 import (
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/service"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 	"net/http"
+	"time"
 )
 
 type HeartbeatHandler struct {
-	heartbeatService *service.HeartbeatService
-	sugar            *zap.SugaredLogger
+	db    *gorm.DB
+	sugar *zap.SugaredLogger
+}
+
+func NewHeartbeatHandler(sugar *zap.SugaredLogger, db *gorm.DB) *HeartbeatHandler {
+	return &HeartbeatHandler{
+		sugar: sugar,
+		db:    db,
+	}
 }
 
 func (h *HeartbeatHandler) Register(api *echo.Group) {
 	api.POST("", h.Create)
-	api.GET("/over-time", h.OverTime)
+	//api.GET("/over-time", h.OverTime)
 }
 
-func NewHeartbeatHandler(
-	l *zap.SugaredLogger,
-	heartbeatService *service.HeartbeatService,
-) *HeartbeatHandler {
-	return &HeartbeatHandler{
-		sugar:            l,
-		heartbeatService: heartbeatService,
-	}
+type HeartbeatCreateRequest struct {
+	UUID      uuid.UUID `json:"uuid,omitempty" validate:"required"`
+	CreatedAt time.Time `json:"created_at,omitempty" validate:"required"`
 }
 
 // Create purposefully has no swagger doc to prevent it showing up in the swagger ui. This is for internal use only.
 func (h *HeartbeatHandler) Create(ctx echo.Context) error {
 	// Bind the incoming JSON payload into a slice of SDK findings.
-	var heartbeat *service.Heartbeat
+	var heartbeat *HeartbeatCreateRequest
 	if err := ctx.Bind(&heartbeat); err != nil {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	_, err := h.heartbeatService.Create(ctx.Request().Context(), heartbeat)
-
+	err := ctx.Validate(heartbeat)
 	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, api.Validator(err))
+	}
+
+	if err := h.db.Create(&service.Heartbeat{
+		UUID:      heartbeat.UUID,
+		CreatedAt: heartbeat.CreatedAt,
+	}).Error; err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
@@ -46,17 +57,17 @@ func (h *HeartbeatHandler) Create(ctx echo.Context) error {
 	return ctx.NoContent(http.StatusCreated)
 }
 
-// OverTime purposefully has no swagger doc to prevent it showing up in the swagger ui. This is for internal use only.
-func (h *HeartbeatHandler) OverTime(ctx echo.Context) error {
-	// Bind the incoming JSON payload into a slice of SDK findings.
-	results, err := h.heartbeatService.GetIntervalledHeartbeats(ctx.Request().Context())
-
-	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-	}
-
-	// Wrap the result in GenericDataResponse.
-	return ctx.JSON(http.StatusOK, GenericDataListResponse[service.HeartbeatOverTimeGroup]{
-		Data: results,
-	})
-}
+//// OverTime purposefully has no swagger doc to prevent it showing up in the swagger ui. This is for internal use only.
+//func (h *HeartbeatHandler) OverTime(ctx echo.Context) error {
+//	// Bind the incoming JSON payload into a slice of SDK findings.
+//	results, err := h.heartbeatService.GetIntervalledHeartbeats(ctx.Request().Context())
+//
+//	if err != nil {
+//		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+//	}
+//
+//	// Wrap the result in GenericDataResponse.
+//	return ctx.JSON(http.StatusOK, GenericDataListResponse[service.HeartbeatOverTimeGroup]{
+//		Data: results,
+//	})
+//}

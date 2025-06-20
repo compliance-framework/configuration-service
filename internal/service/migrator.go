@@ -231,6 +231,9 @@ func MigrateDown(db *gorm.DB) error {
 		"poam_risks",
 
 		&relational.User{},
+
+		&relational.Evidence{},
+		&relational.Labels{},
 	)
 	return err
 }

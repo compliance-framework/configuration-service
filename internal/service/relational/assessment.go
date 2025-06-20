@@ -1166,6 +1166,8 @@ type AssessmentSubject struct {
 	// setting the type to what we know it is.
 	UUIDModel
 
+	// Type represents a component, party, location, user, or inventory item.
+	// It will likely be updated once we can map it correctly
 	Type        string
 	Description *string
 	Remarks     *string
