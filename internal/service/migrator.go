@@ -100,6 +100,10 @@ func MigrateUp(db *gorm.DB) error {
 		&relational.AssessmentLog{},
 		&relational.AssessmentLogEntry{},
 		&relational.User{},
+
+		&Heartbeat{},
+		&relational.Evidence{},
+		&relational.Labels{},
 	)
 	return err
 }
@@ -232,6 +236,7 @@ func MigrateDown(db *gorm.DB) error {
 
 		&relational.User{},
 
+		&Heartbeat{},
 		&relational.Evidence{},
 		&relational.Labels{},
 	)

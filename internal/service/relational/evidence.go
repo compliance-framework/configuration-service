@@ -15,9 +15,9 @@ type Evidence struct {
 	// It represents the "stream" of the same observation being made over time.
 	UUID uuid.UUID `gorm:"index"`
 
-	Title       *string `json:"title,omitempty" yaml:"title,omitempty"`
-	Description string  `json:"description" yaml:"description"`
-	Remarks     *string `json:"remarks,omitempty" yaml:"remarks,omitempty"`
+	Title       *string
+	Description string
+	Remarks     *string
 
 	// Assigning labels to Evidence makes it searchable and easily usable in the UI
 	Labels []Labels `gorm:"many2many:evidence_labels;"`
@@ -27,8 +27,8 @@ type Evidence struct {
 	End     time.Time
 	Expires *time.Time
 
-	Props []Prop
-	Links []Link
+	Props datatypes.JSONSlice[Prop]
+	Links datatypes.JSONSlice[Link]
 
 	// Who or What is generating this evidence
 	Origins datatypes.JSONSlice[Origin]
