@@ -69,9 +69,9 @@ func (h *HeartbeatHandler) OverTime(ctx echo.Context) error {
 	if err := h.db.Raw(`
 		select count(*) as total, "interval"
 		from (
-			select distinct on (uuid, date_bin('2 min', created_at, now())) uuid, date_bin('2 min', created_at, now()) as "interval"
+			select distinct on (uuid, date_bin('2 min', created_at, '2021-01-01')) uuid, date_bin('2 min', created_at, '2021-01-01') as "interval"
 			from heartbeats
-			order by date_bin('2 min', created_at, now())
+			order by date_bin('2 min', created_at, '2021-01-01')
 		) as heartbeat_intervalled
 		group by "interval"
 	`).Scan(&results).Error; err != nil {

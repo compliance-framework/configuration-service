@@ -83,6 +83,8 @@ func (t *TestMigrator) Up() error {
 		&relational.PoamItem{},
 
 		&service.Heartbeat{},
+		&relational.Evidence{},
+		&relational.Labels{},
 	)
 }
 
@@ -151,6 +153,14 @@ func (t *TestMigrator) Down() error {
 		"network_architecture_diagrams",
 		"data_flow_diagrams",
 		"back_matter_resources",
+
+		&service.Heartbeat{},
+		&relational.Evidence{},
+		&relational.Labels{},
+		"evidence_labels",
+		"evidence_subjects",
+		"evidence_activities",
+		"evidence_components",
 	)
 }
 
