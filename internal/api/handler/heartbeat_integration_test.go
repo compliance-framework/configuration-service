@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -71,5 +72,53 @@ func (suite *HeartbeatApiIntegrationSuite) TestHeartbeatCreate() {
 		// Counting users with specific names
 		suite.DB.Model(&service.Heartbeat{}).Count(&count)
 		suite.Equal(int64(1), count)
+	})
+}
+
+func (suite *HeartbeatApiIntegrationSuite) TestHeartbeatOverTime() {
+	suite.T().Run("Heartbeat over time structure", func(t *testing.T) {
+		err := suite.Migrator.Refresh()
+		suite.Require().NoError(err)
+
+		// Seed some heartbeats
+		for range 3 {
+			id := uuid.New()
+			for i := range 10 {
+				suite.DB.Model(&service.Heartbeat{}).Create(&service.Heartbeat{
+					UUID:      id,
+					CreatedAt: time.Now().Add(time.Duration(i) * time.Minute),
+				})
+			}
+		}
+
+		// Create two catalogs with the same group ID structure
+		logger, _ := zap.NewDevelopment()
+		server := api.NewServer(context.Background(), logger.Sugar())
+		RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config)
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/api/agent/heartbeat/over-time/", nil)
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		server.E().ServeHTTP(rec, req)
+		assert.Equal(suite.T(), http.StatusOK, rec.Code)
+
+		response := struct {
+			Data []struct {
+				Interval time.Time
+				Total    int
+			} `json:"data"`
+		}{}
+		err = json.Unmarshal(rec.Body.Bytes(), &response)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		suite.Len(response.Data, 6)            // There are 6 intervals
+		suite.Equal(response.Data[0].Total, 3) // Each interval should have 3 agents
+		suite.Equal(response.Data[1].Total, 3) // Each interval should have 3 agents
+		suite.Equal(response.Data[2].Total, 3) // Each interval should have 3 agents
+
+		// The interval gap should be 2 minutes
+		suite.Equal(response.Data[0].Interval.Sub(response.Data[1].Interval).Abs(), 2*time.Minute)
+		suite.Equal(response.Data[1].Interval.Sub(response.Data[2].Interval).Abs(), 2*time.Minute)
 	})
 }
