@@ -22,6 +22,7 @@ func JWTMiddleware(publicKey *rsa.PublicKey) echo.MiddlewareFunc {
 
 			authTokenCookie, err := c.Cookie("ccf_auth_token")
 			if err == nil {
+				// Valid cookie found
 				tokenString = authTokenCookie.Value
 			} else {
 				tokenString, err = getTokenFromHeader(c.Request().Header.Get("Authorization"))
