@@ -53,14 +53,14 @@ all: build
 
 ##@ Test
 .PHONY: test
-test: ## Run tests
+test: swag  ## Run tests
 	@if ! go test ./... -coverprofile cover.out -v; then \
 		$(WARN) "Tests failed"; \
 		exit 1; \
 	fi ; \
 	$(OK) Tests passed
 
-.PHONY: test-integration
+.PHONY: swag   test-integration
 test-integration: ## Run tests
 	@if ! go test ./... -coverprofile cover.out -v --tags integration; then \
 		$(WARN) "Tests failed"; \
