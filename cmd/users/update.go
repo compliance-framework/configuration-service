@@ -76,6 +76,7 @@ func updateUser(cmd *cobra.Command, args []string) {
 			sugar.Errorw("Failed to generate password", "error", err)
 			return
 		}
+		user.SetPassword(password)
 	} else if password != "" {
 		user.SetPassword(password)
 	}
