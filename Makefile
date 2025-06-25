@@ -60,8 +60,8 @@ test: swag  ## Run tests
 	fi ; \
 	$(OK) Tests passed
 
-.PHONY: swag   test-integration
-test-integration: ## Run tests
+.PHONY:   test-integration
+test-integration: swag  ## Run tests
 	@if ! go test ./... -coverprofile cover.out -v --tags integration; then \
 		$(WARN) "Tests failed"; \
 		exit 1; \
