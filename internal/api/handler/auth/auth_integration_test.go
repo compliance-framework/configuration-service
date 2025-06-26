@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -98,4 +99,14 @@ func (suite *AuthAPIIntegrationSuite) TestLoginInvalidCredentials() {
 		suite.Require().NoError(err)
 		suite.Len(response.Data.Email, 1, "Expected one validation error for email")
 	}
+}
+
+func (suite *AuthAPIIntegrationSuite) TestPublicKeyEndpoint() {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/auth/publickey.pub", nil)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusOK, rec.Code, "Expected status code 200 OK")
+
+	respKey, _ := pem.Decode(rec.Body.Bytes())
+	suite.Require().NotNil(respKey, "Expected PEM-encoded public key in response")
 }
