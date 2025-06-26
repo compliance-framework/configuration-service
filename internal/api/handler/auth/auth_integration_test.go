@@ -27,20 +27,20 @@ type AuthAPIIntegrationSuite struct {
 	server *api.Server
 }
 
-type LoginResponse struct {
+type loginResponse struct {
 	Data struct {
 		AuthToken string `json:"auth_token"`
 	} `json:"data"`
 }
 
-type ErrorResponse struct {
+type errorResponse struct {
 	Data struct {
 		Email []string `json:"email"`
 	} `json:"data"`
 }
 
 func (suite *AuthAPIIntegrationSuite) SetupSuite() {
-	fmt.Println("Setting up Component Definition API test suite")
+	fmt.Println("Setting up Auth API test suite")
 	suite.IntegrationTestSuite.SetupSuite()
 
 	// Setup logger and server once for all tests
@@ -61,10 +61,19 @@ func (suite *AuthAPIIntegrationSuite) TestLogin() {
 	suite.server.E().ServeHTTP(rec, req)
 	suite.Equal(http.StatusOK, rec.Code, "Expected status code 200 OK")
 
-	var resp LoginResponse
+	var resp loginResponse
 	err = json.Unmarshal(rec.Body.Bytes(), &resp)
 	suite.Require().NoError(err)
 	suite.NotEmpty(resp.Data.AuthToken, "Expected non-empty auth token")
+
+	for _, cookie := range rec.Result().Cookies() {
+		if cookie.Name == "ccf_auth_token" {
+			suite.NotEmpty(cookie.Value, "Expected ccf_auth_token cookie to be set")
+			suite.Equal(true, cookie.HttpOnly, "Expected ccf_auth_token cookie to be HttpOnly")
+			suite.Equal(true, cookie.Secure, "Expected ccf_auth_token cookie to be Secure")
+			suite.Equal(resp.Data.AuthToken, cookie.Value, "Expected ccf_auth_token cookie value to match auth token")
+		}
+	}
 }
 
 func (suite *AuthAPIIntegrationSuite) TestLoginInvalidCredentials() {
@@ -84,7 +93,7 @@ func (suite *AuthAPIIntegrationSuite) TestLoginInvalidCredentials() {
 		suite.server.E().ServeHTTP(rec, req)
 		suite.Equal(http.StatusUnauthorized, rec.Code, "Expected status code 401 Unauthorized")
 
-		var response ErrorResponse
+		var response errorResponse
 		err = json.Unmarshal(rec.Body.Bytes(), &response)
 		suite.Require().NoError(err)
 		suite.Len(response.Data.Email, 1, "Expected one validation error for email")
