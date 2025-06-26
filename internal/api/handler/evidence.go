@@ -4,7 +4,6 @@ import (
 	"github.com/compliance-framework/configuration-service/internal"
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/service/relational"
-	"github.com/compliance-framework/configuration-service/sdk"
 	oscalTypes_1_1_3 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -164,7 +163,7 @@ func (h *EvidenceHandler) Create(ctx echo.Context) error {
 	components := []relational.SystemComponent{}
 	// First, Inventory
 	for _, i := range input.Components {
-		id, err := sdk.SeededUUID(map[string]string{
+		id, err := internal.SeededUUID(map[string]string{
 			"identifier": i.Identifier,
 		})
 		if err != nil {
@@ -194,7 +193,7 @@ func (h *EvidenceHandler) Create(ctx echo.Context) error {
 	inventoryItems := []relational.InventoryItem{}
 	// First, Inventory
 	for _, i := range input.InventoryItems {
-		id, err := sdk.SeededUUID(map[string]string{
+		id, err := internal.SeededUUID(map[string]string{
 			"identifier": i.Identifier,
 		})
 		if err != nil {
@@ -210,7 +209,7 @@ func (h *EvidenceHandler) Create(ctx echo.Context) error {
 			Remarks:     i.Remarks,
 		}
 		for _, k := range i.ImplementedComponents {
-			id, err = sdk.SeededUUID(map[string]string{
+			id, err = internal.SeededUUID(map[string]string{
 				"identifier": k.Identifier,
 			})
 			model.ImplementedComponents = append(model.ImplementedComponents, relational.ImplementedComponent{
@@ -252,7 +251,7 @@ func (h *EvidenceHandler) Create(ctx echo.Context) error {
 
 	subjects := []relational.AssessmentSubject{}
 	for _, i := range input.Subjects {
-		id, err := sdk.SeededUUID(map[string]string{
+		id, err := internal.SeededUUID(map[string]string{
 			"identifier": i.Identifier,
 		})
 		if err != nil {

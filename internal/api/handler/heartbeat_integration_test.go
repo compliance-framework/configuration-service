@@ -110,7 +110,7 @@ func (suite *HeartbeatApiIntegrationSuite) TestHeartbeatOverTime() {
 
 	fmt.Println(response.Data)
 
-	suite.Len(response.Data, 5)            // There are 6 intervals
+	suite.Len(response.Data, 6)            // There are 6 intervals
 	suite.Equal(response.Data[0].Total, 3) // Each interval should have 3 agents
 	suite.Equal(response.Data[1].Total, 3) // Each interval should have 3 agents
 	suite.Equal(response.Data[2].Total, 3) // Each interval should have 3 agents

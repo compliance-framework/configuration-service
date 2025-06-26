@@ -12,6 +12,12 @@ type TestMigrator struct {
 	db *gorm.DB
 }
 
+func NewTestMigrator(db *gorm.DB) *TestMigrator {
+	return &TestMigrator{
+		db: db,
+	}
+}
+
 func (t *TestMigrator) Refresh() error {
 	err := t.Down()
 	if err != nil {
