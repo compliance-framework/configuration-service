@@ -5,6 +5,7 @@ import (
 
 	"github.com/compliance-framework/configuration-service/internal/api/binders"
 	mw "github.com/compliance-framework/configuration-service/internal/api/middleware"
+	"github.com/compliance-framework/configuration-service/internal/config"
 
 	_ "github.com/compliance-framework/configuration-service/docs"
 	"github.com/labstack/echo/v4"
@@ -14,19 +15,20 @@ import (
 )
 
 type Server struct {
-	ctx   context.Context
-	echo  *echo.Echo
-	sugar *zap.SugaredLogger
+	ctx    context.Context
+	echo   *echo.Echo
+	sugar  *zap.SugaredLogger
+	config *config.Config
 }
 
 // NewServer initializes the echo server with necessary routes and configurations.
-func NewServer(ctx context.Context, s *zap.SugaredLogger) *Server {
+func NewServer(ctx context.Context, s *zap.SugaredLogger, config *config.Config) *Server {
 	e := echo.New()
 	e.Binder = &binders.CustomBinder{}
 	e.Pre(middleware.RemoveTrailingSlash())
 	e.Use(middleware.Logger())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins:     []string{"http*://localhost:*"},
+		AllowOrigins:     config.APIAllowedOrigins,
 		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
 		AllowCredentials: true,
 	}))
@@ -34,9 +36,10 @@ func NewServer(ctx context.Context, s *zap.SugaredLogger) *Server {
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	return &Server{
-		ctx:   ctx,
-		echo:  e,
-		sugar: s,
+		ctx:    ctx,
+		echo:   e,
+		sugar:  s,
+		config: config,
 	}
 }
 
