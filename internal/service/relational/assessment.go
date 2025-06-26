@@ -1177,6 +1177,8 @@ type AssessmentSubject struct {
 	IncludeAll      *datatypes.JSONType[*IncludeAll]
 	IncludeSubjects []SelectSubjectById
 	ExcludeSubjects []SelectSubjectById
+
+	Evidence []Evidence `gorm:"many2many:evidence_subjects;"`
 }
 
 func (i *AssessmentSubject) UnmarshalOscal(op oscalTypes_1_1_3.AssessmentSubject) *AssessmentSubject {

@@ -14,8 +14,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const DatabaseName = "_integration_tests.db"
-
 type IntegrationTestSuite struct {
 	suite.Suite
 

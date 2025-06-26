@@ -104,6 +104,8 @@ func MigrateUp(db *gorm.DB) error {
 		&Heartbeat{},
 		&relational.Evidence{},
 		&relational.Labels{},
+		&relational.SelectSubjectById{},
+		&relational.Step{},
 	)
 	return err
 }

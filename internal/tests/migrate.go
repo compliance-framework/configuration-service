@@ -85,6 +85,8 @@ func (t *TestMigrator) Up() error {
 		&service.Heartbeat{},
 		&relational.Evidence{},
 		&relational.Labels{},
+		&relational.SelectSubjectById{},
+		&relational.Step{},
 	)
 }
 
@@ -161,6 +163,9 @@ func (t *TestMigrator) Down() error {
 		"evidence_subjects",
 		"evidence_activities",
 		"evidence_components",
+
+		&relational.SelectSubjectById{},
+		&relational.Step{},
 	)
 }
 

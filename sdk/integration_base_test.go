@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/api/handler"
+	"github.com/compliance-framework/configuration-service/internal/config"
 	"github.com/compliance-framework/configuration-service/sdk"
 	"github.com/docker/go-connections/nat"
 	"github.com/labstack/echo/v4"
@@ -61,7 +62,7 @@ func (suite *IntegrationBaseTestSuite) SetupSuite() {
 	// Next setup a full running echo server, so we can run tests against it.
 	logger, _ := zap.NewDevelopment()
 	server := api.NewServer(context.Background(), logger.Sugar())
-	handler.RegisterHandlers(server, suite.MongoDatabase, logger.Sugar())
+	handler.RegisterHandlers(server, suite.MongoDatabase, logger.Sugar(), config.Config{})
 	suite.Server = server
 
 	errChan := make(chan error)

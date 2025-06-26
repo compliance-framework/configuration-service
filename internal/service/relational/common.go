@@ -325,7 +325,6 @@ func (p *Protocol) MarshalOscal() *oscaltypes113.Protocol {
 }
 
 type Labels struct {
-	UUIDModel
-	Name  string
-	Value string
+	Name  string `gorm:"primaryKey"`
+	Value string `gorm:"primaryKey"`
 }

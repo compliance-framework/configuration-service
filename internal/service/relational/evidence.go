@@ -33,14 +33,15 @@ type Evidence struct {
 	// Who or What is generating this evidence
 	Origins datatypes.JSONSlice[Origin]
 
-	// Who or What are we providing evidence for. What's under test.
-	Subjects []AssessmentSubject `gorm:"many2many:evidence_subjects;"`
-
 	// What steps did we take to create this evidence
 	Activities []Activity `gorm:"many2many:evidence_activities"`
 
+	InventoryItems []InventoryItem `gorm:"many2many:evidence_inventory_items"`
+
 	// Which components of the subject are being observed. A tool, user, policy etc.
 	Components []SystemComponent `gorm:"many2many:evidence_components"`
+	// Who or What are we providing evidence for. What's under test.
+	Subjects []AssessmentSubject `gorm:"many2many:evidence_subjects;"`
 
 	// Did we satisfy what was being tested for, or did we fail ?
 	Status datatypes.JSONType[oscalTypes_1_1_3.ObjectiveStatus]
