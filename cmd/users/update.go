@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func updateUserCommand() *cobra.Command {
+func updateUserCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Update an existing user given an email address",

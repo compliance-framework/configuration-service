@@ -12,5 +12,5 @@ var (
 
 func init() {
 	RootCmd.AddCommand(newUserAddCmd())
-	RootCmd.AddCommand(updateUserCommand())
+	RootCmd.AddCommand(updateUserCmd())
 }
