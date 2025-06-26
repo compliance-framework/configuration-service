@@ -21,39 +21,14 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/catalogs": {
-            "get": {
-                "description": "Retrieves all catalogs.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Catalogs"
-                ],
-                "summary": "List catalogs",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-service_Catalog"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            },
+        "/agent/evidence": {
             "post": {
-                "description": "Creates a new catalog.",
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
+                "description": "Creates a new Evidence record including activities, inventory items, components, and subjects.",
                 "consumes": [
                     "application/json"
                 ],
@@ -61,438 +36,20 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Catalogs"
+                    "Evidence"
                 ],
-                "summary": "Create a new catalog",
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-service_Catalog"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/catalogs/{id}": {
-            "get": {
-                "description": "Retrieves a single Catalog by its unique ID.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Catalogs"
-                ],
-                "summary": "Get a Catalog",
+                "summary": "Create new Evidence",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Catalog ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-service_Catalog"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/compliance-by-uuid/{uuid}": {
-            "get": {
-                "description": "Fetches an intervalled compliance report for findings that match the provided uuid. The report groups findings status over time and returns a list of compliance report groups.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Findings"
-                ],
-                "summary": "Get intervalled compliance report by finding uuid",
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-service_StatusOverTimeGroup"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/controls": {
-            "get": {
-                "description": "Retrieves catalog controls for a given parent identifier specified via query parameters (id, class, type).",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "CatalogControls"
-                ],
-                "summary": "List catalog controls by parent",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Parent identifier id",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Parent identifier class",
-                        "name": "class",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Parent identifier type (catalog, group, or control)",
-                        "name": "type",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-service_CatalogControl"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/controls/control/{catalog}/{class}/{id}": {
-            "get": {
-                "description": "Retrieves catalog controls associated with a control parent based on the parent's class and id.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "CatalogControls"
-                ],
-                "summary": "Get catalog controls for a control parent",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Catalog ID",
-                        "name": "catalog",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Parent control class",
-                        "name": "class",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Parent control id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-service_CatalogControl"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/controls/group/{catalog}/{class}/{id}": {
-            "get": {
-                "description": "Retrieves catalog controls associated with a group parent based on the parent's class and id.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "CatalogControls"
-                ],
-                "summary": "Get catalog controls for a group parent",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Catalog ID",
-                        "name": "catalog",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Parent control class",
-                        "name": "class",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Parent control id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-service_CatalogControl"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/dashboard": {
-            "get": {
-                "description": "Retrieves all dashboards.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Dashboards"
-                ],
-                "summary": "List dashboards",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-service_Dashboard"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Creates a new dashboard.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Dashboards"
-                ],
-                "summary": "Create a new dashboard",
-                "parameters": [
-                    {
-                        "description": "Dashboard to add",
-                        "name": "dashboard",
+                        "description": "Evidence create request",
+                        "name": "evidence",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handler.createDashboardRequest"
+                            "$ref": "#/definitions/handler.EvidenceCreateRequest"
                         }
                     }
                 ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-service_Dashboard"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/dashboard/{id}": {
-            "get": {
-                "description": "Retrieves a single dashboard by its unique ID.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Dashboards"
-                ],
-                "summary": "Get a dashboard",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Dashboard ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-service_Dashboard"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/findings": {
-            "post": {
-                "description": "Creates multiple findings in the CCF API, as well as their subject and component counterparts.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Findings"
-                ],
-                "summary": "Create new findings",
                 "responses": {
                     "201": {
                         "description": "Created"
@@ -512,53 +69,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/findings/by-control/{class}": {
-            "get": {
-                "description": "Searches for findings and groups them by control class",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Findings"
-                ],
-                "summary": "Search findings grouped by control class",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Control Class",
-                        "name": "class",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-service_FindingsGroupedByControl"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/findings/compliance-by-search": {
+        "/agent/heartbeat": {
             "post": {
-                "description": "Fetches an intervalled compliance report for findings that match the provided label filter. The report groups findings status over time and returns a list of compliance report groups.",
+                "description": "Creates a new heartbeat record for monitoring.",
                 "consumes": [
                     "application/json"
                 ],
@@ -566,400 +79,20 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Findings"
+                    "Heartbeat"
                 ],
-                "summary": "Get intervalled compliance report by search",
+                "summary": "Create Heartbeat",
                 "parameters": [
                     {
-                        "description": "Label filter criteria",
-                        "name": "filter",
+                        "description": "Heartbeat payload",
+                        "name": "heartbeat",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/labelfilter.Filter"
+                            "$ref": "#/definitions/handler.HeartbeatCreateRequest"
                         }
                     }
                 ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-service_StatusOverTimeGroup"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/findings/history/{uuid}": {
-            "get": {
-                "description": "Fetches up to 200 findings (ordered by Collected descending) that share the same stream UUID.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Findings"
-                ],
-                "summary": "Get finding history by stream UUID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Stream UUID",
-                        "name": "uuid",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-service_Finding"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/findings/instant-compliance-by-control/{class}/{id}": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Findings"
-                ],
-                "summary": "Get compliance report by controlID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Label filter criteria",
-                        "name": "class",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Label filter criteria",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-service_StatusOverTimeRecord"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/findings/list-control-classes": {
-            "get": {
-                "description": "Retrieves all unique control classes found in the stored findings",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Findings"
-                ],
-                "summary": "List unique control classes from findings",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/findings/search": {
-            "post": {
-                "description": "Searches for findings using label filters.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Findings"
-                ],
-                "summary": "Search findings by labels",
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-service_Finding"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/findings/search-by-subject": {
-            "post": {
-                "description": "Searches for findings, and groups them by subject",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Findings"
-                ],
-                "summary": "Search findings grouped by subject",
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-service_FindingsBySubject"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/findings/{id}": {
-            "get": {
-                "description": "Fetches a finding based on its internal ID.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Findings"
-                ],
-                "summary": "Get a single finding",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Finding ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-service_Finding"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/groups/catalog/{catalog}": {
-            "get": {
-                "description": "Retrieves catalog groups that belong to a catalog, identified by its unique catalog ID.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "CatalogGroups"
-                ],
-                "summary": "Get catalog groups for a catalog parent",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Catalog ID",
-                        "name": "catalog",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-service_CatalogGroup"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/groups/children/{class}/{id}": {
-            "get": {
-                "description": "Retrieves catalog groups that belong to a parent group, identified by its class and ID.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "CatalogGroups"
-                ],
-                "summary": "Get catalog groups for a group parent",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Catalog ID",
-                        "name": "catalog",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Parent group class",
-                        "name": "class",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Parent group ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-service_CatalogGroup"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/observations": {
-            "post": {
-                "description": "Creates multiple observations in the CCF API, along with their subject and component counterparts.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Observations"
-                ],
-                "summary": "Create new observations",
                 "responses": {
                     "201": {
                         "description": "Created"
@@ -979,83 +112,21 @@ const docTemplate = `{
                 }
             }
         },
-        "/observations/history/{uuid}": {
+        "/agent/heartbeat/over-time": {
             "get": {
-                "description": "Fetches up to 200 observations (ordered by Collected descending) that share the same stream UUID.",
+                "description": "Retrieves heartbeat counts aggregated by 2-minute intervals.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Observations"
+                    "Heartbeat"
                 ],
-                "summary": "Get observation history by stream UUID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Stream UUID",
-                        "name": "uuid",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
+                "summary": "Get Heartbeat Metrics Over Time",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-service_Observation"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/observations/{id}": {
-            "get": {
-                "description": "Fetches an observation based on its internal ID.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Observations"
-                ],
-                "summary": "Get a single observation",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Observation ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-service_Observation"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
+                            "$ref": "#/definitions/handler.GenericDataListResponse-handler_OverTime_HeartbeatInterval"
                         }
                     },
                     "500": {
@@ -6898,175 +5969,6 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/subjects": {
-            "get": {
-                "description": "Retrieves a list of all subjects from the database.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Subjects"
-                ],
-                "summary": "Get all subjects",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-array_service_Subject"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/subjects/{id}": {
-            "get": {
-                "description": "Fetches a subject based on its internal ID.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Subjects"
-                ],
-                "summary": "Get a single subject",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Subject ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-service_Subject"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Deletes a subject from the database based on its internal ID.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Subjects"
-                ],
-                "summary": "Delete a subject",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Subject ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            },
-            "patch": {
-                "description": "Updates a subject's title and/or remarks based on the provided subject ID. Only title and remarks are updated if provided. If no fields are provided, a ` + "`" + `400 Bad Request` + "`" + ` is returned.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Subjects"
-                ],
-                "summary": "Update a subject's title and/or remarks",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Subject ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Title and remarks data",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handler.UpdateSubjectRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.GenericDataResponse-service_Subject"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
@@ -7076,6 +5978,289 @@ const docTemplate = `{
                 "errors": {
                     "type": "object",
                     "additionalProperties": {}
+                }
+            }
+        },
+        "handler.EvidenceActivity": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "steps": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.EvidenceActivityStep"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.EvidenceActivityStep": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.EvidenceComponent": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "identifier": {
+                    "description": "components/common/ssh\ncomponents/common/github-repository\ncomponents/common/github-organisation\ncomponents/common/ubuntu-22\ncomponents/internal/auth-policy",
+                    "type": "string"
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
+                },
+                "protocols": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Protocol"
+                    }
+                },
+                "purpose": {
+                    "type": "string"
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "description": "Software\nService",
+                    "type": "string"
+                }
+            }
+        },
+        "handler.EvidenceCreateRequest": {
+            "type": "object",
+            "properties": {
+                "activities": {
+                    "description": "What steps did we take to create this evidence",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.EvidenceActivity"
+                    }
+                },
+                "components": {
+                    "description": "Which components of the subject are being observed. A tool, user, policy etc.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.EvidenceComponent"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "end": {
+                    "type": "string"
+                },
+                "expires": {
+                    "type": "string"
+                },
+                "inventoryItems": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.EvidenceInventoryItem"
+                    }
+                },
+                "labels": {
+                    "description": "Assigning labels to Evidence makes it searchable and easily usable in the UI",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "origins": {
+                    "description": "Who or What is generating this evidence",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Origin"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "start": {
+                    "description": "When did we start collecting the evidence, and when did the process end, and how long is it valid for ?",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "Did we satisfy what was being tested for, or did we fail ?",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/oscalTypes_1_1_3.ObjectiveStatus"
+                        }
+                    ]
+                },
+                "subjects": {
+                    "description": "Who or What are we providing evidence for. What's under test.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.EvidenceSubject"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "description": "UUID needs to remain consistent for a piece of evidence being collected periodically.\nIt represents the \"stream\" of the same observation being made over time.\nFor the same checks, performed on the same machine, the UUID for each check should remain the same.\nFor the same check, performed on two different machines, the UUID should differ.",
+                    "type": "string"
+                }
+            }
+        },
+        "handler.EvidenceInventoryItem": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "identifier": {
+                    "description": "user/chris@linguine.tech\noperating-system/ubuntu/22.4\nweb-server/ec2/i-12345",
+                    "type": "string"
+                },
+                "implementedComponents": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "identifier": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "description": "\"operating-system\"\tdescription=\"System software that manages computer hardware, software resources, and provides common services for computer programs.\"\n\"database\"\t\t\tdescription=\"An electronic collection of data, or information, that is specially organized for rapid search and retrieval.\"\n\"web-server\"\t\t\tdescription=\"A system that delivers content or services to end users over the Internet or an intranet.\"\n\"dns-server\"\t\t\tdescription=\"A system that resolves domain names to internet protocol (IP) addresses.\"\n\"email-server\"\t\tdescription=\"A computer system that sends and receives electronic mail messages.\"\n\"directory-server\"\tdescription=\"A system that stores, organizes and provides access to directory information in order to unify network resources.\"\n\"pbx\"\t\t\t\tdescription=\"A private branch exchange (PBX) provides a a private telephone switchboard.\"\n\"firewall\"\t\t\tdescription=\"A network security system that monitors and controls incoming and outgoing network traffic based on predetermined security rules.\"\n\"router\"\t\t\t\tdescription=\"A physical or virtual networking device that forwards data packets between computer networks.\"\n\"switch\"\t\t\t\tdescription=\"A physical or virtual networking device that connects devices within a computer network by using packet switching to receive and forward data to the destination device.\"\n\"storage-array\"\t\tdescription=\"A consolidated, block-level data storage capability.\"\n\"appliance\"\t\t\tdescription=\"A physical or virtual machine that centralizes hardware, software, or services for a specific purpose.\"",
+                    "type": "string"
+                }
+            }
+        },
+        "handler.EvidenceSubject": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "identifier": {
+                    "type": "string"
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
+                    }
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "type": {
+                    "description": "InventoryItem\nComponent",
+                    "type": "string"
+                }
+            }
+        },
+        "handler.GenericDataListResponse-handler_OverTime_HeartbeatInterval": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Items from the list response",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.OverTime.HeartbeatInterval"
+                    }
                 }
             }
         },
@@ -7375,150 +6560,6 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/oscal.ProfileHandler"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataListResponse-service_Catalog": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/service.Catalog"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataListResponse-service_CatalogControl": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/service.CatalogControl"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataListResponse-service_CatalogGroup": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/service.CatalogGroup"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataListResponse-service_Dashboard": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/service.Dashboard"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataListResponse-service_Finding": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/service.Finding"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataListResponse-service_FindingsBySubject": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/service.FindingsBySubject"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataListResponse-service_FindingsGroupedByControl": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/service.FindingsGroupedByControl"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataListResponse-service_Observation": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/service.Observation"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataListResponse-service_StatusOverTimeGroup": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/service.StatusOverTimeGroup"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataListResponse-service_StatusOverTimeRecord": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/service.StatusOverTimeRecord"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataListResponse-string": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "handler.GenericDataResponse-array_service_Subject": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/service.Subject"
                     }
                 }
             }
@@ -7939,133 +6980,29 @@ const docTemplate = `{
                 }
             }
         },
-        "handler.GenericDataResponse-service_Catalog": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/service.Catalog"
-                        }
-                    ]
-                }
-            }
-        },
-        "handler.GenericDataResponse-service_Dashboard": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/service.Dashboard"
-                        }
-                    ]
-                }
-            }
-        },
-        "handler.GenericDataResponse-service_Observation": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/service.Observation"
-                        }
-                    ]
-                }
-            }
-        },
-        "handler.GenericDataResponse-service_Subject": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "description": "Items from the list response",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/service.Subject"
-                        }
-                    ]
-                }
-            }
-        },
-        "handler.UpdateSubjectRequest": {
-            "type": "object",
-            "properties": {
-                "remarks": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "handler.createDashboardRequest": {
+        "handler.HeartbeatCreateRequest": {
             "type": "object",
             "required": [
-                "filter",
-                "name"
+                "created_at",
+                "uuid"
             ],
             "properties": {
-                "filter": {
-                    "$ref": "#/definitions/labelfilter.Filter"
+                "created_at": {
+                    "type": "string"
                 },
-                "name": {
+                "uuid": {
                     "type": "string"
                 }
             }
         },
-        "labelfilter.Condition": {
+        "handler.OverTime.HeartbeatInterval": {
             "type": "object",
             "properties": {
-                "label": {
-                    "description": "Label name (e.g., \"type\", \"group\", \"app\").",
+                "interval": {
                     "type": "string"
                 },
-                "operator": {
-                    "description": "Operator (e.g., \"=\", \"!=\", etc.).",
-                    "type": "string"
-                },
-                "value": {
-                    "description": "Value for the condition (e.g., \"ssh\", \"prod\").",
-                    "type": "string"
-                }
-            }
-        },
-        "labelfilter.Filter": {
-            "type": "object",
-            "properties": {
-                "scope": {
-                    "$ref": "#/definitions/labelfilter.Scope"
-                }
-            }
-        },
-        "labelfilter.Query": {
-            "type": "object",
-            "properties": {
-                "operator": {
-                    "description": "Logical operator (e.g., \"AND\", \"OR\").",
-                    "type": "string"
-                },
-                "scopes": {
-                    "description": "Scopes can be either ` + "`" + `Condition` + "`" + ` or nested ` + "`" + `Query` + "`" + `.",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/labelfilter.Scope"
-                    }
-                }
-            }
-        },
-        "labelfilter.Scope": {
-            "type": "object",
-            "properties": {
-                "condition": {
-                    "$ref": "#/definitions/labelfilter.Condition"
-                },
-                "query": {
-                    "$ref": "#/definitions/labelfilter.Query"
+                "total": {
+                    "type": "integer"
                 }
             }
         },
@@ -11730,665 +10667,6 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/oscalTypes_1_1_3.ResponsibleParty"
                     }
-                }
-            }
-        },
-        "service.Catalog": {
-            "type": "object",
-            "properties": {
-                "metadata": {
-                    "$ref": "#/definitions/oscalTypes_1_1_3.Metadata"
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
-        "service.CatalogControl": {
-            "type": "object",
-            "properties": {
-                "class": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "parent": {
-                    "$ref": "#/definitions/service.CatalogItemParentIdentifier"
-                },
-                "parts": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Part"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "title": {
-                    "type": "string"
-                },
-                "uuid": {
-                    "description": "UUID as a primary key, although it likely won't be used.\nThe primary key for a group consists of a compound (class + id)",
-                    "type": "string"
-                }
-            }
-        },
-        "service.CatalogGroup": {
-            "type": "object",
-            "properties": {
-                "class": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Link"
-                    }
-                },
-                "parent": {
-                    "$ref": "#/definitions/service.CatalogItemParentIdentifier"
-                },
-                "parts": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Part"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/oscalTypes_1_1_3.Property"
-                    }
-                },
-                "title": {
-                    "type": "string"
-                },
-                "uuid": {
-                    "description": "UUID as a primary key, although it likely won't be used.\nThe primary key for a group consists of a compound (class + id)",
-                    "type": "string"
-                }
-            }
-        },
-        "service.CatalogItemParentIdentifier": {
-            "type": "object",
-            "properties": {
-                "catalog_id": {
-                    "type": "string"
-                },
-                "class": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "type": {
-                    "$ref": "#/definitions/service.CatalogItemParentType"
-                }
-            }
-        },
-        "service.CatalogItemParentType": {
-            "type": "string",
-            "enum": [
-                "control",
-                "group",
-                "catalog"
-            ],
-            "x-enum-varnames": [
-                "CatalogItemParentTypeControl",
-                "CatalogItemParentTypeGroup",
-                "CatalogItemParentTypeCatalog"
-            ]
-        },
-        "service.Dashboard": {
-            "type": "object",
-            "properties": {
-                "filter": {
-                    "$ref": "#/definitions/labelfilter.Filter"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
-        "service.Finding": {
-            "type": "object",
-            "properties": {
-                "_id": {
-                    "description": "ID is the unique ID for this specific observation, and will be used as the primary key in the database.",
-                    "type": "string"
-                },
-                "collected": {
-                    "type": "string"
-                },
-                "components": {
-                    "description": "Which components of the subject are being judged",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "controls": {
-                    "description": "Which controls did we validate",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.ControlReference"
-                    }
-                },
-                "description": {
-                    "type": "string"
-                },
-                "labels": {
-                    "description": "Labels represent the unique labels which can be used to filter for findings in the UI.",
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Link"
-                    }
-                },
-                "observations": {
-                    "description": "Which observations led to this judgment ?",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "origins": {
-                    "description": "Who is generating this finding",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Origin"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Property"
-                    }
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "risks": {
-                    "description": "Which risks are associated with what we've tested",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.RiskReference"
-                    }
-                },
-                "status": {
-                    "description": "What is our conclusion drawn for this finding. satisfied | not-satisfied",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/types.FindingStatus"
-                        }
-                    ]
-                },
-                "subjects": {
-                    "description": "What are we making a judgement against",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "title": {
-                    "type": "string"
-                },
-                "uuid": {
-                    "description": "UUID needs to remain consistent when automation runs again, but unique for each subject.\nIt represents the \"stream\" of the same finding being made over time.",
-                    "type": "string"
-                }
-            }
-        },
-        "service.FindingsBySubject": {
-            "type": "object",
-            "properties": {
-                "findings": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/service.Finding"
-                    }
-                },
-                "subject": {
-                    "type": "string"
-                }
-            }
-        },
-        "service.FindingsGroupedByControl": {
-            "type": "object",
-            "properties": {
-                "controlid": {
-                    "type": "string"
-                },
-                "findings": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/service.Finding"
-                    }
-                }
-            }
-        },
-        "service.Observation": {
-            "type": "object",
-            "properties": {
-                "_id": {
-                    "description": "ID is the unique ID for this specific observation, and will be used as the primary key in the database.",
-                    "type": "string"
-                },
-                "activities": {
-                    "description": "What steps did we take to make this observation",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Activity"
-                    }
-                },
-                "collected": {
-                    "type": "string"
-                },
-                "components": {
-                    "description": "Which components of the subject are being observed",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "description": {
-                    "type": "string"
-                },
-                "expires": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Link"
-                    }
-                },
-                "methods": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "origins": {
-                    "description": "Who is generating this finding",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Origin"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Property"
-                    }
-                },
-                "relevant-evidence": {
-                    "description": "What exactly did we see",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.RelevantEvidence"
-                    }
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "subjects": {
-                    "description": "What are we observing",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "title": {
-                    "type": "string"
-                },
-                "uuid": {
-                    "description": "UUID needs to remain consistent when automation runs again, but unique for each subject.\nIt represents the \"stream\" of the same observation being made over time.",
-                    "type": "string"
-                }
-            }
-        },
-        "service.StatusOverTimeGroup": {
-            "type": "object",
-            "properties": {
-                "interval": {
-                    "type": "string"
-                },
-                "statuses": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/service.StatusOverTimeRecord"
-                    }
-                }
-            }
-        },
-        "service.StatusOverTimeRecord": {
-            "type": "object",
-            "properties": {
-                "count": {
-                    "type": "integer"
-                },
-                "status": {
-                    "type": "string"
-                }
-            }
-        },
-        "service.Subject": {
-            "type": "object",
-            "properties": {
-                "_id": {
-                    "type": "string"
-                },
-                "attributes": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Link"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Property"
-                    }
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                }
-            }
-        },
-        "types.Activity": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Link"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Property"
-                    }
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "steps": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Step"
-                    }
-                },
-                "title": {
-                    "type": "string"
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
-        "types.ControlReference": {
-            "type": "object",
-            "properties": {
-                "class": {
-                    "type": "string"
-                },
-                "control-id": {
-                    "type": "string"
-                },
-                "statement-ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "types.FindingStatus": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Link"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Property"
-                    }
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "state": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "types.Link": {
-            "type": "object",
-            "properties": {
-                "href": {
-                    "type": "string"
-                },
-                "media-type": {
-                    "type": "string"
-                },
-                "rel": {
-                    "type": "string"
-                },
-                "resource-fragment": {
-                    "type": "string"
-                },
-                "text": {
-                    "type": "string"
-                }
-            }
-        },
-        "types.Origin": {
-            "type": "object",
-            "properties": {
-                "actors": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.OriginActor"
-                    }
-                }
-            }
-        },
-        "types.OriginActor": {
-            "type": "object",
-            "properties": {
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Link"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Property"
-                    }
-                },
-                "title": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
-        "types.Property": {
-            "type": "object",
-            "properties": {
-                "class": {
-                    "type": "string"
-                },
-                "group": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "ns": {
-                    "type": "string"
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "uuid": {
-                    "type": "string"
-                },
-                "value": {
-                    "type": "string"
-                }
-            }
-        },
-        "types.RelevantEvidence": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "href": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Link"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Property"
-                    }
-                },
-                "remarks": {
-                    "type": "string"
-                }
-            }
-        },
-        "types.RiskReference": {
-            "type": "object",
-            "properties": {
-                "href": {
-                    "description": "If a Href is specified here, it means we are referencing a common risk, and should be pulled from there.",
-                    "type": "string"
-                },
-                "identifier": {
-                    "type": "string"
-                },
-                "origins": {
-                    "description": "Who is generating this risk",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Origin"
-                    }
-                },
-                "status": {
-                    "description": "The status for the risk. This can either be open|closed based on whether the risk is active or not.",
-                    "type": "string"
-                },
-                "threat-ids": {
-                    "description": "These threats relate to well known threats like phishing emails, brute force attacks, etc. often detailed\nby cyber-security organisations.",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.ThreatId"
-                    }
-                }
-            }
-        },
-        "types.Step": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Link"
-                    }
-                },
-                "props": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Property"
-                    }
-                },
-                "remarks": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
-        "types.ThreatId": {
-            "type": "object",
-            "properties": {
-                "href": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "system": {
-                    "type": "string"
                 }
             }
         }

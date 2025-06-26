@@ -147,7 +147,19 @@ type EvidenceCreateRequest struct {
 	Status oscalTypes_1_1_3.ObjectiveStatus
 }
 
-// Create purposefully has no swagger doc to prevent it showing up in the swagger ui. This is for internal use only.
+// Create godoc
+//
+//	@Summary		Create new Evidence
+//	@Description	Creates a new Evidence record including activities, inventory items, components, and subjects.
+//	@Tags			Evidence
+//	@Accept			json
+//	@Produce		json
+//	@Param			evidence	body		EvidenceCreateRequest	true	"Evidence create request"
+//	@Success		201			{object}	nil
+//	@Failure		400			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/agent/evidence [post]
 func (h *EvidenceHandler) Create(ctx echo.Context) error {
 	// Bind the incoming JSON payload into a slice of SDK findings.
 	var input *EvidenceCreateRequest

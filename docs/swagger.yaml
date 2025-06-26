@@ -8,6 +8,233 @@ definitions:
         additionalProperties: {}
         type: object
     type: object
+  handler.EvidenceActivity:
+    properties:
+      description:
+        type: string
+      links:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Link'
+        type: array
+      props:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Property'
+        type: array
+      remarks:
+        type: string
+      steps:
+        items:
+          $ref: '#/definitions/handler.EvidenceActivityStep'
+        type: array
+      title:
+        type: string
+      uuid:
+        type: string
+    type: object
+  handler.EvidenceActivityStep:
+    properties:
+      description:
+        type: string
+      links:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Link'
+        type: array
+      props:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Property'
+        type: array
+      remarks:
+        type: string
+      title:
+        type: string
+      uuid:
+        type: string
+    type: object
+  handler.EvidenceComponent:
+    properties:
+      description:
+        type: string
+      identifier:
+        description: |-
+          components/common/ssh
+          components/common/github-repository
+          components/common/github-organisation
+          components/common/ubuntu-22
+          components/internal/auth-policy
+        type: string
+      links:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Link'
+        type: array
+      props:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Property'
+        type: array
+      protocols:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Protocol'
+        type: array
+      purpose:
+        type: string
+      remarks:
+        type: string
+      title:
+        type: string
+      type:
+        description: |-
+          Software
+          Service
+        type: string
+    type: object
+  handler.EvidenceCreateRequest:
+    properties:
+      activities:
+        description: What steps did we take to create this evidence
+        items:
+          $ref: '#/definitions/handler.EvidenceActivity'
+        type: array
+      components:
+        description: Which components of the subject are being observed. A tool, user,
+          policy etc.
+        items:
+          $ref: '#/definitions/handler.EvidenceComponent'
+        type: array
+      description:
+        type: string
+      end:
+        type: string
+      expires:
+        type: string
+      inventoryItems:
+        items:
+          $ref: '#/definitions/handler.EvidenceInventoryItem'
+        type: array
+      labels:
+        additionalProperties:
+          type: string
+        description: Assigning labels to Evidence makes it searchable and easily usable
+          in the UI
+        type: object
+      links:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Link'
+        type: array
+      origins:
+        description: Who or What is generating this evidence
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Origin'
+        type: array
+      props:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Property'
+        type: array
+      remarks:
+        type: string
+      start:
+        description: When did we start collecting the evidence, and when did the process
+          end, and how long is it valid for ?
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/oscalTypes_1_1_3.ObjectiveStatus'
+        description: Did we satisfy what was being tested for, or did we fail ?
+      subjects:
+        description: Who or What are we providing evidence for. What's under test.
+        items:
+          $ref: '#/definitions/handler.EvidenceSubject'
+        type: array
+      title:
+        type: string
+      uuid:
+        description: |-
+          UUID needs to remain consistent for a piece of evidence being collected periodically.
+          It represents the "stream" of the same observation being made over time.
+          For the same checks, performed on the same machine, the UUID for each check should remain the same.
+          For the same check, performed on two different machines, the UUID should differ.
+        type: string
+    type: object
+  handler.EvidenceInventoryItem:
+    properties:
+      description:
+        type: string
+      identifier:
+        description: |-
+          user/chris@linguine.tech
+          operating-system/ubuntu/22.4
+          web-server/ec2/i-12345
+        type: string
+      implementedComponents:
+        items:
+          properties:
+            identifier:
+              type: string
+          type: object
+        type: array
+      links:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Link'
+        type: array
+      props:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Property'
+        type: array
+      remarks:
+        type: string
+      title:
+        type: string
+      type:
+        description: "\"operating-system\"\tdescription=\"System software that manages
+          computer hardware, software resources, and provides common services for
+          computer programs.\"\n\"database\"\t\t\tdescription=\"An electronic collection
+          of data, or information, that is specially organized for rapid search and
+          retrieval.\"\n\"web-server\"\t\t\tdescription=\"A system that delivers content
+          or services to end users over the Internet or an intranet.\"\n\"dns-server\"\t\t\tdescription=\"A
+          system that resolves domain names to internet protocol (IP) addresses.\"\n\"email-server\"\t\tdescription=\"A
+          computer system that sends and receives electronic mail messages.\"\n\"directory-server\"\tdescription=\"A
+          system that stores, organizes and provides access to directory information
+          in order to unify network resources.\"\n\"pbx\"\t\t\t\tdescription=\"A private
+          branch exchange (PBX) provides a a private telephone switchboard.\"\n\"firewall\"\t\t\tdescription=\"A
+          network security system that monitors and controls incoming and outgoing
+          network traffic based on predetermined security rules.\"\n\"router\"\t\t\t\tdescription=\"A
+          physical or virtual networking device that forwards data packets between
+          computer networks.\"\n\"switch\"\t\t\t\tdescription=\"A physical or virtual
+          networking device that connects devices within a computer network by using
+          packet switching to receive and forward data to the destination device.\"\n\"storage-array\"\t\tdescription=\"A
+          consolidated, block-level data storage capability.\"\n\"appliance\"\t\t\tdescription=\"A
+          physical or virtual machine that centralizes hardware, software, or services
+          for a specific purpose.\""
+        type: string
+    type: object
+  handler.EvidenceSubject:
+    properties:
+      description:
+        type: string
+      identifier:
+        type: string
+      links:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Link'
+        type: array
+      props:
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.Property'
+        type: array
+      remarks:
+        type: string
+      type:
+        description: |-
+          InventoryItem
+          Component
+        type: string
+    type: object
+  handler.GenericDataListResponse-handler_OverTime_HeartbeatInterval:
+    properties:
+      data:
+        description: Items from the list response
+        items:
+          $ref: '#/definitions/handler.OverTime.HeartbeatInterval'
+        type: array
+    type: object
   handler.GenericDataListResponse-oscal_List_responseCatalog:
     properties:
       data:
@@ -206,102 +433,6 @@ definitions:
         description: Items from the list response
         items:
           $ref: '#/definitions/oscalTypes_1_1_3.SystemUser'
-        type: array
-    type: object
-  handler.GenericDataListResponse-service_Catalog:
-    properties:
-      data:
-        description: Items from the list response
-        items:
-          $ref: '#/definitions/service.Catalog'
-        type: array
-    type: object
-  handler.GenericDataListResponse-service_CatalogControl:
-    properties:
-      data:
-        description: Items from the list response
-        items:
-          $ref: '#/definitions/service.CatalogControl'
-        type: array
-    type: object
-  handler.GenericDataListResponse-service_CatalogGroup:
-    properties:
-      data:
-        description: Items from the list response
-        items:
-          $ref: '#/definitions/service.CatalogGroup'
-        type: array
-    type: object
-  handler.GenericDataListResponse-service_Dashboard:
-    properties:
-      data:
-        description: Items from the list response
-        items:
-          $ref: '#/definitions/service.Dashboard'
-        type: array
-    type: object
-  handler.GenericDataListResponse-service_Finding:
-    properties:
-      data:
-        description: Items from the list response
-        items:
-          $ref: '#/definitions/service.Finding'
-        type: array
-    type: object
-  handler.GenericDataListResponse-service_FindingsBySubject:
-    properties:
-      data:
-        description: Items from the list response
-        items:
-          $ref: '#/definitions/service.FindingsBySubject'
-        type: array
-    type: object
-  handler.GenericDataListResponse-service_FindingsGroupedByControl:
-    properties:
-      data:
-        description: Items from the list response
-        items:
-          $ref: '#/definitions/service.FindingsGroupedByControl'
-        type: array
-    type: object
-  handler.GenericDataListResponse-service_Observation:
-    properties:
-      data:
-        description: Items from the list response
-        items:
-          $ref: '#/definitions/service.Observation'
-        type: array
-    type: object
-  handler.GenericDataListResponse-service_StatusOverTimeGroup:
-    properties:
-      data:
-        description: Items from the list response
-        items:
-          $ref: '#/definitions/service.StatusOverTimeGroup'
-        type: array
-    type: object
-  handler.GenericDataListResponse-service_StatusOverTimeRecord:
-    properties:
-      data:
-        description: Items from the list response
-        items:
-          $ref: '#/definitions/service.StatusOverTimeRecord'
-        type: array
-    type: object
-  handler.GenericDataListResponse-string:
-    properties:
-      data:
-        description: Items from the list response
-        items:
-          type: string
-        type: array
-    type: object
-  handler.GenericDataResponse-array_service_Subject:
-    properties:
-      data:
-        description: Items from the list response
-        items:
-          $ref: '#/definitions/service.Subject'
         type: array
     type: object
   handler.GenericDataResponse-oscal_Get_responseComponentDefinition:
@@ -528,85 +659,22 @@ definitions:
         - $ref: '#/definitions/oscalTypes_1_1_3.SystemSecurityPlan'
         description: Items from the list response
     type: object
-  handler.GenericDataResponse-service_Catalog:
+  handler.HeartbeatCreateRequest:
     properties:
-      data:
-        allOf:
-        - $ref: '#/definitions/service.Catalog'
-        description: Items from the list response
-    type: object
-  handler.GenericDataResponse-service_Dashboard:
-    properties:
-      data:
-        allOf:
-        - $ref: '#/definitions/service.Dashboard'
-        description: Items from the list response
-    type: object
-  handler.GenericDataResponse-service_Observation:
-    properties:
-      data:
-        allOf:
-        - $ref: '#/definitions/service.Observation'
-        description: Items from the list response
-    type: object
-  handler.GenericDataResponse-service_Subject:
-    properties:
-      data:
-        allOf:
-        - $ref: '#/definitions/service.Subject'
-        description: Items from the list response
-    type: object
-  handler.UpdateSubjectRequest:
-    properties:
-      remarks:
+      created_at:
         type: string
-      title:
-        type: string
-    type: object
-  handler.createDashboardRequest:
-    properties:
-      filter:
-        $ref: '#/definitions/labelfilter.Filter'
-      name:
+      uuid:
         type: string
     required:
-    - filter
-    - name
+    - created_at
+    - uuid
     type: object
-  labelfilter.Condition:
+  handler.OverTime.HeartbeatInterval:
     properties:
-      label:
-        description: Label name (e.g., "type", "group", "app").
+      interval:
         type: string
-      operator:
-        description: Operator (e.g., "=", "!=", etc.).
-        type: string
-      value:
-        description: Value for the condition (e.g., "ssh", "prod").
-        type: string
-    type: object
-  labelfilter.Filter:
-    properties:
-      scope:
-        $ref: '#/definitions/labelfilter.Scope'
-    type: object
-  labelfilter.Query:
-    properties:
-      operator:
-        description: Logical operator (e.g., "AND", "OR").
-        type: string
-      scopes:
-        description: Scopes can be either `Condition` or nested `Query`.
-        items:
-          $ref: '#/definitions/labelfilter.Scope'
-        type: array
-    type: object
-  labelfilter.Scope:
-    properties:
-      condition:
-        $ref: '#/definitions/labelfilter.Condition'
-      query:
-        $ref: '#/definitions/labelfilter.Query'
+      total:
+        type: integer
     type: object
   oscal.Get.responseComponentDefinition:
     properties:
@@ -3008,460 +3076,6 @@ definitions:
           $ref: '#/definitions/oscalTypes_1_1_3.ResponsibleParty'
         type: array
     type: object
-  service.Catalog:
-    properties:
-      metadata:
-        $ref: '#/definitions/oscalTypes_1_1_3.Metadata'
-      uuid:
-        type: string
-    type: object
-  service.CatalogControl:
-    properties:
-      class:
-        type: string
-      id:
-        type: string
-      links:
-        items:
-          $ref: '#/definitions/oscalTypes_1_1_3.Link'
-        type: array
-      parent:
-        $ref: '#/definitions/service.CatalogItemParentIdentifier'
-      parts:
-        items:
-          $ref: '#/definitions/oscalTypes_1_1_3.Part'
-        type: array
-      props:
-        items:
-          $ref: '#/definitions/oscalTypes_1_1_3.Property'
-        type: array
-      title:
-        type: string
-      uuid:
-        description: |-
-          UUID as a primary key, although it likely won't be used.
-          The primary key for a group consists of a compound (class + id)
-        type: string
-    type: object
-  service.CatalogGroup:
-    properties:
-      class:
-        type: string
-      id:
-        type: string
-      links:
-        items:
-          $ref: '#/definitions/oscalTypes_1_1_3.Link'
-        type: array
-      parent:
-        $ref: '#/definitions/service.CatalogItemParentIdentifier'
-      parts:
-        items:
-          $ref: '#/definitions/oscalTypes_1_1_3.Part'
-        type: array
-      props:
-        items:
-          $ref: '#/definitions/oscalTypes_1_1_3.Property'
-        type: array
-      title:
-        type: string
-      uuid:
-        description: |-
-          UUID as a primary key, although it likely won't be used.
-          The primary key for a group consists of a compound (class + id)
-        type: string
-    type: object
-  service.CatalogItemParentIdentifier:
-    properties:
-      catalog_id:
-        type: string
-      class:
-        type: string
-      id:
-        type: string
-      type:
-        $ref: '#/definitions/service.CatalogItemParentType'
-    type: object
-  service.CatalogItemParentType:
-    enum:
-    - control
-    - group
-    - catalog
-    type: string
-    x-enum-varnames:
-    - CatalogItemParentTypeControl
-    - CatalogItemParentTypeGroup
-    - CatalogItemParentTypeCatalog
-  service.Dashboard:
-    properties:
-      filter:
-        $ref: '#/definitions/labelfilter.Filter'
-      name:
-        type: string
-      uuid:
-        type: string
-    type: object
-  service.Finding:
-    properties:
-      _id:
-        description: ID is the unique ID for this specific observation, and will be
-          used as the primary key in the database.
-        type: string
-      collected:
-        type: string
-      components:
-        description: Which components of the subject are being judged
-        items:
-          type: string
-        type: array
-      controls:
-        description: Which controls did we validate
-        items:
-          $ref: '#/definitions/types.ControlReference'
-        type: array
-      description:
-        type: string
-      labels:
-        additionalProperties:
-          type: string
-        description: Labels represent the unique labels which can be used to filter
-          for findings in the UI.
-        type: object
-      links:
-        items:
-          $ref: '#/definitions/types.Link'
-        type: array
-      observations:
-        description: Which observations led to this judgment ?
-        items:
-          type: string
-        type: array
-      origins:
-        description: Who is generating this finding
-        items:
-          $ref: '#/definitions/types.Origin'
-        type: array
-      props:
-        items:
-          $ref: '#/definitions/types.Property'
-        type: array
-      remarks:
-        type: string
-      risks:
-        description: Which risks are associated with what we've tested
-        items:
-          $ref: '#/definitions/types.RiskReference'
-        type: array
-      status:
-        allOf:
-        - $ref: '#/definitions/types.FindingStatus'
-        description: What is our conclusion drawn for this finding. satisfied | not-satisfied
-      subjects:
-        description: What are we making a judgement against
-        items:
-          type: string
-        type: array
-      title:
-        type: string
-      uuid:
-        description: |-
-          UUID needs to remain consistent when automation runs again, but unique for each subject.
-          It represents the "stream" of the same finding being made over time.
-        type: string
-    type: object
-  service.FindingsBySubject:
-    properties:
-      findings:
-        items:
-          $ref: '#/definitions/service.Finding'
-        type: array
-      subject:
-        type: string
-    type: object
-  service.FindingsGroupedByControl:
-    properties:
-      controlid:
-        type: string
-      findings:
-        items:
-          $ref: '#/definitions/service.Finding'
-        type: array
-    type: object
-  service.Observation:
-    properties:
-      _id:
-        description: ID is the unique ID for this specific observation, and will be
-          used as the primary key in the database.
-        type: string
-      activities:
-        description: What steps did we take to make this observation
-        items:
-          $ref: '#/definitions/types.Activity'
-        type: array
-      collected:
-        type: string
-      components:
-        description: Which components of the subject are being observed
-        items:
-          type: string
-        type: array
-      description:
-        type: string
-      expires:
-        type: string
-      links:
-        items:
-          $ref: '#/definitions/types.Link'
-        type: array
-      methods:
-        items:
-          type: string
-        type: array
-      origins:
-        description: Who is generating this finding
-        items:
-          $ref: '#/definitions/types.Origin'
-        type: array
-      props:
-        items:
-          $ref: '#/definitions/types.Property'
-        type: array
-      relevant-evidence:
-        description: What exactly did we see
-        items:
-          $ref: '#/definitions/types.RelevantEvidence'
-        type: array
-      remarks:
-        type: string
-      subjects:
-        description: What are we observing
-        items:
-          type: string
-        type: array
-      title:
-        type: string
-      uuid:
-        description: |-
-          UUID needs to remain consistent when automation runs again, but unique for each subject.
-          It represents the "stream" of the same observation being made over time.
-        type: string
-    type: object
-  service.StatusOverTimeGroup:
-    properties:
-      interval:
-        type: string
-      statuses:
-        items:
-          $ref: '#/definitions/service.StatusOverTimeRecord'
-        type: array
-    type: object
-  service.StatusOverTimeRecord:
-    properties:
-      count:
-        type: integer
-      status:
-        type: string
-    type: object
-  service.Subject:
-    properties:
-      _id:
-        type: string
-      attributes:
-        additionalProperties:
-          type: string
-        type: object
-      links:
-        items:
-          $ref: '#/definitions/types.Link'
-        type: array
-      props:
-        items:
-          $ref: '#/definitions/types.Property'
-        type: array
-      remarks:
-        type: string
-      title:
-        type: string
-      type:
-        type: string
-    type: object
-  types.Activity:
-    properties:
-      description:
-        type: string
-      links:
-        items:
-          $ref: '#/definitions/types.Link'
-        type: array
-      props:
-        items:
-          $ref: '#/definitions/types.Property'
-        type: array
-      remarks:
-        type: string
-      steps:
-        items:
-          $ref: '#/definitions/types.Step'
-        type: array
-      title:
-        type: string
-      uuid:
-        type: string
-    type: object
-  types.ControlReference:
-    properties:
-      class:
-        type: string
-      control-id:
-        type: string
-      statement-ids:
-        items:
-          type: string
-        type: array
-    type: object
-  types.FindingStatus:
-    properties:
-      description:
-        type: string
-      links:
-        items:
-          $ref: '#/definitions/types.Link'
-        type: array
-      props:
-        items:
-          $ref: '#/definitions/types.Property'
-        type: array
-      remarks:
-        type: string
-      state:
-        type: string
-      title:
-        type: string
-    type: object
-  types.Link:
-    properties:
-      href:
-        type: string
-      media-type:
-        type: string
-      rel:
-        type: string
-      resource-fragment:
-        type: string
-      text:
-        type: string
-    type: object
-  types.Origin:
-    properties:
-      actors:
-        items:
-          $ref: '#/definitions/types.OriginActor'
-        type: array
-    type: object
-  types.OriginActor:
-    properties:
-      links:
-        items:
-          $ref: '#/definitions/types.Link'
-        type: array
-      props:
-        items:
-          $ref: '#/definitions/types.Property'
-        type: array
-      title:
-        type: string
-      type:
-        type: string
-      uuid:
-        type: string
-    type: object
-  types.Property:
-    properties:
-      class:
-        type: string
-      group:
-        type: string
-      name:
-        type: string
-      ns:
-        type: string
-      remarks:
-        type: string
-      uuid:
-        type: string
-      value:
-        type: string
-    type: object
-  types.RelevantEvidence:
-    properties:
-      description:
-        type: string
-      href:
-        type: string
-      links:
-        items:
-          $ref: '#/definitions/types.Link'
-        type: array
-      props:
-        items:
-          $ref: '#/definitions/types.Property'
-        type: array
-      remarks:
-        type: string
-    type: object
-  types.RiskReference:
-    properties:
-      href:
-        description: If a Href is specified here, it means we are referencing a common
-          risk, and should be pulled from there.
-        type: string
-      identifier:
-        type: string
-      origins:
-        description: Who is generating this risk
-        items:
-          $ref: '#/definitions/types.Origin'
-        type: array
-      status:
-        description: The status for the risk. This can either be open|closed based
-          on whether the risk is active or not.
-        type: string
-      threat-ids:
-        description: |-
-          These threats relate to well known threats like phishing emails, brute force attacks, etc. often detailed
-          by cyber-security organisations.
-        items:
-          $ref: '#/definitions/types.ThreatId'
-        type: array
-    type: object
-  types.Step:
-    properties:
-      description:
-        type: string
-      links:
-        items:
-          $ref: '#/definitions/types.Link'
-        type: array
-      props:
-        items:
-          $ref: '#/definitions/types.Property'
-        type: array
-      remarks:
-        type: string
-      title:
-        type: string
-      uuid:
-        type: string
-    type: object
-  types.ThreatId:
-    properties:
-      href:
-        type: string
-      id:
-        type: string
-      system:
-        type: string
-    type: object
 externalDocs:
   description: OpenAPI
   url: https://swagger.io/resources/open-api/
@@ -3472,322 +3086,19 @@ info:
   title: Continuous Compliance Framework API
   version: "1"
 paths:
-  /catalogs:
-    get:
-      description: Retrieves all catalogs.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.GenericDataListResponse-service_Catalog'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: List catalogs
-      tags:
-      - Catalogs
+  /agent/evidence:
     post:
       consumes:
       - application/json
-      description: Creates a new catalog.
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/handler.GenericDataResponse-service_Catalog'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "422":
-          description: Unprocessable Entity
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Create a new catalog
-      tags:
-      - Catalogs
-  /catalogs/{id}:
-    get:
-      description: Retrieves a single Catalog by its unique ID.
+      description: Creates a new Evidence record including activities, inventory items,
+        components, and subjects.
       parameters:
-      - description: Catalog ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.GenericDataResponse-service_Catalog'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Get a Catalog
-      tags:
-      - Catalogs
-  /compliance-by-uuid/{uuid}:
-    get:
-      consumes:
-      - application/json
-      description: Fetches an intervalled compliance report for findings that match
-        the provided uuid. The report groups findings status over time and returns
-        a list of compliance report groups.
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/handler.GenericDataListResponse-service_StatusOverTimeGroup'
-        "422":
-          description: Unprocessable Entity
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Get intervalled compliance report by finding uuid
-      tags:
-      - Findings
-  /controls:
-    get:
-      description: Retrieves catalog controls for a given parent identifier specified
-        via query parameters (id, class, type).
-      parameters:
-      - description: Parent identifier id
-        in: query
-        name: id
-        required: true
-        type: string
-      - description: Parent identifier class
-        in: query
-        name: class
-        required: true
-        type: string
-      - description: Parent identifier type (catalog, group, or control)
-        in: query
-        name: type
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.GenericDataListResponse-service_CatalogControl'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: List catalog controls by parent
-      tags:
-      - CatalogControls
-  /controls/control/{catalog}/{class}/{id}:
-    get:
-      description: Retrieves catalog controls associated with a control parent based
-        on the parent's class and id.
-      parameters:
-      - description: Catalog ID
-        in: path
-        name: catalog
-        required: true
-        type: string
-      - description: Parent control class
-        in: path
-        name: class
-        required: true
-        type: string
-      - description: Parent control id
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.GenericDataListResponse-service_CatalogControl'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Get catalog controls for a control parent
-      tags:
-      - CatalogControls
-  /controls/group/{catalog}/{class}/{id}:
-    get:
-      description: Retrieves catalog controls associated with a group parent based
-        on the parent's class and id.
-      parameters:
-      - description: Catalog ID
-        in: path
-        name: catalog
-        required: true
-        type: string
-      - description: Parent control class
-        in: path
-        name: class
-        required: true
-        type: string
-      - description: Parent control id
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.GenericDataListResponse-service_CatalogControl'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Get catalog controls for a group parent
-      tags:
-      - CatalogControls
-  /dashboard:
-    get:
-      description: Retrieves all dashboards.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.GenericDataListResponse-service_Dashboard'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: List dashboards
-      tags:
-      - Dashboards
-    post:
-      consumes:
-      - application/json
-      description: Creates a new dashboard.
-      parameters:
-      - description: Dashboard to add
+      - description: Evidence create request
         in: body
-        name: dashboard
+        name: evidence
         required: true
         schema:
-          $ref: '#/definitions/handler.createDashboardRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/handler.GenericDataResponse-service_Dashboard'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "422":
-          description: Unprocessable Entity
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Create a new dashboard
-      tags:
-      - Dashboards
-  /dashboard/{id}:
-    get:
-      description: Retrieves a single dashboard by its unique ID.
-      parameters:
-      - description: Dashboard ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.GenericDataResponse-service_Dashboard'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Get a dashboard
-      tags:
-      - Dashboards
-  /findings:
-    post:
-      consumes:
-      - application/json
-      description: Creates multiple findings in the CCF API, as well as their subject
-        and component counterparts.
+          $ref: '#/definitions/handler.EvidenceCreateRequest'
       produces:
       - application/json
       responses:
@@ -3801,307 +3112,23 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.Error'
-      summary: Create new findings
+      security:
+      - OAuth2Password: []
+      summary: Create new Evidence
       tags:
-      - Findings
-  /findings/{id}:
-    get:
-      description: Fetches a finding based on its internal ID.
-      parameters:
-      - description: Finding ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.GenericDataListResponse-service_Finding'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Get a single finding
-      tags:
-      - Findings
-  /findings/by-control/{class}:
-    get:
-      consumes:
-      - application/json
-      description: Searches for findings and groups them by control class
-      parameters:
-      - description: Control Class
-        in: path
-        name: class
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.GenericDataListResponse-service_FindingsGroupedByControl'
-        "422":
-          description: Unprocessable Entity
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Search findings grouped by control class
-      tags:
-      - Findings
-  /findings/compliance-by-search:
+      - Evidence
+  /agent/heartbeat:
     post:
       consumes:
       - application/json
-      description: Fetches an intervalled compliance report for findings that match
-        the provided label filter. The report groups findings status over time and
-        returns a list of compliance report groups.
+      description: Creates a new heartbeat record for monitoring.
       parameters:
-      - description: Label filter criteria
+      - description: Heartbeat payload
         in: body
-        name: filter
+        name: heartbeat
         required: true
         schema:
-          $ref: '#/definitions/labelfilter.Filter'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/handler.GenericDataListResponse-service_StatusOverTimeGroup'
-        "422":
-          description: Unprocessable Entity
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Get intervalled compliance report by search
-      tags:
-      - Findings
-  /findings/history/{uuid}:
-    get:
-      description: Fetches up to 200 findings (ordered by Collected descending) that
-        share the same stream UUID.
-      parameters:
-      - description: Stream UUID
-        in: path
-        name: uuid
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.GenericDataListResponse-service_Finding'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Get finding history by stream UUID
-      tags:
-      - Findings
-  /findings/instant-compliance-by-control/{class}/{id}:
-    get:
-      consumes:
-      - application/json
-      parameters:
-      - description: Label filter criteria
-        in: path
-        name: class
-        required: true
-        type: string
-      - description: Label filter criteria
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/handler.GenericDataListResponse-service_StatusOverTimeRecord'
-        "422":
-          description: Unprocessable Entity
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Get compliance report by controlID
-      tags:
-      - Findings
-  /findings/list-control-classes:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves all unique control classes found in the stored findings
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.GenericDataListResponse-string'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: List unique control classes from findings
-      tags:
-      - Findings
-  /findings/search:
-    post:
-      consumes:
-      - application/json
-      description: Searches for findings using label filters.
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/handler.GenericDataListResponse-service_Finding'
-        "422":
-          description: Unprocessable Entity
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Search findings by labels
-      tags:
-      - Findings
-  /findings/search-by-subject:
-    post:
-      consumes:
-      - application/json
-      description: Searches for findings, and groups them by subject
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/handler.GenericDataListResponse-service_FindingsBySubject'
-        "422":
-          description: Unprocessable Entity
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Search findings grouped by subject
-      tags:
-      - Findings
-  /groups/catalog/{catalog}:
-    get:
-      description: Retrieves catalog groups that belong to a catalog, identified by
-        its unique catalog ID.
-      parameters:
-      - description: Catalog ID
-        in: path
-        name: catalog
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.GenericDataListResponse-service_CatalogGroup'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Get catalog groups for a catalog parent
-      tags:
-      - CatalogGroups
-  /groups/children/{class}/{id}:
-    get:
-      description: Retrieves catalog groups that belong to a parent group, identified
-        by its class and ID.
-      parameters:
-      - description: Catalog ID
-        in: path
-        name: catalog
-        required: true
-        type: string
-      - description: Parent group class
-        in: path
-        name: class
-        required: true
-        type: string
-      - description: Parent group ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.GenericDataListResponse-service_CatalogGroup'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Get catalog groups for a group parent
-      tags:
-      - CatalogGroups
-  /observations:
-    post:
-      consumes:
-      - application/json
-      description: Creates multiple observations in the CCF API, along with their
-        subject and component counterparts.
+          $ref: '#/definitions/handler.HeartbeatCreateRequest'
       produces:
       - application/json
       responses:
@@ -4115,68 +3142,26 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.Error'
-      summary: Create new observations
+      summary: Create Heartbeat
       tags:
-      - Observations
-  /observations/{id}:
+      - Heartbeat
+  /agent/heartbeat/over-time:
     get:
-      description: Fetches an observation based on its internal ID.
-      parameters:
-      - description: Observation ID
-        in: path
-        name: id
-        required: true
-        type: string
+      description: Retrieves heartbeat counts aggregated by 2-minute intervals.
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handler.GenericDataResponse-service_Observation'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.Error'
+            $ref: '#/definitions/handler.GenericDataListResponse-handler_OverTime_HeartbeatInterval'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.Error'
-      summary: Get a single observation
+      summary: Get Heartbeat Metrics Over Time
       tags:
-      - Observations
-  /observations/history/{uuid}:
-    get:
-      description: Fetches up to 200 observations (ordered by Collected descending)
-        that share the same stream UUID.
-      parameters:
-      - description: Stream UUID
-        in: path
-        name: uuid
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.GenericDataListResponse-service_Observation'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Get observation history by stream UUID
-      tags:
-      - Observations
+      - Heartbeat
   /oscal/catalogs:
     get:
       description: Retrieves all catalogs.
@@ -7976,120 +6961,6 @@ paths:
       summary: List System Implementation Users
       tags:
       - Oscal
-  /subjects:
-    get:
-      description: Retrieves a list of all subjects from the database.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.GenericDataResponse-array_service_Subject'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Get all subjects
-      tags:
-      - Subjects
-  /subjects/{id}:
-    delete:
-      description: Deletes a subject from the database based on its internal ID.
-      parameters:
-      - description: Subject ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Delete a subject
-      tags:
-      - Subjects
-    get:
-      description: Fetches a subject based on its internal ID.
-      parameters:
-      - description: Subject ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.GenericDataResponse-service_Subject'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Get a single subject
-      tags:
-      - Subjects
-    patch:
-      description: Updates a subject's title and/or remarks based on the provided
-        subject ID. Only title and remarks are updated if provided. If no fields are
-        provided, a `400 Bad Request` is returned.
-      parameters:
-      - description: Subject ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Title and remarks data
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/handler.UpdateSubjectRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handler.GenericDataResponse-service_Subject'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Error'
-      summary: Update a subject's title and/or remarks
-      tags:
-      - Subjects
 produces:
 - application/json
 securityDefinitions:

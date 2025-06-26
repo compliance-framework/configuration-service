@@ -33,7 +33,18 @@ type HeartbeatCreateRequest struct {
 	CreatedAt time.Time `json:"created_at,omitempty" validate:"required"`
 }
 
-// Create purposefully has no swagger doc to prevent it showing up in the swagger ui. This is for internal use only.
+// Create godoc
+//
+//	@Summary		Create Heartbeat
+//	@Description	Creates a new heartbeat record for monitoring.
+//	@Tags			Heartbeat
+//	@Accept			json
+//	@Produce		json
+//	@Param			heartbeat	body	HeartbeatCreateRequest	true	"Heartbeat payload"
+//	@Success		201			"Created"
+//	@Failure		400			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Router			/agent/heartbeat [post]
 func (h *HeartbeatHandler) Create(ctx echo.Context) error {
 	// Bind the incoming JSON payload into a slice of SDK findings.
 	var heartbeat *HeartbeatCreateRequest
@@ -57,7 +68,15 @@ func (h *HeartbeatHandler) Create(ctx echo.Context) error {
 	return ctx.NoContent(http.StatusCreated)
 }
 
-// OverTime purposefully has no swagger doc to prevent it showing up in the swagger ui. This is for internal use only.
+// OverTime godoc
+//
+//	@Summary		Get Heartbeat Metrics Over Time
+//	@Description	Retrieves heartbeat counts aggregated by 2-minute intervals.
+//	@Tags			Heartbeat
+//	@Produce		json
+//	@Success		200	{object}	handler.GenericDataListResponse[handler.OverTime.HeartbeatInterval]
+//	@Failure		500	{object}	api.Error
+//	@Router			/agent/heartbeat/over-time [get]
 func (h *HeartbeatHandler) OverTime(ctx echo.Context) error {
 
 	type HeartbeatInterval struct {
