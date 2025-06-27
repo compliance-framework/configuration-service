@@ -17,5 +17,5 @@ func RegisterHandlers(server *api.Server, logger *zap.SugaredLogger, db *gorm.DB
 	heartbeatHandler.Register(server.API().Group("/agent/heartbeat"))
 
 	evidenceHandler := NewEvidenceHandler(logger, db)
-	evidenceHandler.Register(server.API().Group("/agent/evidence"))
+	evidenceHandler.Register(server.API().Group("/evidence"))
 }

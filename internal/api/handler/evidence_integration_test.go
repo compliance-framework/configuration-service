@@ -6,8 +6,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/compliance-framework/configuration-service/internal"
 	"github.com/compliance-framework/configuration-service/internal/api"
+	"github.com/compliance-framework/configuration-service/internal/converters/labelfilter"
 	"github.com/compliance-framework/configuration-service/internal/service/relational"
 	oscalTypes_1_1_3 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
@@ -102,7 +104,6 @@ func (suite *EvidenceApiIntegrationSuite) TestCreate() {
 				Type:        "software",
 				Title:       "Secure Shell (SSH)",
 				Description: "SSH is used to manage remote access to virtual and hardware servers.",
-				Purpose:     "",
 				Protocols: []oscalTypes_1_1_3.Protocol{
 					{
 						UUID:  "3480C9EC-BC6B-4851-B248-BA78D83ECECE",
@@ -157,7 +158,7 @@ func (suite *EvidenceApiIntegrationSuite) TestCreate() {
 	RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config)
 	rec := httptest.NewRecorder()
 	reqBody, _ := json.Marshal(evidence)
-	req := httptest.NewRequest(http.MethodPost, "/api/agent/evidence", bytes.NewReader(reqBody))
+	req := httptest.NewRequest(http.MethodPost, "/api/evidence", bytes.NewReader(reqBody))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	server.E().ServeHTTP(rec, req)
 	assert.Equal(suite.T(), http.StatusCreated, rec.Code)
@@ -166,4 +167,66 @@ func (suite *EvidenceApiIntegrationSuite) TestCreate() {
 	// Counting users with specific names
 	suite.DB.Model(&relational.Evidence{}).Count(&count)
 	suite.Equal(int64(1), count)
+}
+
+func (suite *EvidenceApiIntegrationSuite) TestSearch() {
+	suite.Run("Searching only returns the single latest evidence for a stream", func() {
+		err := suite.Migrator.Refresh()
+		suite.Require().NoError(err)
+
+		stream := uuid.New()
+
+		// Create two catalogs with the same group ID structure
+		evidence := []relational.Evidence{
+			{
+				UUID:  stream,
+				Title: internal.Pointer("New"),
+				Start: time.Now().Add(-time.Hour),
+				End:   time.Now().Add(-time.Hour).Add(time.Minute),
+				Labels: []relational.Labels{
+					{
+						Name:  "provider",
+						Value: "AWS",
+					},
+				},
+			},
+			{
+				UUID:  stream,
+				Title: internal.Pointer("Old"),
+				Start: time.Now().Add(-2 * time.Hour),
+				End:   time.Now().Add(-2 * time.Hour).Add(time.Minute),
+				Labels: []relational.Labels{
+					{
+						Name:  "provider",
+						Value: "AWS",
+					},
+				},
+			},
+		}
+		suite.NoError(suite.DB.Create(&evidence).Error)
+
+		logger, _ := zap.NewDevelopment()
+		server := api.NewServer(context.Background(), logger.Sugar())
+		RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config)
+		rec := httptest.NewRecorder()
+		reqBody, _ := json.Marshal(struct {
+			Filter labelfilter.Filter
+		}{
+			Filter: labelfilter.Filter{
+				Scope: &labelfilter.Scope{
+					Condition: &labelfilter.Condition{
+						Label:    "provider",
+						Operator: "=",
+						Value:    "AWS",
+					},
+				},
+			},
+		})
+		req := httptest.NewRequest(http.MethodPost, "/api/evidence/search", bytes.NewReader(reqBody))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		server.E().ServeHTTP(rec, req)
+		assert.Equal(suite.T(), http.StatusOK, rec.Code)
+
+		fmt.Println(rec.Body.String())
+	})
 }

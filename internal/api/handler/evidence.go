@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/compliance-framework/configuration-service/internal"
 	"github.com/compliance-framework/configuration-service/internal/api"
+	"github.com/compliance-framework/configuration-service/internal/converters/labelfilter"
 	"github.com/compliance-framework/configuration-service/internal/service/relational"
 	oscalTypes_1_1_3 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
@@ -29,7 +30,7 @@ func NewEvidenceHandler(sugar *zap.SugaredLogger, db *gorm.DB) *EvidenceHandler 
 
 func (h *EvidenceHandler) Register(api *echo.Group) {
 	api.POST("", h.Create)
-	//api.GET("/over-time", h.OverTime)
+	api.POST("/search", h.Search)
 }
 
 type EvidenceActivityStep struct {
@@ -159,7 +160,7 @@ type EvidenceCreateRequest struct {
 //	@Failure		400			{object}	api.Error
 //	@Failure		500			{object}	api.Error
 //	@Security		OAuth2Password
-//	@Router			/agent/evidence [post]
+//	@Router			/evidence [post]
 func (h *EvidenceHandler) Create(ctx echo.Context) error {
 	// Bind the incoming JSON payload into a slice of SDK findings.
 	var input *EvidenceCreateRequest
@@ -338,4 +339,16 @@ func (h *EvidenceHandler) Create(ctx echo.Context) error {
 
 	// Return a 201 Created response with no content.
 	return ctx.NoContent(http.StatusCreated)
+}
+
+func (h *EvidenceHandler) Search(ctx echo.Context) error {
+	filter := &labelfilter.Filter{}
+	req := filteredSearchRequest{}
+
+	// Bind the incoming request to the filter.
+	if err := req.bind(ctx, filter); err != nil {
+		return ctx.JSON(http.StatusUnprocessableEntity, api.NewError(err))
+	}
+
+	return nil
 }

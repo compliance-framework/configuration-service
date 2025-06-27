@@ -240,6 +240,11 @@ func MigrateDown(db *gorm.DB) error {
 
 		&Heartbeat{},
 		&relational.Evidence{},
+		"evidence_activities",
+		"evidence_components",
+		"evidence_inventory_items",
+		"evidence_labels",
+		"evidence_subjects",
 		&relational.Labels{},
 	)
 	return err

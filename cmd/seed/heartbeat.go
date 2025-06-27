@@ -20,7 +20,7 @@ func newHeartbeatCMD() *cobra.Command {
 		Run:   generateHeartbeats,
 	}
 
-	cmd.Flags().CountP("agents", "a", "Amount of agents")
+	cmd.Flags().CountP("amount", "a", "Amount of agents")
 	cmd.Flags().CountP("beats", "b", "Amount of beats per agent")
 
 	return cmd
@@ -29,9 +29,9 @@ func newHeartbeatCMD() *cobra.Command {
 func generateHeartbeats(cmd *cobra.Command, args []string) {
 	var err error
 
-	agents := 10
-	if cmd.Flags().Changed("agents") {
-		agents, err = cmd.Flags().GetCount("agents")
+	amount := 10
+	if cmd.Flags().Changed("amount") {
+		amount, err = cmd.Flags().GetCount("amount")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -58,11 +58,11 @@ func generateHeartbeats(cmd *cobra.Command, args []string) {
 		panic("failed to connect database")
 	}
 
-	bar := progressbar.Default(int64(agents * count))
+	bar := progressbar.Default(int64(amount * count))
 	defer bar.Close()
 
 	var wg sync.WaitGroup
-	for range agents {
+	for range amount {
 		wg.Add(1)
 		agentId := uuid.New()
 		go func() {

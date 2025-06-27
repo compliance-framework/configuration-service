@@ -13,4 +13,5 @@ var (
 
 func init() {
 	RootCmd.AddCommand(newHeartbeatCMD())
+	RootCmd.AddCommand(newEvidenceCMD())
 }
