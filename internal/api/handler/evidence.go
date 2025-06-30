@@ -286,6 +286,16 @@ func (h *EvidenceHandler) Create(ctx echo.Context) error {
 		h.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&model)
 	}
 
+	labels := []relational.Labels{}
+	for name, value := range input.Labels {
+		model := relational.Labels{
+			Name:  name,
+			Value: value,
+		}
+		labels = append(labels, model)
+		h.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&model)
+	}
+
 	evidence := relational.Evidence{
 		UUIDModel: relational.UUIDModel{
 			ID: internal.Pointer(uuid.New()),
@@ -297,18 +307,8 @@ func (h *EvidenceHandler) Create(ctx echo.Context) error {
 		Start:       input.Start,
 		End:         input.End,
 		Expires:     input.Expires,
-		Labels: func() []relational.Labels {
-			result := make([]relational.Labels, 0)
-			for key, value := range input.Labels {
-				result = append(result, relational.Labels{
-					Name:  key,
-					Value: value,
-				})
-			}
-			return result
-		}(),
-		Props: relational.ConvertOscalToProps(&input.Props),
-		Links: relational.ConvertOscalToLinks(&input.Links),
+		Props:       relational.ConvertOscalToProps(&input.Props),
+		Links:       relational.ConvertOscalToLinks(&input.Links),
 		Origins: relational.ConvertList(&input.Origins, func(ol oscalTypes_1_1_3.Origin) relational.Origin {
 			out := relational.Origin{}
 			out.UnmarshalOscal(ol)
@@ -337,18 +337,33 @@ func (h *EvidenceHandler) Create(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
+	if err = h.db.Model(&evidence).Association("Labels").Append(labels); err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
 	// Return a 201 Created response with no content.
 	return ctx.NoContent(http.StatusCreated)
 }
 
 func (h *EvidenceHandler) Search(ctx echo.Context) error {
+	var err error
 	filter := &labelfilter.Filter{}
 	req := filteredSearchRequest{}
 
 	// Bind the incoming request to the filter.
-	if err := req.bind(ctx, filter); err != nil {
+	if err = req.bind(ctx, filter); err != nil {
 		return ctx.JSON(http.StatusUnprocessableEntity, api.NewError(err))
 	}
 
-	return nil
+	results := []relational.Evidence{}
+	query := h.db.Session(&gorm.Session{})
+	query, err = relational.SearchEvidenceByFilter(h.db, *filter)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	if err = query.Preload("Labels").Find(&results).Error; err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, GenericDataListResponse[relational.Evidence]{results})
 }

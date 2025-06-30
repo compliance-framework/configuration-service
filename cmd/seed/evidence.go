@@ -26,8 +26,8 @@ func newEvidenceCMD() *cobra.Command {
 		Run:   generateEvidence,
 	}
 
-	cmd.Flags().CountP("amount", "a", "Amount of evidences")
-	cmd.Flags().CountP("beats", "b", "Amount of beats per evidence")
+	cmd.Flags().IntP("amount", "a", 10, "Amount of evidences")
+	cmd.Flags().IntP("beats", "b", 5, "Amount of beats per evidence")
 
 	return cmd
 }
@@ -37,7 +37,7 @@ func generateEvidence(cmd *cobra.Command, args []string) {
 
 	amount := 10
 	if cmd.Flags().Changed("amount") {
-		amount, err = cmd.Flags().GetCount("amount")
+		amount, err = cmd.Flags().GetInt("amount")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -45,7 +45,7 @@ func generateEvidence(cmd *cobra.Command, args []string) {
 
 	beats := 5 // each minute of a day
 	if cmd.Flags().Changed("beats") {
-		beats, err = cmd.Flags().GetCount("beats")
+		beats, err = cmd.Flags().GetInt("beats")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -169,13 +169,14 @@ func generateEvidence(cmd *cobra.Command, args []string) {
 			}
 			db.Clauses(clause.OnConflict{DoNothing: true}).Create(&labels)
 
+			evidences := []relational.Evidence{}
 			for b := range beats {
 				err = bar.Add(1)
 				if err != nil {
 					log.Fatal(err)
 				}
 
-				evidence := relational.Evidence{
+				evidences = append(evidences, relational.Evidence{
 					UUID:  evidenceId,
 					Title: internal.Pointer(fmt.Sprintf("Evidence %d", b)),
 					Start: time.Now().Add(-(time.Hour + (time.Duration(b) * time.Minute))),
@@ -184,32 +185,24 @@ func generateEvidence(cmd *cobra.Command, args []string) {
 						Reason: "pass",
 						State:  "satisfied",
 					}),
-				}
+					Activities:     activities,
+					InventoryItems: inventoryItems,
+					Components:     components,
+					Subjects:       subjects,
+					Labels:         labels,
+				})
 
-				if err := db.Create(&evidence).Error; err != nil {
-					panic(err)
-				}
-
-				if err = db.Model(&evidence).Association("Activities").Append(activities); err != nil {
-					panic(err)
-				}
-
-				if err = db.Model(&evidence).Association("InventoryItems").Append(inventoryItems); err != nil {
-					panic(err)
-				}
-
-				if err = db.Model(&evidence).Association("Components").Append(components); err != nil {
-					panic(err)
-				}
-
-				if err = db.Model(&evidence).Association("Subjects").Append(subjects); err != nil {
-					panic(err)
-				}
-
-				if err = db.Model(&evidence).Association("Labels").Append(labels); err != nil {
-					panic(err)
+				if len(evidences) > 500 {
+					if err := db.Create(&evidences).Error; err != nil {
+						panic(err)
+					}
+					evidences = []relational.Evidence{}
 				}
 			}
+			if err := db.Create(&evidences).Error; err != nil {
+				panic(err)
+			}
+			evidences = []relational.Evidence{}
 		}()
 	}
 	wg.Wait()

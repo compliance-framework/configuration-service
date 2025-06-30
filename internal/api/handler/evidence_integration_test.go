@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/compliance-framework/configuration-service/internal"
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/converters/labelfilter"
@@ -170,7 +169,7 @@ func (suite *EvidenceApiIntegrationSuite) TestCreate() {
 }
 
 func (suite *EvidenceApiIntegrationSuite) TestSearch() {
-	suite.Run("Searching only returns the single latest evidence for a stream", func() {
+	suite.Run("Returns the single latest evidence for a stream", func() {
 		err := suite.Migrator.Refresh()
 		suite.Require().NoError(err)
 
@@ -211,13 +210,117 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 		rec := httptest.NewRecorder()
 		reqBody, _ := json.Marshal(struct {
 			Filter labelfilter.Filter
+		}{})
+		req := httptest.NewRequest(http.MethodPost, "/api/evidence/search", bytes.NewReader(reqBody))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		server.E().ServeHTTP(rec, req)
+		assert.Equal(suite.T(), http.StatusOK, rec.Code)
+
+		response := &GenericDataListResponse[relational.Evidence]{}
+		err = json.Unmarshal(rec.Body.Bytes(), &response)
+		suite.Require().NoError(err)
+
+		suite.Len(response.Data, 1)
+	})
+
+	suite.Run("Returns the single latest evidence for two streams", func() {
+		err := suite.Migrator.Refresh()
+		suite.Require().NoError(err)
+
+		// Create two catalogs with the same group ID structure
+		evidence := []relational.Evidence{
+			{
+				UUID:  uuid.New(),
+				Title: internal.Pointer("New"),
+				Start: time.Now().Add(-time.Hour),
+				End:   time.Now().Add(-time.Hour).Add(time.Minute),
+				Labels: []relational.Labels{
+					{
+						Name:  "provider",
+						Value: "AWS",
+					},
+				},
+			},
+			{
+				UUID:  uuid.New(),
+				Title: internal.Pointer("Old"),
+				Start: time.Now().Add(-2 * time.Hour),
+				End:   time.Now().Add(-2 * time.Hour).Add(time.Minute),
+				Labels: []relational.Labels{
+					{
+						Name:  "provider",
+						Value: "AWS",
+					},
+				},
+			},
+		}
+		suite.NoError(suite.DB.Create(&evidence).Error)
+
+		logger, _ := zap.NewDevelopment()
+		server := api.NewServer(context.Background(), logger.Sugar())
+		RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config)
+		rec := httptest.NewRecorder()
+		reqBody, _ := json.Marshal(struct {
+			Filter labelfilter.Filter
+		}{})
+		req := httptest.NewRequest(http.MethodPost, "/api/evidence/search", bytes.NewReader(reqBody))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		server.E().ServeHTTP(rec, req)
+		assert.Equal(suite.T(), http.StatusOK, rec.Code)
+
+		response := &GenericDataListResponse[relational.Evidence]{}
+		err = json.Unmarshal(rec.Body.Bytes(), &response)
+		suite.Require().NoError(err)
+
+		suite.Len(response.Data, 2)
+	})
+
+	suite.Run("Can filter streams - simple", func() {
+		err := suite.Migrator.Refresh()
+		suite.Require().NoError(err)
+
+		// Create two catalogs with the same group ID structure
+		evidence := []relational.Evidence{
+			{
+				UUID:  uuid.New(),
+				Title: internal.Pointer("New"),
+				Start: time.Now().Add(-time.Hour),
+				End:   time.Now().Add(-time.Hour).Add(time.Minute),
+				Labels: []relational.Labels{
+					{
+						Name:  "provider",
+						Value: "AWS",
+					},
+				},
+			},
+			{
+				UUID:  uuid.New(),
+				Title: internal.Pointer("Old"),
+				Start: time.Now().Add(-2 * time.Hour),
+				End:   time.Now().Add(-2 * time.Hour).Add(time.Minute),
+				Labels: []relational.Labels{
+					{
+						Name:  "provider",
+						Value: "Github",
+					},
+				},
+			},
+		}
+		suite.NoError(suite.DB.Create(&evidence).Error)
+
+		logger, _ := zap.NewDevelopment()
+		server := api.NewServer(context.Background(), logger.Sugar())
+		RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config)
+		rec := httptest.NewRecorder()
+		var reqBody, _ = json.Marshal(struct {
+			Filter labelfilter.Filter
 		}{
 			Filter: labelfilter.Filter{
 				Scope: &labelfilter.Scope{
 					Condition: &labelfilter.Condition{
 						Label:    "provider",
 						Operator: "=",
-						Value:    "AWS",
+						Value:    "aws",
 					},
 				},
 			},
@@ -227,6 +330,173 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 		server.E().ServeHTTP(rec, req)
 		assert.Equal(suite.T(), http.StatusOK, rec.Code)
 
-		fmt.Println(rec.Body.String())
+		response := &GenericDataListResponse[relational.Evidence]{}
+		err = json.Unmarshal(rec.Body.Bytes(), &response)
+		suite.Require().NoError(err)
+
+		suite.Len(response.Data, 1)
+		suite.Equal(*response.Data[0].Title, "New")
+	})
+
+	suite.Run("Can filter streams - negation", func() {
+		err := suite.Migrator.Refresh()
+		suite.Require().NoError(err)
+
+		// Create two catalogs with the same group ID structure
+		evidence := []relational.Evidence{
+			{
+				UUID:  uuid.New(),
+				Title: internal.Pointer("AWS"),
+				Start: time.Now().Add(-time.Hour),
+				End:   time.Now().Add(-time.Hour).Add(time.Minute),
+				Labels: []relational.Labels{
+					{
+						Name:  "provider",
+						Value: "AWS",
+					},
+				},
+			},
+			{
+				UUID:  uuid.New(),
+				Title: internal.Pointer("Github"),
+				Start: time.Now().Add(-2 * time.Hour),
+				End:   time.Now().Add(-2 * time.Hour).Add(time.Minute),
+				Labels: []relational.Labels{
+					{
+						Name:  "provider",
+						Value: "Github",
+					},
+				},
+			},
+		}
+		suite.NoError(suite.DB.Create(&evidence).Error)
+
+		logger, _ := zap.NewDevelopment()
+		server := api.NewServer(context.Background(), logger.Sugar())
+		RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config)
+		rec := httptest.NewRecorder()
+		var reqBody, _ = json.Marshal(struct {
+			Filter labelfilter.Filter
+		}{
+			Filter: labelfilter.Filter{
+				Scope: &labelfilter.Scope{
+					Condition: &labelfilter.Condition{
+						Label:    "provider",
+						Operator: "!=",
+						Value:    "aws",
+					},
+				},
+			},
+		})
+		req := httptest.NewRequest(http.MethodPost, "/api/evidence/search", bytes.NewReader(reqBody))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		server.E().ServeHTTP(rec, req)
+		assert.Equal(suite.T(), http.StatusOK, rec.Code)
+
+		response := &GenericDataListResponse[relational.Evidence]{}
+		err = json.Unmarshal(rec.Body.Bytes(), &response)
+		suite.Require().NoError(err)
+
+		suite.Len(response.Data, 1)
+		suite.Equal("Github", *response.Data[0].Title)
+	})
+
+	suite.Run("Can filter streams - complex subquery", func() {
+		err := suite.Migrator.Refresh()
+		suite.Require().NoError(err)
+
+		// Create two catalogs with the same group ID structure
+		evidence := []relational.Evidence{
+			{
+				UUID:  uuid.New(),
+				Title: internal.Pointer("AWS-1"),
+				Start: time.Now().Add(-time.Hour),
+				End:   time.Now().Add(-time.Hour).Add(time.Minute),
+				Labels: []relational.Labels{
+					{
+						Name:  "provider",
+						Value: "AWS",
+					},
+					{
+						Name:  "instance",
+						Value: "i-1",
+					},
+				},
+			},
+			{
+				UUID:  uuid.New(),
+				Title: internal.Pointer("AWS-2"),
+				Start: time.Now().Add(-time.Hour),
+				End:   time.Now().Add(-time.Hour).Add(time.Minute),
+				Labels: []relational.Labels{
+					{
+						Name:  "provider",
+						Value: "AWS",
+					},
+					{
+						Name:  "instance",
+						Value: "i-2",
+					},
+				},
+			},
+		}
+		suite.NoError(suite.DB.Create(&evidence).Error)
+
+		logger, _ := zap.NewDevelopment()
+		server := api.NewServer(context.Background(), logger.Sugar())
+		RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config)
+		rec := httptest.NewRecorder()
+		var reqBody, _ = json.Marshal(struct {
+			Filter labelfilter.Filter
+		}{
+			Filter: labelfilter.Filter{
+				Scope: &labelfilter.Scope{
+					Query: &labelfilter.Query{
+						Operator: "and",
+						Scopes: []labelfilter.Scope{
+							{
+								Condition: &labelfilter.Condition{
+									Label:    "provider",
+									Operator: "=",
+									Value:    "aws",
+								},
+							},
+							{
+								Query: &labelfilter.Query{
+									Operator: "or",
+									Scopes: []labelfilter.Scope{
+										{
+											Condition: &labelfilter.Condition{
+												Label:    "instance",
+												Operator: "=",
+												Value:    "i-1",
+											},
+										},
+										{
+											Condition: &labelfilter.Condition{
+												Label:    "instance",
+												Operator: "=",
+												Value:    "i-3",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		})
+		req := httptest.NewRequest(http.MethodPost, "/api/evidence/search", bytes.NewReader(reqBody))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		server.E().ServeHTTP(rec, req)
+		assert.Equal(suite.T(), http.StatusOK, rec.Code)
+
+		response := &GenericDataListResponse[relational.Evidence]{}
+		err = json.Unmarshal(rec.Body.Bytes(), &response)
+		suite.Require().NoError(err)
+
+		suite.Len(response.Data, 1)
+		suite.Equal(*response.Data[0].Title, "AWS-1")
 	})
 }
