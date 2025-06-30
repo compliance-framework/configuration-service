@@ -38,7 +38,7 @@ func (h *AuthHandler) Register(api *echo.Group) {
 
 // LoginUser godoc
 //
-//	@Summary		Login user'
+//	@Summary		Login user
 //	@Description	Login user and returns a JWT token and sets a cookie with the token
 //	@Tags			auth
 //	@Accept			json
