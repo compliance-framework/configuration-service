@@ -29,7 +29,7 @@ func (suite *EvidenceSDKIntegrationSuite) TestCreate() {
 		// Create two catalogs with the same group ID structure
 		evidence := handler.EvidenceCreateRequest{
 			UUID:    uuid.New(),
-			Title:   internal.Pointer("Some piece of evidence"),
+			Title:   "Some piece of evidence",
 			Start:   time.Now().Add(-time.Hour),
 			End:     time.Now().Add(-time.Hour).Add(time.Minute),
 			Expires: internal.Pointer(time.Now().Add(30 * 24 * time.Hour)),
