@@ -10,6 +10,11 @@ import (
 	"github.com/compliance-framework/configuration-service/internal/config"
 	"github.com/compliance-framework/configuration-service/internal/service/relational"
 	"github.com/compliance-framework/configuration-service/internal/tests"
+	"net"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/compliance-framework/configuration-service/sdk"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/suite"
@@ -18,10 +23,6 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"net"
-	"net/http"
-	"strings"
-	"time"
 )
 
 type IntegrationBaseTestSuite struct {
@@ -90,9 +91,11 @@ func (suite *IntegrationBaseTestSuite) SetupSuite() {
 	err = suite.Migrator.CreateUser()
 	suite.NoError(err, "failed to create test user")
 
+	suite.Config.APIAllowedOrigins = []string{"*"}
+
 	// Next setup a full running echo server, so we can run tests against it.
 	logger, _ := zap.NewDevelopment()
-	server := api.NewServer(context.Background(), logger.Sugar())
+	server := api.NewServer(context.Background(), logger.Sugar(), cfg)
 	handler.RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config)
 
 	suite.Server = server
