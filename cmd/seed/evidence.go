@@ -178,7 +178,7 @@ func generateEvidence(cmd *cobra.Command, args []string) {
 
 				evidences = append(evidences, relational.Evidence{
 					UUID:  evidenceId,
-					Title: internal.Pointer(fmt.Sprintf("Evidence %d", b)),
+					Title: fmt.Sprintf("Evidence %d", b),
 					Start: time.Now().Add(-(time.Hour + (time.Duration(b) * time.Minute))),
 					End:   time.Now().Add(-(time.Hour + time.Minute + (time.Duration(b) * time.Minute))),
 					Status: datatypes.NewJSONType(oscalTypes_1_1_3.ObjectiveStatus{

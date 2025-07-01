@@ -17,38 +17,38 @@ type Evidence struct {
 
 	// UUID needs to remain consistent when automation runs again, but unique for each subject.
 	// It represents the "stream" of the same observation being made over time.
-	UUID uuid.UUID `gorm:"index:evidence_stream_idx;index:evidence_stream_collected_idx,priority:1"`
+	UUID uuid.UUID `json:"uuid" gorm:"index:evidence_stream_idx;index:evidence_stream_collected_idx,priority:1" json:"uuid,omitempty"`
 
-	Title       *string
-	Description string
-	Remarks     *string
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	Remarks     *string `json:"remarks,omitempty"`
 
 	// Assigning labels to Evidence makes it searchable and easily usable in the UI
-	Labels []Labels `gorm:"many2many:evidence_labels;"`
+	Labels []Labels `gorm:"many2many:evidence_labels;" json:"labels"`
 
 	// When did we start collecting the evidence, and when did the process end, and how long is it valid for ?
-	Start   time.Time
-	End     time.Time `gorm:"index:evidence_stream_collected_idx,priority:2,sort:desc"`
-	Expires *time.Time
+	Start   time.Time  `json:"start"`
+	End     time.Time  `gorm:"index:evidence_stream_collected_idx,priority:2,sort:desc" json:"end"`
+	Expires *time.Time `json:"expires,omitempty"`
 
-	Props datatypes.JSONSlice[Prop]
-	Links datatypes.JSONSlice[Link]
+	Props datatypes.JSONSlice[Prop] `json:"props"`
+	Links datatypes.JSONSlice[Link] `json:"links"`
 
 	// Who or What is generating this evidence
-	Origins datatypes.JSONSlice[Origin]
+	Origins datatypes.JSONSlice[Origin] `json:"origins,omitempty"`
 
 	// What steps did we take to create this evidence
-	Activities []Activity `gorm:"many2many:evidence_activities"`
+	Activities []Activity `gorm:"many2many:evidence_activities" json:"activities,omitempty"`
 
-	InventoryItems []InventoryItem `gorm:"many2many:evidence_inventory_items"`
+	InventoryItems []InventoryItem `gorm:"many2many:evidence_inventory_items" json:"inventory-items,omitempty"`
 
 	// Which components of the subject are being observed. A tool, user, policy etc.
-	Components []SystemComponent `gorm:"many2many:evidence_components"`
+	Components []SystemComponent `gorm:"many2many:evidence_components" json:"components,omitempty"`
 	// Who or What are we providing evidence for. What's under test.
-	Subjects []AssessmentSubject `gorm:"many2many:evidence_subjects;"`
+	Subjects []AssessmentSubject `gorm:"many2many:evidence_subjects;" json:"subjects,omitempty"`
 
 	// Did we satisfy what was being tested for, or did we fail ?
-	Status datatypes.JSONType[oscalTypes_1_1_3.ObjectiveStatus]
+	Status datatypes.JSONType[oscalTypes_1_1_3.ObjectiveStatus] `json:"status"`
 }
 
 func SearchEvidenceByFilter(db *gorm.DB, filter labelfilter.Filter) (*gorm.DB, error) {
@@ -77,7 +77,7 @@ func getScopeClause(db *gorm.DB, scope labelfilter.Scope) (*gorm.DB, error) {
 	} else if scope.IsQuery() {
 		return getQueryClause(db, *scope.Query)
 	}
-	return nil, errors.New("unrecognised scope type in label filter")
+	return db, nil
 }
 
 func getQueryClause(db *gorm.DB, query labelfilter.Query) (*gorm.DB, error) {

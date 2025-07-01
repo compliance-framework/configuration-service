@@ -325,6 +325,6 @@ func (p *Protocol) MarshalOscal() *oscaltypes113.Protocol {
 }
 
 type Labels struct {
-	Name  string `gorm:"primaryKey"`
-	Value string `gorm:"primaryKey"`
+	Name  string `gorm:"primaryKey" json:"name"`
+	Value string `gorm:"primaryKey" json:"value"`
 }

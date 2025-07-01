@@ -1361,17 +1361,17 @@ func (i *AssociatedActivity) MarshalOscal() *oscalTypes_1_1_3.AssociatedActivity
 
 type Activity struct {
 	UUIDModel
-	Title       *string
-	Description string  // required
-	Remarks     *string // required
+	Title       *string `json:"title,omitempty"`
+	Description string  `json:"description,omitempty"` // required
+	Remarks     *string `json:"remarks,omitempty"`     // required
 
-	Props datatypes.JSONSlice[Prop] `json:"props"`
-	Links datatypes.JSONSlice[Link] `json:"links"`
-	Steps []Step
+	Props datatypes.JSONSlice[Prop] `json:"props" json:"props,omitempty"`
+	Links datatypes.JSONSlice[Link] `json:"links" json:"links,omitempty"`
+	Steps []Step                    `json:"steps,omitempty"`
 
 	RelatedControlsID *uuid.UUID
-	RelatedControls   *ReviewedControls
-	ResponsibleRoles  []ResponsibleRole `gorm:"polymorphic:Parent"`
+	RelatedControls   *ReviewedControls `json:"related-controls,omitempty"`
+	ResponsibleRoles  []ResponsibleRole `gorm:"polymorphic:Parent" json:"responsible-roles,omitempty"`
 }
 
 func (i *Activity) UnmarshalOscal(op oscalTypes_1_1_3.Activity) *Activity {

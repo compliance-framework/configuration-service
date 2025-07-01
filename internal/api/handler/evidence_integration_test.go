@@ -39,7 +39,7 @@ func (suite *EvidenceApiIntegrationSuite) TestCreate() {
 	// Create two catalogs with the same group ID structure
 	evidence := EvidenceCreateRequest{
 		UUID:    uuid.New(),
-		Title:   internal.Pointer("Some piece of evidence"),
+		Title:   "Some piece of evidence",
 		Start:   time.Now().Add(-time.Hour),
 		End:     time.Now().Add(-time.Hour).Add(time.Minute),
 		Expires: internal.Pointer(time.Now().Add(30 * 24 * time.Hour)),
@@ -179,7 +179,7 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 		evidence := []relational.Evidence{
 			{
 				UUID:  stream,
-				Title: internal.Pointer("New"),
+				Title: "New",
 				Start: time.Now().Add(-time.Hour),
 				End:   time.Now().Add(-time.Hour).Add(time.Minute),
 				Labels: []relational.Labels{
@@ -191,7 +191,7 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 			},
 			{
 				UUID:  stream,
-				Title: internal.Pointer("Old"),
+				Title: "Old",
 				Start: time.Now().Add(-2 * time.Hour),
 				End:   time.Now().Add(-2 * time.Hour).Add(time.Minute),
 				Labels: []relational.Labels{
@@ -231,7 +231,7 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 		evidence := []relational.Evidence{
 			{
 				UUID:  uuid.New(),
-				Title: internal.Pointer("New"),
+				Title: "New",
 				Start: time.Now().Add(-time.Hour),
 				End:   time.Now().Add(-time.Hour).Add(time.Minute),
 				Labels: []relational.Labels{
@@ -243,7 +243,7 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 			},
 			{
 				UUID:  uuid.New(),
-				Title: internal.Pointer("Old"),
+				Title: "Old",
 				Start: time.Now().Add(-2 * time.Hour),
 				End:   time.Now().Add(-2 * time.Hour).Add(time.Minute),
 				Labels: []relational.Labels{
@@ -283,7 +283,7 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 		evidence := []relational.Evidence{
 			{
 				UUID:  uuid.New(),
-				Title: internal.Pointer("New"),
+				Title: "New",
 				Start: time.Now().Add(-time.Hour),
 				End:   time.Now().Add(-time.Hour).Add(time.Minute),
 				Labels: []relational.Labels{
@@ -295,7 +295,7 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 			},
 			{
 				UUID:  uuid.New(),
-				Title: internal.Pointer("Old"),
+				Title: "Old",
 				Start: time.Now().Add(-2 * time.Hour),
 				End:   time.Now().Add(-2 * time.Hour).Add(time.Minute),
 				Labels: []relational.Labels{
@@ -335,7 +335,7 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 		suite.Require().NoError(err)
 
 		suite.Len(response.Data, 1)
-		suite.Equal(*response.Data[0].Title, "New")
+		suite.Equal(response.Data[0].Title, "New")
 	})
 
 	suite.Run("Can filter streams - negation", func() {
@@ -346,7 +346,7 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 		evidence := []relational.Evidence{
 			{
 				UUID:  uuid.New(),
-				Title: internal.Pointer("AWS"),
+				Title: "AWS",
 				Start: time.Now().Add(-time.Hour),
 				End:   time.Now().Add(-time.Hour).Add(time.Minute),
 				Labels: []relational.Labels{
@@ -358,7 +358,7 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 			},
 			{
 				UUID:  uuid.New(),
-				Title: internal.Pointer("Github"),
+				Title: "Github",
 				Start: time.Now().Add(-2 * time.Hour),
 				End:   time.Now().Add(-2 * time.Hour).Add(time.Minute),
 				Labels: []relational.Labels{
@@ -398,7 +398,7 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 		suite.Require().NoError(err)
 
 		suite.Len(response.Data, 1)
-		suite.Equal("Github", *response.Data[0].Title)
+		suite.Equal("Github", response.Data[0].Title)
 	})
 
 	suite.Run("Can filter streams - complex subquery", func() {
@@ -409,7 +409,7 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 		evidence := []relational.Evidence{
 			{
 				UUID:  uuid.New(),
-				Title: internal.Pointer("AWS-1"),
+				Title: "AWS-1",
 				Start: time.Now().Add(-time.Hour),
 				End:   time.Now().Add(-time.Hour).Add(time.Minute),
 				Labels: []relational.Labels{
@@ -425,7 +425,7 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 			},
 			{
 				UUID:  uuid.New(),
-				Title: internal.Pointer("AWS-2"),
+				Title: "AWS-2",
 				Start: time.Now().Add(-time.Hour),
 				End:   time.Now().Add(-time.Hour).Add(time.Minute),
 				Labels: []relational.Labels{
@@ -497,6 +497,6 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 		suite.Require().NoError(err)
 
 		suite.Len(response.Data, 1)
-		suite.Equal(*response.Data[0].Title, "AWS-1")
+		suite.Equal(response.Data[0].Title, "AWS-1")
 	})
 }

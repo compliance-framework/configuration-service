@@ -120,7 +120,7 @@ type EvidenceCreateRequest struct {
 	// For the same checks, performed on the same machine, the UUID for each check should remain the same.
 	// For the same check, performed on two different machines, the UUID should differ.
 	UUID        uuid.UUID
-	Title       *string
+	Title       string
 	Description string
 	Remarks     *string
 
