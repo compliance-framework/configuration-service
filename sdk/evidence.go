@@ -16,7 +16,7 @@ type evidenceClient struct {
 
 func (r *evidenceClient) Create(ctx context.Context, evidence handler.EvidenceCreateRequest) error {
 	reqBody, _ := json.Marshal(evidence)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("%s/api/agent/evidence", r.config.BaseURL), bytes.NewReader(reqBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("%s/api/evidence", r.config.BaseURL), bytes.NewReader(reqBody))
 	if err != nil {
 		return err
 	}
