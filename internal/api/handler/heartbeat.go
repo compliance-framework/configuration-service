@@ -47,7 +47,7 @@ type HeartbeatCreateRequest struct {
 //	@Router			/agent/heartbeat [post]
 func (h *HeartbeatHandler) Create(ctx echo.Context) error {
 	// Bind the incoming JSON payload into a slice of SDK findings.
-	var heartbeat *HeartbeatCreateRequest
+	var heartbeat HeartbeatCreateRequest
 	if err := ctx.Bind(&heartbeat); err != nil {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
