@@ -37,7 +37,7 @@ func (suite *HeartbeatApiIntegrationSuite) TestHeartbeatCreateValidation() {
 	// Create two catalogs with the same group ID structure
 	heartbeat := HeartbeatCreateRequest{}
 	logger, _ := zap.NewDevelopment()
-	server := api.NewServer(context.Background(), logger.Sugar())
+	server := api.NewServer(context.Background(), logger.Sugar(), suite.Config)
 	RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config)
 	rec := httptest.NewRecorder()
 	reqBody, _ := json.Marshal(heartbeat)
@@ -58,7 +58,7 @@ func (suite *HeartbeatApiIntegrationSuite) TestHeartbeatCreate() {
 	}
 
 	logger, _ := zap.NewDevelopment()
-	server := api.NewServer(context.Background(), logger.Sugar())
+	server := api.NewServer(context.Background(), logger.Sugar(), suite.Config)
 	RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config)
 	rec := httptest.NewRecorder()
 	reqBody, _ := json.Marshal(heartbeat)
@@ -91,7 +91,7 @@ func (suite *HeartbeatApiIntegrationSuite) TestHeartbeatOverTime() {
 
 	// Create two catalogs with the same group ID structure
 	logger, _ := zap.NewDevelopment()
-	server := api.NewServer(context.Background(), logger.Sugar())
+	server := api.NewServer(context.Background(), logger.Sugar(), suite.Config)
 	RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config)
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/agent/heartbeat/over-time/", nil)

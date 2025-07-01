@@ -153,7 +153,7 @@ func (suite *EvidenceApiIntegrationSuite) TestCreate() {
 	}
 
 	logger, _ := zap.NewDevelopment()
-	server := api.NewServer(context.Background(), logger.Sugar())
+	server := api.NewServer(context.Background(), logger.Sugar(), suite.Config)
 	RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config)
 	rec := httptest.NewRecorder()
 	reqBody, _ := json.Marshal(evidence)
@@ -205,7 +205,7 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 		suite.NoError(suite.DB.Create(&evidence).Error)
 
 		logger, _ := zap.NewDevelopment()
-		server := api.NewServer(context.Background(), logger.Sugar())
+		server := api.NewServer(context.Background(), logger.Sugar(), suite.Config)
 		RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config)
 		rec := httptest.NewRecorder()
 		reqBody, _ := json.Marshal(struct {
@@ -257,7 +257,7 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 		suite.NoError(suite.DB.Create(&evidence).Error)
 
 		logger, _ := zap.NewDevelopment()
-		server := api.NewServer(context.Background(), logger.Sugar())
+		server := api.NewServer(context.Background(), logger.Sugar(), suite.Config)
 		RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config)
 		rec := httptest.NewRecorder()
 		reqBody, _ := json.Marshal(struct {
@@ -309,7 +309,7 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 		suite.NoError(suite.DB.Create(&evidence).Error)
 
 		logger, _ := zap.NewDevelopment()
-		server := api.NewServer(context.Background(), logger.Sugar())
+		server := api.NewServer(context.Background(), logger.Sugar(), suite.Config)
 		RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config)
 		rec := httptest.NewRecorder()
 		var reqBody, _ = json.Marshal(struct {
@@ -372,7 +372,7 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 		suite.NoError(suite.DB.Create(&evidence).Error)
 
 		logger, _ := zap.NewDevelopment()
-		server := api.NewServer(context.Background(), logger.Sugar())
+		server := api.NewServer(context.Background(), logger.Sugar(), suite.Config)
 		RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config)
 		rec := httptest.NewRecorder()
 		var reqBody, _ = json.Marshal(struct {
@@ -443,7 +443,7 @@ func (suite *EvidenceApiIntegrationSuite) TestSearch() {
 		suite.NoError(suite.DB.Create(&evidence).Error)
 
 		logger, _ := zap.NewDevelopment()
-		server := api.NewServer(context.Background(), logger.Sugar())
+		server := api.NewServer(context.Background(), logger.Sugar(), suite.Config)
 		RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config)
 		rec := httptest.NewRecorder()
 		var reqBody, _ = json.Marshal(struct {
