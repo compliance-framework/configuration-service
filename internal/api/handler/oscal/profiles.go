@@ -104,7 +104,7 @@ func (h *ProfileHandler) Get(ctx echo.Context) error {
 	id, err := uuid.Parse(idParam)
 	if err != nil {
 		h.sugar.Errorw("error parsing UUID", "id", idParam, "error", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
 	var profile relational.Profile
@@ -147,7 +147,7 @@ func (h *ProfileHandler) ListImports(ctx echo.Context) error {
 	id, err := uuid.Parse(idParam)
 	if err != nil {
 		h.sugar.Errorw("error parsing UUID", "id", idParam, "error", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
 	var profile relational.Profile
@@ -188,7 +188,7 @@ func (h *ProfileHandler) GetBackmatter(ctx echo.Context) error {
 	id, err := uuid.Parse(idParam)
 	if err != nil {
 		h.sugar.Errorw("error parsing UUID", "id", idParam, "error", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
 	var profile relational.Profile
@@ -226,7 +226,7 @@ func (h *ProfileHandler) Resolve(ctx echo.Context) error {
 	id, err := uuid.Parse(idParam)
 	if err != nil {
 		h.sugar.Errorw("error parsing UUID", "id", idParam, "error", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
 	profile, err := FindFullProfile(h.db, id)
@@ -343,7 +343,7 @@ func (h *ProfileHandler) GetFull(ctx echo.Context) error {
 	id, err := uuid.Parse(idParam)
 	if err != nil {
 		h.sugar.Errorw("error parsing UUID", "id", idParam, "error", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
 	profile, err := FindFullProfile(h.db, id)
@@ -376,7 +376,7 @@ func (h *ProfileHandler) GetModify(ctx echo.Context) error {
 	id, err := uuid.Parse(idParam)
 	if err != nil {
 		h.sugar.Errorw("error parsing UUID", "id", idParam, "error", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
 	var profile relational.Profile
@@ -416,7 +416,7 @@ func (h *ProfileHandler) GetMerge(ctx echo.Context) error {
 	id, err := uuid.Parse(idParam)
 	if err != nil {
 		h.sugar.Errorw("error parsing UUID", "id", idParam, "error", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
 	var profile relational.Profile
