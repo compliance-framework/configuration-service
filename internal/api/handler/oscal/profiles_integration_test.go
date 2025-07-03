@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -34,7 +35,8 @@ var (
 		},
 	}
 
-	sp800_53_profile = &oscalTypes_1_1_3.Profile{}
+	sp800_53_profile     = &oscalTypes_1_1_3.Profile{}
+	sp800_53_import_href = "#051a77c1-b61d-4995-8275-dacfe688d510"
 )
 
 func TestOscalProfileApi(t *testing.T) {
@@ -394,4 +396,125 @@ func (suite *ProfileIntegrationSuite) TestGetMerge() {
 		suite.Require().Equal(http.StatusBadRequest, rec.Code, "Expected status code 500 Internal Server Error")
 		suite.Require().Contains(rec.Body.String(), "invalid UUID length", "Expected error message for invalid UUID")
 	})
+}
+
+func (suite *ProfileIntegrationSuite) TestGetImport() {
+	suite.IntegrationTestSuite.Migrator.Refresh()
+	suite.SeedDatabase()
+	token, err := suite.GetAuthToken()
+	suite.Require().NoError(err, "Failed to get auth token")
+
+	sp800_uuid := sp800_53_profile.UUID
+
+	suite.Run("Get import for existing profile", func() {
+		rec := httptest.NewRecorder()
+		url := "/api/oscal/profiles/" + sp800_uuid + "/imports/" + sp800_53_import_href
+		req := httptest.NewRequest(http.MethodGet, url, nil)
+		req.Header.Set(echo.HeaderAuthorization, "Bearer "+*token)
+
+		suite.server.E().ServeHTTP(rec, req)
+
+		suite.Require().Equal(http.StatusOK, rec.Code, "Expected status code 200 OK")
+
+		var response handler.GenericDataResponse[oscalTypes_1_1_3.Import]
+		err = json.NewDecoder(rec.Body).Decode(&response)
+		suite.Require().NoError(err, "Failed to decode response body")
+		suite.Require().NotNil(response.Data, "Expected import data to be returned")
+	})
+
+	suite.Run("Get import for non-existing href", func() {
+		rec := httptest.NewRecorder()
+		url := "/api/oscal/profiles/" + sp800_uuid + "/imports/test-href"
+		req := httptest.NewRequest(http.MethodGet, url, nil)
+		req.Header.Set(echo.HeaderAuthorization, "Bearer "+*token)
+
+		suite.server.E().ServeHTTP(rec, req)
+
+		suite.Require().Equal(http.StatusNotFound, rec.Code, "Expected status code 404 Not Found")
+	})
+
+	suite.Run("Get import with invalid UUID", func() {
+		rec := httptest.NewRecorder()
+		url := "/api/oscal/profiles/invalid-uuid/imports/" + sp800_53_import_href
+		req := httptest.NewRequest(http.MethodGet, url, nil)
+		req.Header.Set(echo.HeaderAuthorization, "Bearer "+*token)
+
+		suite.server.E().ServeHTTP(rec, req)
+
+		suite.Require().Equal(http.StatusBadRequest, rec.Code, "Expected status code 400 Bad Request")
+		suite.Require().Contains(rec.Body.String(), "invalid UUID length", "Expected error message for invalid UUID")
+	})
+}
+
+func (suite *ProfileIntegrationSuite) TestAddImport() {
+	suite.IntegrationTestSuite.Migrator.Refresh()
+	suite.SeedDatabase()
+	token, err := suite.GetAuthToken()
+	suite.Require().NoError(err, "Failed to get auth token")
+
+	suite.Run("Try to add an already existing catalog", func() {
+		rec := httptest.NewRecorder()
+		url := "/api/oscal/profiles/" + sp800_53_profile.UUID + "/imports/add"
+		req := httptest.NewRequest(http.MethodPost, url, bytes.NewReader([]byte(`{
+			"type": "catalog",
+			"uuid": "9b0c9c43-2722-4bbb-b132-13d34fb94d45"
+		}`)))
+
+		req.Header.Set(echo.HeaderAuthorization, "Bearer "+*token)
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+		suite.server.E().ServeHTTP(rec, req)
+
+		suite.Require().Equal(http.StatusConflict, rec.Code, "Expected status code 409 Conflict")
+		suite.Require().Contains(rec.Body.String(), "import already exists", "Expected error message for existing import")
+	})
+
+	suite.Run("Add a new import with unknown catalog UUID", func() {
+		rec := httptest.NewRecorder()
+		url := "/api/oscal/profiles/" + sp800_53_profile.UUID + "/imports/add"
+		req := httptest.NewRequest(http.MethodPost, url, bytes.NewReader([]byte(`{
+			"type": "catalog",
+			"uuid": "00000000-0000-0000-0000-000000000000"
+		}`)))
+
+		req.Header.Set(echo.HeaderAuthorization, "Bearer "+*token)
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+		suite.server.E().ServeHTTP(rec, req)
+
+		suite.Require().Equal(http.StatusNotFound, rec.Code, "Expected status code 404 Not Found")
+		suite.Require().Contains(rec.Body.String(), "record not found", "Expected error message for non-existing catalog")
+	})
+
+	suite.Run("Add a new import with valid catalog UUID", func() {
+		catalog := &relational.Catalog{
+			Metadata: relational.Metadata{
+				Title: "Test Catalog",
+			},
+		}
+
+		if err := suite.DB.Create(catalog).Error; err != nil {
+			suite.T().Fatalf("Failed to create test catalog: %v", err)
+		}
+
+		rec := httptest.NewRecorder()
+		url := "/api/oscal/profiles/" + sp800_53_profile.UUID + "/imports/add"
+		req := httptest.NewRequest(http.MethodPost, url, bytes.NewReader([]byte(`{
+			"type": "catalog",
+			"uuid": "`+catalog.UUIDModel.ID.String()+`"
+		}`)))
+
+		req.Header.Set(echo.HeaderAuthorization, "Bearer "+*token)
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+		suite.server.E().ServeHTTP(rec, req)
+
+		fmt.Println("Response Body:", rec.Body.String())
+		suite.Require().Equal(http.StatusCreated, rec.Code, "Expected status code 201 Created")
+
+		var response handler.GenericDataResponse[oscalTypes_1_1_3.Import]
+		err = json.NewDecoder(rec.Body).Decode(&response)
+		suite.Require().NoError(err, "Failed to decode response body")
+	})
+
 }
