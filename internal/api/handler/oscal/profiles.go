@@ -33,12 +33,17 @@ func (h *ProfileHandler) Register(api *echo.Group) {
 	api.GET("", h.List)
 	api.POST("", h.Create)
 	api.GET("/:id", h.Get)
-	api.GET("/:id/imports", h.ListImports)
+
 	api.GET("/:id/modify", h.GetModify)
 	api.GET("/:id/merge", h.GetMerge)
 	api.GET("/:id/back-matter", h.GetBackmatter)
 	api.POST("/:id/resolve", h.Resolve)
 	api.GET("/:id/full", h.GetFull)
+
+	// imports
+	api.GET("/:id/imports", h.ListImports)
+	api.GET("/:id/imports/:href", h.GetImport)
+	api.POST("/:id/imports/add", h.AddImport)
 }
 
 // List godoc
@@ -167,6 +172,146 @@ func (h *ProfileHandler) ListImports(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.Import]{Data: imports})
+}
+
+// GetImport godoc
+//
+//	@Summary		Get Import from Profile by Backmatter Href
+//	@Description	Retrieves a specific import from a profile by its backmatter href
+//	@Tags			Profile
+//	@Param			id	path	string	true	"Profile UUID"
+//	@Param			href	path	string	true	"Import Href"
+//	@Produce		json
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Import]
+//	@Failure		400	{object}	api.Error
+//	@Failure		401	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/profiles/{id}/imports/{href} [get]
+func (h *ProfileHandler) GetImport(ctx echo.Context) error {
+	profileId := ctx.Param("id")
+	importHref := ctx.Param("href")
+
+	id, err := uuid.Parse(profileId)
+
+	if err != nil {
+		h.sugar.Warnw("error parsing UUID", "id", profileId, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var profileImport relational.Import
+	if err := h.db.Preload("IncludeControls").Preload("ExcludeControls").First(&profileImport, "profile_id = ? AND href = ?", id, importHref).Error; err != nil {
+		h.sugar.Warnw("error getting import", "profile_id", profileId, "href", importHref, "error", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	oscalImport := profileImport.MarshalOscal()
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Import]{Data: oscalImport})
+}
+
+// AddImport godoc
+//
+//	@Summary		Add Import to Profile
+//	@Description	Adds an import to a profile by its UUID and type (catalog/profile). Only catalogs are currently supported currently
+//	@Tags			Profile
+//	@Param			id	path	string	true	"Profile ID"
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		oscal.ProfileHandler.AddImport.request	true	"Request data"
+//	@Success		201	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Import]
+//	@Failure		400	{object}	api.Error
+//	@Failure		401	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		409	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/profiles/{id}/imports/add [post]
+func (h *ProfileHandler) AddImport(ctx echo.Context) error {
+	type request struct {
+		Type string `json:"type"` // catalog / profile
+		UUID string `json:"uuid"`
+	}
+
+	reqData := &request{}
+	if err := ctx.Bind(reqData); err != nil {
+		h.sugar.Warnw("error binding request data", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	if reqData.Type != "catalog" && reqData.Type != "profile" {
+		return ctx.JSON(http.StatusBadRequest, api.NewError(errors.New("type must be either 'catalog' or 'profile'")))
+	}
+
+	// Add error message for unimplemented type 'profile'
+	if reqData.Type == "profile" {
+		return ctx.JSON(http.StatusBadRequest, api.NewError(errors.New("profile is not implemented yet, use catalog instead")))
+	}
+
+	profileId := ctx.Param("id")
+	id, err := uuid.Parse(profileId)
+	if err != nil {
+		h.sugar.Warnw("error parsing UUID", "id", profileId, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var profile relational.Profile
+	if err := h.db.Preload("BackMatter").
+		Preload("BackMatter.Resources").
+		First(&profile, "id = ?", id).Error; err != nil {
+		h.sugar.Warnw("error getting profile", "id", profileId, "error", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	idFragment := "#" + reqData.UUID
+	found := importExistsInProfile(&profile, idFragment)
+
+	if found {
+		return ctx.JSON(http.StatusConflict, api.NewError(errors.New("import already exists")))
+	}
+
+	var catalog relational.Catalog
+	if err := h.db.Preload("Metadata").First(&catalog, "id = ?", reqData.UUID).Error; err != nil {
+		h.sugar.Warnw("error getting catalog", "id", reqData.UUID, "error", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	resourceUUID := uuid.New()
+	resource := relational.BackMatterResource{
+		UUIDModel: relational.UUIDModel{
+			ID: &resourceUUID,
+		},
+		Title: &catalog.Metadata.Title,
+		RLinks: []relational.ResourceLink{
+			{
+				Href:      idFragment,
+				MediaType: "application/ccf+oscal+json",
+			},
+		},
+	}
+
+	newImport := relational.Import{
+		Href: idFragment,
+	}
+
+	profile.BackMatter.Resources = append(profile.BackMatter.Resources, resource)
+	profile.Imports = append(profile.Imports, newImport)
+
+	if err := h.db.Save(&profile).Error; err != nil {
+		h.sugar.Errorw("error saving profile with new import", "id", profileId, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[oscalTypes_1_1_3.Import]{Data: newImport.MarshalOscal()})
 }
 
 // GetBackmatter godoc
@@ -696,4 +841,16 @@ func FindFullProfile(db *gorm.DB, id uuid.UUID) (*relational.Profile, error) {
 	}
 
 	return &profile, nil
+}
+
+// Checks if an import with the given idFragment already exists in the profile's backmatter resources.
+func importExistsInProfile(profile *relational.Profile, idFragment string) bool {
+	for _, resource := range profile.BackMatter.Resources {
+		for _, link := range resource.RLinks {
+			if link.Href == idFragment && link.MediaType == "application/ccf+oscal+json" {
+				return true
+			}
+		}
+	}
+	return false
 }
