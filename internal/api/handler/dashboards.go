@@ -37,16 +37,16 @@ func (h *DashboardHandler) Register(api *echo.Group) {
 
 // Get godoc
 //
-//	@Summary                Get a dashboard
-//	@Description    Retrieves a single dashboard by its unique ID.
-//	@Tags                   Dashboards
-//	@Produce                json
-//	@Param                  id      path            string  true    "Dashboard ID"
-//	@Success                200     {object}        GenericDataResponse[service.Dashboard]
-//	@Failure                400     {object}        api.Error
-//	@Failure                404     {object}        api.Error
-//	@Failure                500     {object}        api.Error
-//	@Router                 /dashboards/{id} [get]
+//	@Summary		Get a dashboard
+//	@Description	Retrieves a single dashboard by its unique ID.
+//	@Tags			Dashboards
+//	@Produce		json
+//	@Param			id	path		string	true	"Dashboard ID"
+//	@Success		200	{object}	GenericDataResponse[service.Dashboard]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/dashboards/{id} [get]
 func (h *DashboardHandler) Get(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -68,13 +68,13 @@ func (h *DashboardHandler) Get(ctx echo.Context) error {
 
 // List godoc
 //
-//	@Summary                List dashboards
-//	@Description    Retrieves all dashboards.
-//	@Tags                   Dashboards
-//	@Produce                json
-//	@Success                200     {object}        GenericDataListResponse[service.Dashboard]
-//	@Failure                500     {object}        api.Error
-//	@Router                 /dashboards [get]
+//	@Summary		List dashboards
+//	@Description	Retrieves all dashboards.
+//	@Tags			Dashboards
+//	@Produce		json
+//	@Success		200	{object}	GenericDataListResponse[service.Dashboard]
+//	@Failure		500	{object}	api.Error
+//	@Router			/dashboards [get]
 func (h *DashboardHandler) List(ctx echo.Context) error {
 	var dashboards []service.Dashboard
 	if err := h.db.Find(&dashboards).Error; err != nil {
@@ -86,17 +86,17 @@ func (h *DashboardHandler) List(ctx echo.Context) error {
 
 // Create godoc
 //
-//	@Summary                Create a new dashboard
-//	@Description    Creates a new dashboard.
-//	@Tags                   Dashboards
-//	@Accept                 json
-//	@Produce                json
-//	@Param                  dashboard       body            createDashboardRequest  true    "Dashboard to add"
-//	@Success                201                     {object}        GenericDataResponse[service.Dashboard]
-//	@Failure                400                     {object}        api.Error
-//	@Failure                422                     {object}        api.Error
-//	@Failure                500                     {object}        api.Error
-//	@Router                 /dashboards [post]
+//	@Summary		Create a new dashboard
+//	@Description	Creates a new dashboard.
+//	@Tags			Dashboards
+//	@Accept			json
+//	@Produce		json
+//	@Param			dashboard	body		createDashboardRequest	true	"Dashboard to add"
+//	@Success		201			{object}	GenericDataResponse[service.Dashboard]
+//	@Failure		400			{object}	api.Error
+//	@Failure		422			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Router			/dashboards [post]
 func (h *DashboardHandler) Create(ctx echo.Context) error {
 	var req createDashboardRequest
 	if err := ctx.Bind(&req); err != nil {
@@ -120,18 +120,18 @@ func (h *DashboardHandler) Create(ctx echo.Context) error {
 
 // Update godoc
 //
-//	@Summary                Update a dashboard
-//	@Description    Updates an existing dashboard.
-//	@Tags                   Dashboards
-//	@Accept                 json
-//	@Produce                json
-//	@Param                  id              path            string  true    "Dashboard ID"
-//	@Param                  dashboard       body            createDashboardRequest  true    "Dashboard to update"
-//	@Success                200     {object}        GenericDataResponse[service.Dashboard]
-//	@Failure                400     {object}        api.Error
-//	@Failure                404     {object}        api.Error
-//	@Failure                500     {object}        api.Error
-//	@Router                 /dashboards/{id} [put]
+//	@Summary		Update a dashboard
+//	@Description	Updates an existing dashboard.
+//	@Tags			Dashboards
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string					true	"Dashboard ID"
+//	@Param			dashboard	body		createDashboardRequest	true	"Dashboard to update"
+//	@Success		200			{object}	GenericDataResponse[service.Dashboard]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Router			/dashboards/{id} [put]
 func (h *DashboardHandler) Update(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
@@ -168,15 +168,15 @@ func (h *DashboardHandler) Update(ctx echo.Context) error {
 
 // Delete godoc
 //
-//	@Summary                Delete a dashboard
-//	@Description    Deletes a dashboard.
-//	@Tags                   Dashboards
-//	@Param                  id      path    string  true    "Dashboard ID"
-//	@Success                204     "No Content"
-//	@Failure                400     {object}        api.Error
-//	@Failure                404     {object}        api.Error
-//	@Failure                500     {object}        api.Error
-//	@Router                 /dashboards/{id} [delete]
+//	@Summary		Delete a dashboard
+//	@Description	Deletes a dashboard.
+//	@Tags			Dashboards
+//	@Param			id	path	string	true	"Dashboard ID"
+//	@Success		204	"No Content"
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/dashboards/{id} [delete]
 func (h *DashboardHandler) Delete(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
