@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"github.com/compliance-framework/configuration-service/internal/service/relational"
 	"net/http"
 
 	"github.com/compliance-framework/configuration-service/internal/api"
@@ -109,6 +110,18 @@ func (h *DashboardHandler) Create(ctx echo.Context) error {
 	dashboard := service.Dashboard{
 		Name:   req.Name,
 		Filter: datatypes.NewJSONType(req.Filter),
+	}
+
+	if req.Controls != nil {
+		for _, controlId := range *req.Controls {
+			searchDB := h.db.Session(&gorm.Session{})
+			control := relational.Control{}
+			err := searchDB.First(&control, "id = ?", controlId).Error
+			if err != nil {
+				return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+			}
+			dashboard.Controls = append(dashboard.Controls, control)
+		}
 	}
 
 	if err := h.db.Create(&dashboard).Error; err != nil {

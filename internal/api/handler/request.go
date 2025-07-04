@@ -8,10 +8,10 @@ import (
 )
 
 // createPlanRequest defines the request payload for method Create
-// TODO: Using minimal data for now, we might need to expand it later
 type createDashboardRequest struct {
-	Name   string             `json:"name" yaml:"name" validate:"required"`
-	Filter labelfilter.Filter `json:"filter" yaml:"filter" validate:"required"`
+	Name     string             `json:"name" yaml:"name" validate:"required"`
+	Filter   labelfilter.Filter `json:"filter" yaml:"filter" validate:"required"`
+	Controls *[]string          `json:"controls" yaml:"controls"`
 }
 
 func (r *createDashboardRequest) bind(ctx echo.Context, p *service.Dashboard) error {

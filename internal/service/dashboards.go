@@ -9,6 +9,7 @@ import (
 type Dashboard struct {
 	relational.UUIDModel
 
-	Name   string                                 `json:"name" yaml:"name"`
-	Filter datatypes.JSONType[labelfilter.Filter] `json:"filter" yaml:"filter"`
+	Name     string                                 `json:"name" yaml:"name"`
+	Filter   datatypes.JSONType[labelfilter.Filter] `json:"filter" yaml:"filter"`
+	Controls []relational.Control                   `gorm:"many2many:dashboard_controls;"`
 }
