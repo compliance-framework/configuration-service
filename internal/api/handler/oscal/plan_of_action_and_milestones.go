@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 
 	"github.com/compliance-framework/configuration-service/internal/api"
@@ -1131,19 +1132,64 @@ func (h *PlanOfActionAndMilestonesHandler) UpdatePoamItem(ctx echo.Context) erro
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
+	// Debug: Log the received OSCAL data
+	h.sugar.Infow("Received OSCAL POAM item",
+		"relatedFindings", oscalPoamItem.RelatedFindings,
+		"relatedObservations", oscalPoamItem.RelatedObservations,
+		"relatedRisks", oscalPoamItem.RelatedRisks)
+
 	// Update with preserved IDs and relationships
 	relPoamItem := &relational.PoamItem{}
 	relPoamItem.UnmarshalOscal(oscalPoamItem, poamID)
 	relPoamItem.UUID = itemIdParam // Preserve the existing UUID
 	relPoamItem.PlanOfActionAndMilestonesID = poamID
 
-	// Save with GORM's Save method
+	// Handle related items directly from the JSON to avoid OSCAL unmarshaling issues
+	if oscalPoamItem.RelatedFindings != nil {
+		relatedFindings := make([]relational.RelatedFinding, len(*oscalPoamItem.RelatedFindings))
+		for i, rf := range *oscalPoamItem.RelatedFindings {
+			relatedFindings[i] = relational.RelatedFinding{
+				FindingUuid: rf.FindingUuid,
+			}
+		}
+		relPoamItem.RelatedFindingUUIDs = datatypes.NewJSONSlice(relatedFindings)
+	}
+
+	if oscalPoamItem.RelatedObservations != nil {
+		relatedObservations := make([]relational.RelatedObservation, len(*oscalPoamItem.RelatedObservations))
+		for i, ro := range *oscalPoamItem.RelatedObservations {
+			relatedObservations[i] = relational.RelatedObservation{
+				ObservationUuid: ro.ObservationUuid,
+			}
+		}
+		relPoamItem.RelatedObservationUUIDs = datatypes.NewJSONSlice(relatedObservations)
+	}
+
+	if oscalPoamItem.RelatedRisks != nil {
+		relatedRisks := make([]relational.AssociatedRisk, len(*oscalPoamItem.RelatedRisks))
+		for i, rr := range *oscalPoamItem.RelatedRisks {
+			relatedRisks[i] = relational.AssociatedRisk{
+				RiskUuid: rr.RiskUuid,
+			}
+		}
+		relPoamItem.RelatedRiskUUIDs = datatypes.NewJSONSlice(relatedRisks)
+	}
+
+	// Save with GORM's Save method - this should handle the JSON fields properly
 	if err := h.db.Save(relPoamItem).Error; err != nil {
 		h.sugar.Errorf("Failed to update POAM item: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.PoamItem]{Data: *relPoamItem.MarshalOscal()})
+	// Fetch the updated item with all relationships
+	var updatedItem relational.PoamItem
+	if err := h.db.Preload("RelatedFindings").Preload("RelatedObservations").Preload("RelatedRisks").
+		Where("uuid = ? AND plan_of_action_and_milestones_id = ?", itemIdParam, poamID).First(&updatedItem).Error; err != nil {
+		h.sugar.Errorf("Failed to fetch updated POAM item: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.PoamItem]{Data: *updatedItem.MarshalOscal()})
 }
 
 // Delete
