@@ -121,10 +121,11 @@ func (h *DashboardHandler) List(ctx echo.Context) error {
 
 // ComplianceByControl godoc
 //
-//	@Summary		List dashboards
-//	@Description	Retrieves all dashboards.
+//	@Summary		Get compliance counts by control
+//	@Description	Retrieves the count of evidence statuses for dashboards associated with a specific Control ID.
 //	@Tags			Dashboards
 //	@Produce		json
+//	@Param			id	path		string	true	"Control ID"
 //	@Success		200	{object}	GenericDataListResponse[handler.ComplianceByControl.StatusCount]
 //	@Failure		500	{object}	api.Error
 //	@Router			/dashboards/compliance-by-control/{id} [get]
