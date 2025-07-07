@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"github.com/compliance-framework/configuration-service/internal/service/relational"
+	oscalTypes_1_1_3 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"net/http"
 
 	"github.com/compliance-framework/configuration-service/internal/api"
@@ -36,6 +37,11 @@ func (h *DashboardHandler) Register(api *echo.Group) {
 	api.DELETE("/:id", h.Delete)
 }
 
+type DashboardWithControlsResponse struct {
+	service.Dashboard
+	Controls []oscalTypes_1_1_3.Control `json:"controls"`
+}
+
 // Get godoc
 //
 //	@Summary		Get a dashboard
@@ -43,7 +49,7 @@ func (h *DashboardHandler) Register(api *echo.Group) {
 //	@Tags			Dashboards
 //	@Produce		json
 //	@Param			id	path		string	true	"Dashboard ID"
-//	@Success		200	{object}	GenericDataResponse[service.Dashboard]
+//	@Success		200	{object}	GenericDataResponse[DashboardWithControlsResponse]
 //	@Failure		400	{object}	api.Error
 //	@Failure		404	{object}	api.Error
 //	@Failure		500	{object}	api.Error
@@ -57,14 +63,25 @@ func (h *DashboardHandler) Get(ctx echo.Context) error {
 	}
 
 	var dashboard service.Dashboard
-	if err := h.db.First(&dashboard, "id = ?", id).Error; err != nil {
+	if err := h.db.Preload("Controls").First(&dashboard, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
 		}
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	return ctx.JSON(http.StatusOK, GenericDataResponse[service.Dashboard]{Data: dashboard})
+	response := DashboardWithControlsResponse{
+		Dashboard: dashboard,
+		Controls: func() []oscalTypes_1_1_3.Control {
+			result := []oscalTypes_1_1_3.Control{}
+			for _, control := range dashboard.Controls {
+				result = append(result, *control.MarshalOscal())
+			}
+			return result
+		}(),
+	}
+
+	return ctx.JSON(http.StatusOK, GenericDataResponse[DashboardWithControlsResponse]{Data: response})
 }
 
 // List godoc
@@ -73,16 +90,33 @@ func (h *DashboardHandler) Get(ctx echo.Context) error {
 //	@Description	Retrieves all dashboards.
 //	@Tags			Dashboards
 //	@Produce		json
-//	@Success		200	{object}	GenericDataListResponse[service.Dashboard]
+//	@Success		200	{object}	GenericDataListResponse[DashboardWithControlsResponse]
 //	@Failure		500	{object}	api.Error
 //	@Router			/dashboards [get]
 func (h *DashboardHandler) List(ctx echo.Context) error {
 	var dashboards []service.Dashboard
-	if err := h.db.Find(&dashboards).Error; err != nil {
+	if err := h.db.Preload("Controls").Find(&dashboards).Error; err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	return ctx.JSON(http.StatusOK, GenericDataListResponse[service.Dashboard]{Data: dashboards})
+	response := func() []DashboardWithControlsResponse {
+		result := []DashboardWithControlsResponse{}
+		for _, dashboard := range dashboards {
+			result = append(result, DashboardWithControlsResponse{
+				Dashboard: dashboard,
+				Controls: func() []oscalTypes_1_1_3.Control {
+					result := []oscalTypes_1_1_3.Control{}
+					for _, control := range dashboard.Controls {
+						result = append(result, *control.MarshalOscal())
+					}
+					return result
+				}(),
+			})
+		}
+		return result
+	}()
+
+	return ctx.JSON(http.StatusOK, GenericDataListResponse[DashboardWithControlsResponse]{Data: response})
 }
 
 // Create godoc
