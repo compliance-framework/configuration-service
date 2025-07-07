@@ -180,10 +180,10 @@ func (h *FilterHandler) ComplianceByControl(ctx echo.Context) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			filter	body		createFilterRequest	true	"Filter to add"
-//	@Success		201			{object}	GenericDataResponse[relational.Filter]
-//	@Failure		400			{object}	api.Error
-//	@Failure		422			{object}	api.Error
-//	@Failure		500			{object}	api.Error
+//	@Success		201		{object}	GenericDataResponse[relational.Filter]
+//	@Failure		400		{object}	api.Error
+//	@Failure		422		{object}	api.Error
+//	@Failure		500		{object}	api.Error
 //	@Router			/filters [post]
 func (h *FilterHandler) Create(ctx echo.Context) error {
 	var req createFilterRequest
@@ -225,12 +225,12 @@ func (h *FilterHandler) Create(ctx echo.Context) error {
 //	@Tags			Filters
 //	@Accept			json
 //	@Produce		json
-//	@Param			id			path		string					true	"Filter ID"
+//	@Param			id		path		string				true	"Filter ID"
 //	@Param			filter	body		createFilterRequest	true	"Filter to update"
-//	@Success		200			{object}	GenericDataResponse[relational.Filter]
-//	@Failure		400			{object}	api.Error
-//	@Failure		404			{object}	api.Error
-//	@Failure		500			{object}	api.Error
+//	@Success		200		{object}	GenericDataResponse[relational.Filter]
+//	@Failure		400		{object}	api.Error
+//	@Failure		404		{object}	api.Error
+//	@Failure		500		{object}	api.Error
 //	@Router			/filters/{id} [put]
 func (h *FilterHandler) Update(ctx echo.Context) error {
 	idParam := ctx.Param("id")
