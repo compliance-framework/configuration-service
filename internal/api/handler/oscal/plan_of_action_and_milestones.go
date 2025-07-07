@@ -63,6 +63,8 @@ func (h *PlanOfActionAndMilestonesHandler) Register(api *echo.Group) {
 	api.POST("/:id/import-ssp", h.CreateImportSsp)
 	api.PUT("/:id/import-ssp", h.UpdateImportSsp)
 	api.GET("/:id/system-id", h.GetSystemId)
+	api.POST("/:id/system-id", h.CreateSystemId)
+	api.PUT("/:id/system-id", h.UpdateSystemId)
 	api.GET("/:id/local-definitions", h.GetLocalDefinitions)
 	api.GET("/:id/back-matter", h.GetBackMatter)
 	api.GET("/:id/observations", h.GetObservations)
@@ -608,6 +610,126 @@ func (h *PlanOfActionAndMilestonesHandler) GetSystemId(ctx echo.Context) error {
 	if systemId.ID == "" {
 		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("no system-id for POA&M %s", idParam)))
 	}
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.SystemId]{Data: *systemId.MarshalOscal()})
+}
+
+// CreateSystemId godoc
+//
+//	@Summary		Create system-id for a POA&M
+//	@Description	Creates system-id for a given POA&M.
+//	@Tags			Plan Of Action and Milestones
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string						true	"POA&M ID"
+//	@Param			systemId	body		oscalTypes_1_1_3.SystemId	true	"System ID data"
+//	@Success		200			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.SystemId]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Router			/oscal/plan-of-action-and-milestones/{id}/system-id [post]
+func (h *PlanOfActionAndMilestonesHandler) CreateSystemId(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify POAM exists
+	if err := h.verifyPoamExists(ctx, id); err != nil {
+		return err
+	}
+
+	var oscalSystemId oscalTypes_1_1_3.SystemId
+	if err := ctx.Bind(&oscalSystemId); err != nil {
+		h.sugar.Warnw("Invalid create system-id request", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Validate input
+	if oscalSystemId.ID == "" {
+		h.sugar.Warnw("Invalid system-id input", "error", "id is required")
+		return ctx.JSON(http.StatusBadRequest, api.NewError(fmt.Errorf("id is required")))
+	}
+
+	var poam relational.PlanOfActionAndMilestones
+	if err := h.db.First(&poam, "id = ?", id).Error; err != nil {
+		h.sugar.Errorw("failed to get poam", "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
+	// Create SystemId relational object
+	systemId := &relational.SystemId{}
+	systemId.UnmarshalOscal(oscalSystemId)
+
+	// Update the POAM with the new system-id
+	poam.SystemId = datatypes.NewJSONType(*systemId)
+
+	if err := h.db.Save(&poam).Error; err != nil {
+		h.sugar.Errorf("Failed to create system-id: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[oscalTypes_1_1_3.SystemId]{Data: *systemId.MarshalOscal()})
+}
+
+// UpdateSystemId godoc
+//
+//	@Summary		Update system-id for a POA&M
+//	@Description	Updates system-id for a given POA&M.
+//	@Tags			Plan Of Action and Milestones
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string						true	"POA&M ID"
+//	@Param			systemId	body		oscalTypes_1_1_3.SystemId	true	"System ID data"
+//	@Success		200			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.SystemId]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Router			/oscal/plan-of-action-and-milestones/{id}/system-id [put]
+func (h *PlanOfActionAndMilestonesHandler) UpdateSystemId(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify POAM exists
+	if err := h.verifyPoamExists(ctx, id); err != nil {
+		return err
+	}
+
+	var oscalSystemId oscalTypes_1_1_3.SystemId
+	if err := ctx.Bind(&oscalSystemId); err != nil {
+		h.sugar.Warnw("Invalid update system-id request", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Validate input
+	if oscalSystemId.ID == "" {
+		h.sugar.Warnw("Invalid system-id input", "error", "id is required")
+		return ctx.JSON(http.StatusBadRequest, api.NewError(fmt.Errorf("id is required")))
+	}
+
+	var poam relational.PlanOfActionAndMilestones
+	if err := h.db.First(&poam, "id = ?", id).Error; err != nil {
+		h.sugar.Errorw("failed to get poam", "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
+	// Create SystemId relational object
+	systemId := &relational.SystemId{}
+	systemId.UnmarshalOscal(oscalSystemId)
+
+	// Update the POAM with the new system-id
+	poam.SystemId = datatypes.NewJSONType(*systemId)
+
+	if err := h.db.Save(&poam).Error; err != nil {
+		h.sugar.Errorf("Failed to update system-id: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.SystemId]{Data: *systemId.MarshalOscal()})
 }
 

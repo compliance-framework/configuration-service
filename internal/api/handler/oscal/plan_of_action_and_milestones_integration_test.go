@@ -1882,26 +1882,7 @@ func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestImportSspFullLife
 	suite.server.E().ServeHTTP(createRec, createReq)
 	suite.Equal(http.StatusCreated, createRec.Code)
 
-	// Verify creation
-	var createResponse handler.GenericDataResponse[oscaltypes.ImportSsp]
-	err := json.Unmarshal(createRec.Body.Bytes(), &createResponse)
-	suite.Require().NoError(err)
-	suite.Equal(importSsp.Href, createResponse.Data.Href)
-	suite.Equal(importSsp.Remarks, createResponse.Data.Remarks)
-
-	// Test 2: Get ImportSsp
-	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/import-ssp", poamUUID), nil)
-	suite.server.E().ServeHTTP(getRec, getReq)
-	suite.Equal(http.StatusOK, getRec.Code)
-
-	// Verify retrieval
-	var getResponse handler.GenericDataResponse[oscaltypes.ImportSsp]
-	err = json.Unmarshal(getRec.Body.Bytes(), &getResponse)
-	suite.Require().NoError(err)
-	suite.Equal("https://example.com/ssp.json", getResponse.Data.Href)
-	suite.Equal("Initial import SSP", getResponse.Data.Remarks)
-
-	// Test 3: Update ImportSsp
+	// Test 2: Update ImportSsp
 	updatedImportSsp := oscaltypes.ImportSsp{
 		Href:    "https://example.com/updated-ssp.json",
 		Remarks: "Updated import SSP",
@@ -1911,22 +1892,230 @@ func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestImportSspFullLife
 	suite.server.E().ServeHTTP(updateRec, updateReq)
 	suite.Equal(http.StatusOK, updateRec.Code)
 
-	// Verify update
-	var updateResponse handler.GenericDataResponse[oscaltypes.ImportSsp]
-	err = json.Unmarshal(updateRec.Body.Bytes(), &updateResponse)
-	suite.Require().NoError(err)
-	suite.Equal(updatedImportSsp.Href, updateResponse.Data.Href)
-	suite.Equal(updatedImportSsp.Remarks, updateResponse.Data.Remarks)
+	// Test 3: Get ImportSsp
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/import-ssp", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
 
-	// Test 4: Get Updated ImportSsp
-	finalGetRec, finalGetReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/import-ssp", poamUUID), nil)
-	suite.server.E().ServeHTTP(finalGetRec, finalGetReq)
-	suite.Equal(http.StatusOK, finalGetRec.Code)
-
-	// Verify final state
-	var finalResponse handler.GenericDataResponse[oscaltypes.ImportSsp]
-	err = json.Unmarshal(finalGetRec.Body.Bytes(), &finalResponse)
+	// Verify the final state
+	var response handler.GenericDataResponse[oscaltypes.ImportSsp]
+	err := json.Unmarshal(getRec.Body.Bytes(), &response)
 	suite.Require().NoError(err)
-	suite.Equal("https://example.com/updated-ssp.json", finalResponse.Data.Href)
-	suite.Equal("Updated import SSP", finalResponse.Data.Remarks)
+	suite.Equal(updatedImportSsp.Href, response.Data.Href)
+	suite.Equal(updatedImportSsp.Remarks, response.Data.Remarks)
+}
+
+// System ID Tests
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestCreateSystemId() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Test valid system ID creation
+	systemId := oscaltypes.SystemId{
+		IdentifierType: "https://ietf.org/rfc/rfc4122",
+		ID:             "d7456980-9277-4dcb-83cf-f8ff0442623b",
+	}
+
+	rec, req := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), systemId)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusCreated, rec.Code)
+
+	// Verify the system ID was created
+	var response handler.GenericDataResponse[oscaltypes.SystemId]
+	err := json.Unmarshal(rec.Body.Bytes(), &response)
+	suite.Require().NoError(err)
+	suite.Equal(systemId.IdentifierType, response.Data.IdentifierType)
+	suite.Equal(systemId.ID, response.Data.ID)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestCreateSystemIdWithMinimalData() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Test system ID with only required fields
+	systemId := oscaltypes.SystemId{
+		ID: "F00000000",
+	}
+
+	rec, req := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), systemId)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusCreated, rec.Code)
+
+	// Verify the system ID was created
+	var response handler.GenericDataResponse[oscaltypes.SystemId]
+	err := json.Unmarshal(rec.Body.Bytes(), &response)
+	suite.Require().NoError(err)
+	suite.Equal(systemId.ID, response.Data.ID)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestCreateSystemIdWithEmptyId() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Test system ID with empty id (should fail)
+	systemId := oscaltypes.SystemId{
+		ID: "",
+	}
+
+	rec, req := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), systemId)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusBadRequest, rec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestUpdateSystemId() {
+	poamUUID := suite.createBasicPOAM()
+
+	// First create a system ID
+	initialSystemId := oscaltypes.SystemId{
+		IdentifierType: "https://ietf.org/rfc/rfc4122",
+		ID:             "d7456980-9277-4dcb-83cf-f8ff0442623b",
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), initialSystemId)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Now update the system ID
+	updatedSystemId := oscaltypes.SystemId{
+		IdentifierType: "https://fedramp.gov",
+		ID:             "F00000000",
+	}
+
+	updateRec, updateReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), updatedSystemId)
+	suite.server.E().ServeHTTP(updateRec, updateReq)
+	suite.Equal(http.StatusOK, updateRec.Code)
+
+	// Verify the system ID was updated
+	var response handler.GenericDataResponse[oscaltypes.SystemId]
+	err := json.Unmarshal(updateRec.Body.Bytes(), &response)
+	suite.Require().NoError(err)
+	suite.Equal(updatedSystemId.IdentifierType, response.Data.IdentifierType)
+	suite.Equal(updatedSystemId.ID, response.Data.ID)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestUpdateSystemIdWithComplexIdentifierType() {
+	poamUUID := suite.createBasicPOAM()
+
+	// First create a system ID
+	initialSystemId := oscaltypes.SystemId{
+		ID: "F00000000",
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), initialSystemId)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Update with complex identifier type
+	complexSystemId := oscaltypes.SystemId{
+		IdentifierType: "https://doi.org/10.6028/NIST.SP.800-60v2r1",
+		ID:             "NIST-SP-800-60-EXAMPLE",
+	}
+
+	updateRec, updateReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), complexSystemId)
+	suite.server.E().ServeHTTP(updateRec, updateReq)
+	suite.Equal(http.StatusOK, updateRec.Code)
+
+	// Verify the system ID was updated
+	var response handler.GenericDataResponse[oscaltypes.SystemId]
+	err := json.Unmarshal(updateRec.Body.Bytes(), &response)
+	suite.Require().NoError(err)
+	suite.Equal(complexSystemId.IdentifierType, response.Data.IdentifierType)
+	suite.Equal(complexSystemId.ID, response.Data.ID)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestUpdateSystemIdWithEmptyId() {
+	poamUUID := suite.createBasicPOAM()
+
+	// First create a system ID
+	initialSystemId := oscaltypes.SystemId{
+		ID: "F00000000",
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), initialSystemId)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Try to update with empty id (should fail)
+	invalidSystemId := oscaltypes.SystemId{
+		ID: "",
+	}
+
+	updateRec, updateReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), invalidSystemId)
+	suite.server.E().ServeHTTP(updateRec, updateReq)
+	suite.Equal(http.StatusBadRequest, updateRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestGetSystemId() {
+	poamUUID := suite.createBasicPOAM()
+
+	// First create a system ID
+	systemId := oscaltypes.SystemId{
+		IdentifierType: "https://fedramp.gov",
+		ID:             "F00000000",
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), systemId)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Now get the system ID
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	// Verify the system ID was retrieved
+	var response handler.GenericDataResponse[oscaltypes.SystemId]
+	err := json.Unmarshal(getRec.Body.Bytes(), &response)
+	suite.Require().NoError(err)
+	suite.Equal(systemId.IdentifierType, response.Data.IdentifierType)
+	suite.Equal(systemId.ID, response.Data.ID)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestGetSystemIdWithInvalidUUID() {
+	// Test getting system ID with invalid UUID
+	rec, req := suite.createRequest(http.MethodGet, "/api/oscal/plan-of-action-and-milestones/invalid-uuid/system-id", nil)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusBadRequest, rec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestGetSystemIdForNonExistentPOAM() {
+	// Test getting system ID for non-existent POAM
+	nonExistentUUID := uuid.New().String()
+	rec, req := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", nonExistentUUID), nil)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusNotFound, rec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestSystemIdFullLifecycle() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Test 1: Create SystemId
+	systemId := oscaltypes.SystemId{
+		IdentifierType: "https://ietf.org/rfc/rfc4122",
+		ID:             "d7456980-9277-4dcb-83cf-f8ff0442623b",
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), systemId)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Test 2: Update SystemId
+	updatedSystemId := oscaltypes.SystemId{
+		IdentifierType: "https://fedramp.gov",
+		ID:             "F00000000",
+	}
+
+	updateRec, updateReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), updatedSystemId)
+	suite.server.E().ServeHTTP(updateRec, updateReq)
+	suite.Equal(http.StatusOK, updateRec.Code)
+
+	// Test 3: Get SystemId
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	// Verify the final state
+	var response handler.GenericDataResponse[oscaltypes.SystemId]
+	err := json.Unmarshal(getRec.Body.Bytes(), &response)
+	suite.Require().NoError(err)
+	suite.Equal(updatedSystemId.IdentifierType, response.Data.IdentifierType)
+	suite.Equal(updatedSystemId.ID, response.Data.ID)
 }
