@@ -14,21 +14,21 @@ import (
 	"net/http"
 )
 
-// DashboardHandler handles CRUD operations for dashboards.
-type DashboardHandler struct {
+// FilterHandler handles CRUD operations for filters.
+type FilterHandler struct {
 	db    *gorm.DB
 	sugar *zap.SugaredLogger
 }
 
-func NewDashboardHandler(sugar *zap.SugaredLogger, db *gorm.DB) *DashboardHandler {
-	return &DashboardHandler{
+func NewFilterHandler(sugar *zap.SugaredLogger, db *gorm.DB) *FilterHandler {
+	return &FilterHandler{
 		sugar: sugar,
 		db:    db,
 	}
 }
 
-// Register registers the dashboard endpoints.
-func (h *DashboardHandler) Register(api *echo.Group) {
+// Register registers the filter endpoints.
+func (h *FilterHandler) Register(api *echo.Group) {
 	api.GET("", h.List)
 	api.GET("/:id", h.Get)
 	api.GET("/compliance-by-control/:id", h.ComplianceByControl)
@@ -37,76 +37,76 @@ func (h *DashboardHandler) Register(api *echo.Group) {
 	api.DELETE("/:id", h.Delete)
 }
 
-type DashboardWithControlsResponse struct {
-	relational.Dashboard
+type FilterWithControlsResponse struct {
+	relational.Filter
 	Controls []oscalTypes_1_1_3.Control `json:"controls"`
 }
 
 // Get godoc
 //
-//	@Summary		Get a dashboard
-//	@Description	Retrieves a single dashboard by its unique ID.
-//	@Tags			Dashboards
+//	@Summary		Get a filter
+//	@Description	Retrieves a single filter by its unique ID.
+//	@Tags			Filters
 //	@Produce		json
-//	@Param			id	path		string	true	"Dashboard ID"
-//	@Success		200	{object}	GenericDataResponse[DashboardWithControlsResponse]
+//	@Param			id	path		string	true	"Filter ID"
+//	@Success		200	{object}	GenericDataResponse[FilterWithControlsResponse]
 //	@Failure		400	{object}	api.Error
 //	@Failure		404	{object}	api.Error
 //	@Failure		500	{object}	api.Error
-//	@Router			/dashboards/{id} [get]
-func (h *DashboardHandler) Get(ctx echo.Context) error {
+//	@Router			/filters/{id} [get]
+func (h *FilterHandler) Get(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		h.sugar.Warnw("Invalid dashboard id", "id", idParam, "error", err)
+		h.sugar.Warnw("Invalid filter id", "id", idParam, "error", err)
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	var dashboard relational.Dashboard
-	if err := h.db.Preload("Controls").First(&dashboard, "id = ?", id).Error; err != nil {
+	var filter relational.Filter
+	if err := h.db.Preload("Controls").First(&filter, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
 		}
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	response := DashboardWithControlsResponse{
-		Dashboard: dashboard,
+	response := FilterWithControlsResponse{
+		Filter: filter,
 		Controls: func() []oscalTypes_1_1_3.Control {
 			result := []oscalTypes_1_1_3.Control{}
-			for _, control := range dashboard.Controls {
+			for _, control := range filter.Controls {
 				result = append(result, *control.MarshalOscal())
 			}
 			return result
 		}(),
 	}
 
-	return ctx.JSON(http.StatusOK, GenericDataResponse[DashboardWithControlsResponse]{Data: response})
+	return ctx.JSON(http.StatusOK, GenericDataResponse[FilterWithControlsResponse]{Data: response})
 }
 
 // List godoc
 //
-//	@Summary		List dashboards
-//	@Description	Retrieves all dashboards.
-//	@Tags			Dashboards
+//	@Summary		List filters
+//	@Description	Retrieves all filters.
+//	@Tags			Filters
 //	@Produce		json
-//	@Success		200	{object}	GenericDataListResponse[DashboardWithControlsResponse]
+//	@Success		200	{object}	GenericDataListResponse[FilterWithControlsResponse]
 //	@Failure		500	{object}	api.Error
-//	@Router			/dashboards [get]
-func (h *DashboardHandler) List(ctx echo.Context) error {
-	var dashboards []relational.Dashboard
-	if err := h.db.Preload("Controls").Find(&dashboards).Error; err != nil {
+//	@Router			/filters [get]
+func (h *FilterHandler) List(ctx echo.Context) error {
+	var filters []relational.Filter
+	if err := h.db.Preload("Controls").Find(&filters).Error; err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	response := func() []DashboardWithControlsResponse {
-		result := []DashboardWithControlsResponse{}
-		for _, dashboard := range dashboards {
-			result = append(result, DashboardWithControlsResponse{
-				Dashboard: dashboard,
+	response := func() []FilterWithControlsResponse {
+		result := []FilterWithControlsResponse{}
+		for _, filter := range filters {
+			result = append(result, FilterWithControlsResponse{
+				Filter: filter,
 				Controls: func() []oscalTypes_1_1_3.Control {
 					result := []oscalTypes_1_1_3.Control{}
-					for _, control := range dashboard.Controls {
+					for _, control := range filter.Controls {
 						result = append(result, *control.MarshalOscal())
 					}
 					return result
@@ -116,23 +116,23 @@ func (h *DashboardHandler) List(ctx echo.Context) error {
 		return result
 	}()
 
-	return ctx.JSON(http.StatusOK, GenericDataListResponse[DashboardWithControlsResponse]{Data: response})
+	return ctx.JSON(http.StatusOK, GenericDataListResponse[FilterWithControlsResponse]{Data: response})
 }
 
 // ComplianceByControl godoc
 //
 //	@Summary		Get compliance counts by control
-//	@Description	Retrieves the count of evidence statuses for dashboards associated with a specific Control ID.
-//	@Tags			Dashboards
+//	@Description	Retrieves the count of evidence statuses for filters associated with a specific Control ID.
+//	@Tags			Filters
 //	@Produce		json
 //	@Param			id	path		string	true	"Control ID"
 //	@Success		200	{object}	GenericDataListResponse[handler.ComplianceByControl.StatusCount]
 //	@Failure		500	{object}	api.Error
-//	@Router			/dashboards/compliance-by-control/{id} [get]
-func (h *DashboardHandler) ComplianceByControl(ctx echo.Context) error {
+//	@Router			/filters/compliance-by-control/{id} [get]
+func (h *FilterHandler) ComplianceByControl(ctx echo.Context) error {
 	id := ctx.Param("id")
 	control := &relational.Control{}
-	if err := h.db.Preload("Dashboards").First(control, "id = ?", id).Error; err != nil {
+	if err := h.db.Preload("Filters").First(control, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
 		}
@@ -140,8 +140,8 @@ func (h *DashboardHandler) ComplianceByControl(ctx echo.Context) error {
 	}
 
 	filters := []labelfilter.Filter{}
-	for _, dashboard := range control.Dashboards {
-		filters = append(filters, dashboard.Filter.Data())
+	for _, filter := range control.Filters {
+		filters = append(filters, filter.Filter.Data())
 	}
 
 	type StatusCount struct {
@@ -174,19 +174,19 @@ func (h *DashboardHandler) ComplianceByControl(ctx echo.Context) error {
 
 // Create godoc
 //
-//	@Summary		Create a new dashboard
-//	@Description	Creates a new dashboard.
-//	@Tags			Dashboards
+//	@Summary		Create a new filter
+//	@Description	Creates a new filter.
+//	@Tags			Filters
 //	@Accept			json
 //	@Produce		json
-//	@Param			dashboard	body		createDashboardRequest	true	"Dashboard to add"
-//	@Success		201			{object}	GenericDataResponse[relational.Dashboard]
+//	@Param			filter	body		createFilterRequest	true	"Filter to add"
+//	@Success		201			{object}	GenericDataResponse[relational.Filter]
 //	@Failure		400			{object}	api.Error
 //	@Failure		422			{object}	api.Error
 //	@Failure		500			{object}	api.Error
-//	@Router			/dashboards [post]
-func (h *DashboardHandler) Create(ctx echo.Context) error {
-	var req createDashboardRequest
+//	@Router			/filters [post]
+func (h *FilterHandler) Create(ctx echo.Context) error {
+	var req createFilterRequest
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
@@ -194,7 +194,7 @@ func (h *DashboardHandler) Create(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, api.Validator(err))
 	}
 
-	dashboard := relational.Dashboard{
+	filter := relational.Filter{
 		Name:   req.Name,
 		Filter: datatypes.NewJSONType(req.Filter),
 	}
@@ -207,40 +207,40 @@ func (h *DashboardHandler) Create(ctx echo.Context) error {
 			if err != nil {
 				return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 			}
-			dashboard.Controls = append(dashboard.Controls, control)
+			filter.Controls = append(filter.Controls, control)
 		}
 	}
 
-	if err := h.db.Create(&dashboard).Error; err != nil {
+	if err := h.db.Create(&filter).Error; err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	return ctx.JSON(http.StatusCreated, GenericDataResponse[relational.Dashboard]{Data: dashboard})
+	return ctx.JSON(http.StatusCreated, GenericDataResponse[relational.Filter]{Data: filter})
 }
 
 // Update godoc
 //
-//	@Summary		Update a dashboard
-//	@Description	Updates an existing dashboard.
-//	@Tags			Dashboards
+//	@Summary		Update a filter
+//	@Description	Updates an existing filter.
+//	@Tags			Filters
 //	@Accept			json
 //	@Produce		json
-//	@Param			id			path		string					true	"Dashboard ID"
-//	@Param			dashboard	body		createDashboardRequest	true	"Dashboard to update"
-//	@Success		200			{object}	GenericDataResponse[relational.Dashboard]
+//	@Param			id			path		string					true	"Filter ID"
+//	@Param			filter	body		createFilterRequest	true	"Filter to update"
+//	@Success		200			{object}	GenericDataResponse[relational.Filter]
 //	@Failure		400			{object}	api.Error
 //	@Failure		404			{object}	api.Error
 //	@Failure		500			{object}	api.Error
-//	@Router			/dashboards/{id} [put]
-func (h *DashboardHandler) Update(ctx echo.Context) error {
+//	@Router			/filters/{id} [put]
+func (h *FilterHandler) Update(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		h.sugar.Warnw("Invalid dashboard id", "id", idParam, "error", err)
+		h.sugar.Warnw("Invalid filter id", "id", idParam, "error", err)
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	var req createDashboardRequest
+	var req createFilterRequest
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
@@ -248,52 +248,52 @@ func (h *DashboardHandler) Update(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, api.Validator(err))
 	}
 
-	var dashboard relational.Dashboard
-	if err := h.db.First(&dashboard, "id = ?", id).Error; err != nil {
+	var filter relational.Filter
+	if err := h.db.First(&filter, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
 		}
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	dashboard.Name = req.Name
-	dashboard.Filter = datatypes.NewJSONType(req.Filter)
+	filter.Name = req.Name
+	filter.Filter = datatypes.NewJSONType(req.Filter)
 
-	if err := h.db.Save(&dashboard).Error; err != nil {
+	if err := h.db.Save(&filter).Error; err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	return ctx.JSON(http.StatusOK, GenericDataResponse[relational.Dashboard]{Data: dashboard})
+	return ctx.JSON(http.StatusOK, GenericDataResponse[relational.Filter]{Data: filter})
 }
 
 // Delete godoc
 //
-//	@Summary		Delete a dashboard
-//	@Description	Deletes a dashboard.
-//	@Tags			Dashboards
-//	@Param			id	path	string	true	"Dashboard ID"
+//	@Summary		Delete a filter
+//	@Description	Deletes a filter.
+//	@Tags			Filters
+//	@Param			id	path	string	true	"Filter ID"
 //	@Success		204	"No Content"
 //	@Failure		400	{object}	api.Error
 //	@Failure		404	{object}	api.Error
 //	@Failure		500	{object}	api.Error
-//	@Router			/dashboards/{id} [delete]
-func (h *DashboardHandler) Delete(ctx echo.Context) error {
+//	@Router			/filters/{id} [delete]
+func (h *FilterHandler) Delete(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		h.sugar.Warnw("Invalid dashboard id", "id", idParam, "error", err)
+		h.sugar.Warnw("Invalid filter id", "id", idParam, "error", err)
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	var dashboard relational.Dashboard
-	if err := h.db.First(&dashboard, "id = ?", id).Error; err != nil {
+	var filter relational.Filter
+	if err := h.db.First(&filter, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
 		}
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	if err := h.db.Delete(&dashboard).Error; err != nil {
+	if err := h.db.Delete(&filter).Error; err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
