@@ -2,7 +2,7 @@ package handler
 
 import (
 	"github.com/compliance-framework/configuration-service/internal/converters/labelfilter"
-	"github.com/compliance-framework/configuration-service/internal/service"
+	"github.com/compliance-framework/configuration-service/internal/service/relational"
 	"github.com/labstack/echo/v4"
 	"gorm.io/datatypes"
 )
@@ -14,7 +14,7 @@ type createDashboardRequest struct {
 	Controls *[]string          `json:"controls" yaml:"controls"`
 }
 
-func (r *createDashboardRequest) bind(ctx echo.Context, p *service.Dashboard) error {
+func (r *createDashboardRequest) bind(ctx echo.Context, p *relational.Dashboard) error {
 	if err := ctx.Bind(r); err != nil {
 		return err
 	}

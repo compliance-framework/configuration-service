@@ -1,15 +1,14 @@
-package service
+package relational
 
 import (
 	"github.com/compliance-framework/configuration-service/internal/converters/labelfilter"
-	"github.com/compliance-framework/configuration-service/internal/service/relational"
 	"gorm.io/datatypes"
 )
 
 type Dashboard struct {
-	relational.UUIDModel
+	UUIDModel
 
 	Name     string                                 `json:"name" yaml:"name"`
 	Filter   datatypes.JSONType[labelfilter.Filter] `json:"filter" yaml:"filter"`
-	Controls []relational.Control                   `json:"controls" gorm:"many2many:dashboard_controls;"`
+	Controls []Control                              `json:"controls" gorm:"many2many:dashboard_controls;"`
 }
