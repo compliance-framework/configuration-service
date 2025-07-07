@@ -3,7 +3,6 @@ package handler
 import (
 	"errors"
 	"github.com/compliance-framework/configuration-service/internal/api"
-	"github.com/compliance-framework/configuration-service/internal/converters/labelfilter"
 	"github.com/compliance-framework/configuration-service/internal/service/relational"
 	oscalTypes_1_1_3 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
@@ -31,7 +30,6 @@ func NewFilterHandler(sugar *zap.SugaredLogger, db *gorm.DB) *FilterHandler {
 func (h *FilterHandler) Register(api *echo.Group) {
 	api.GET("", h.List)
 	api.GET("/:id", h.Get)
-	api.GET("/compliance-by-control/:id", h.ComplianceByControl)
 	api.POST("", h.Create)
 	api.PUT("/:id", h.Update)
 	api.DELETE("/:id", h.Delete)
@@ -117,59 +115,6 @@ func (h *FilterHandler) List(ctx echo.Context) error {
 	}()
 
 	return ctx.JSON(http.StatusOK, GenericDataListResponse[FilterWithControlsResponse]{Data: response})
-}
-
-// ComplianceByControl godoc
-//
-//	@Summary		Get compliance counts by control
-//	@Description	Retrieves the count of evidence statuses for filters associated with a specific Control ID.
-//	@Tags			Filters
-//	@Produce		json
-//	@Param			id	path		string	true	"Control ID"
-//	@Success		200	{object}	GenericDataListResponse[handler.ComplianceByControl.StatusCount]
-//	@Failure		500	{object}	api.Error
-//	@Router			/filters/compliance-by-control/{id} [get]
-func (h *FilterHandler) ComplianceByControl(ctx echo.Context) error {
-	id := ctx.Param("id")
-	control := &relational.Control{}
-	if err := h.db.Preload("Filters").First(control, "id = ?", id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(err))
-		}
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-	}
-
-	filters := []labelfilter.Filter{}
-	for _, filter := range control.Filters {
-		filters = append(filters, filter.Filter.Data())
-	}
-
-	type StatusCount struct {
-		Count  int64  `json:"count"`
-		Status string `json:"status"`
-	}
-
-	if len(filters) == 0 {
-		// If there are no filters assigned for the control, we should return nothing explicitly, otherwise we return everything implicitly
-		return ctx.JSON(http.StatusOK, GenericDataListResponse[StatusCount]{Data: []StatusCount{}})
-	}
-
-	latestQuery := h.db.Session(&gorm.Session{})
-	latestQuery = relational.GetLatestEvidenceStreamsQuery(latestQuery)
-	q, err := relational.GetEvidenceSearchByFilterQuery(latestQuery, h.db, filters...)
-	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-	}
-
-	rows := []StatusCount{}
-	if err := q.Model(&relational.Evidence{}).
-		Select("count(*) as count, status->>'state' as status").
-		Group("status->>'state'").
-		Scan(&rows).Error; err != nil {
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-	}
-
-	return ctx.JSON(http.StatusOK, GenericDataListResponse[StatusCount]{Data: rows})
 }
 
 // Create godoc
