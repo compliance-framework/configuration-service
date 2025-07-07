@@ -1689,3 +1689,244 @@ func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestDatabaseConnectio
 	suite.Equal(poamUUID, finalResponse.Data.UUID)
 	suite.Equal("Test POA&M", finalResponse.Data.Metadata.Title)
 }
+
+// Import SSP Tests
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestCreateImportSsp() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Test valid import SSP creation
+	importSsp := oscaltypes.ImportSsp{
+		Href:    "https://example.com/ssp.json",
+		Remarks: "Test import SSP",
+	}
+
+	rec, req := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/import-ssp", poamUUID), importSsp)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusCreated, rec.Code)
+
+	// Verify the import SSP was created
+	var response handler.GenericDataResponse[oscaltypes.ImportSsp]
+	err := json.Unmarshal(rec.Body.Bytes(), &response)
+	suite.Require().NoError(err)
+	suite.Equal(importSsp.Href, response.Data.Href)
+	suite.Equal(importSsp.Remarks, response.Data.Remarks)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestCreateImportSspWithMinimalData() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Test import SSP with only required fields
+	importSsp := oscaltypes.ImportSsp{
+		Href: "https://example.com/ssp.json",
+	}
+
+	rec, req := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/import-ssp", poamUUID), importSsp)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusCreated, rec.Code)
+
+	// Verify the import SSP was created
+	var response handler.GenericDataResponse[oscaltypes.ImportSsp]
+	err := json.Unmarshal(rec.Body.Bytes(), &response)
+	suite.Require().NoError(err)
+	suite.Equal(importSsp.Href, response.Data.Href)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestCreateImportSspWithEmptyHref() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Test import SSP with empty href (should fail)
+	importSsp := oscaltypes.ImportSsp{
+		Href: "",
+	}
+
+	rec, req := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/import-ssp", poamUUID), importSsp)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusBadRequest, rec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestUpdateImportSsp() {
+	poamUUID := suite.createBasicPOAM()
+
+	// First create an import SSP
+	initialImportSsp := oscaltypes.ImportSsp{
+		Href:    "https://example.com/ssp.json",
+		Remarks: "Initial import SSP",
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/import-ssp", poamUUID), initialImportSsp)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Now update the import SSP
+	updatedImportSsp := oscaltypes.ImportSsp{
+		Href:    "https://example.com/updated-ssp.json",
+		Remarks: "Updated import SSP",
+	}
+
+	updateRec, updateReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/import-ssp", poamUUID), updatedImportSsp)
+	suite.server.E().ServeHTTP(updateRec, updateReq)
+	suite.Equal(http.StatusOK, updateRec.Code)
+
+	// Verify the import SSP was updated
+	var response handler.GenericDataResponse[oscaltypes.ImportSsp]
+	err := json.Unmarshal(updateRec.Body.Bytes(), &response)
+	suite.Require().NoError(err)
+	suite.Equal(updatedImportSsp.Href, response.Data.Href)
+	suite.Equal(updatedImportSsp.Remarks, response.Data.Remarks)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestUpdateImportSspWithComplexHref() {
+	poamUUID := suite.createBasicPOAM()
+
+	// First create an import SSP
+	initialImportSsp := oscaltypes.ImportSsp{
+		Href: "https://example.com/ssp.json",
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/import-ssp", poamUUID), initialImportSsp)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Update with complex href
+	complexImportSsp := oscaltypes.ImportSsp{
+		Href:    "https://example.com/api/v1/system-security-plans/12345-67890-abcdef-ghijk",
+		Remarks: "Updated with complex URL structure",
+	}
+
+	updateRec, updateReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/import-ssp", poamUUID), complexImportSsp)
+	suite.server.E().ServeHTTP(updateRec, updateReq)
+	suite.Equal(http.StatusOK, updateRec.Code)
+
+	// Verify the import SSP was updated
+	var response handler.GenericDataResponse[oscaltypes.ImportSsp]
+	err := json.Unmarshal(updateRec.Body.Bytes(), &response)
+	suite.Require().NoError(err)
+	suite.Equal(complexImportSsp.Href, response.Data.Href)
+	suite.Equal(complexImportSsp.Remarks, response.Data.Remarks)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestUpdateImportSspWithEmptyHref() {
+	poamUUID := suite.createBasicPOAM()
+
+	// First create an import SSP
+	initialImportSsp := oscaltypes.ImportSsp{
+		Href: "https://example.com/ssp.json",
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/import-ssp", poamUUID), initialImportSsp)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Try to update with empty href (should fail)
+	invalidImportSsp := oscaltypes.ImportSsp{
+		Href: "",
+	}
+
+	updateRec, updateReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/import-ssp", poamUUID), invalidImportSsp)
+	suite.server.E().ServeHTTP(updateRec, updateReq)
+	suite.Equal(http.StatusBadRequest, updateRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestGetImportSsp() {
+	poamUUID := suite.createBasicPOAM()
+
+	// First create an import SSP
+	importSsp := oscaltypes.ImportSsp{
+		Href:    "https://example.com/ssp.json",
+		Remarks: "Test import SSP for GET",
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/import-ssp", poamUUID), importSsp)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Now get the import SSP
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/import-ssp", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	// Verify the import SSP was retrieved
+	var response handler.GenericDataResponse[oscaltypes.ImportSsp]
+	err := json.Unmarshal(getRec.Body.Bytes(), &response)
+	suite.Require().NoError(err)
+	suite.Equal(importSsp.Href, response.Data.Href)
+	suite.Equal(importSsp.Remarks, response.Data.Remarks)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestGetImportSspWithInvalidUUID() {
+	// Test getting import SSP with invalid UUID
+	rec, req := suite.createRequest(http.MethodGet, "/api/oscal/plan-of-action-and-milestones/invalid-uuid/import-ssp", nil)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusBadRequest, rec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestGetImportSspForNonExistentPOAM() {
+	// Test getting import SSP for non-existent POAM
+	nonExistentUUID := uuid.New().String()
+	rec, req := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/import-ssp", nonExistentUUID), nil)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusNotFound, rec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestImportSspFullLifecycle() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Test 1: Create ImportSsp
+	importSsp := oscaltypes.ImportSsp{
+		Href:    "https://example.com/ssp.json",
+		Remarks: "Initial import SSP",
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/import-ssp", poamUUID), importSsp)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Verify creation
+	var createResponse handler.GenericDataResponse[oscaltypes.ImportSsp]
+	err := json.Unmarshal(createRec.Body.Bytes(), &createResponse)
+	suite.Require().NoError(err)
+	suite.Equal(importSsp.Href, createResponse.Data.Href)
+	suite.Equal(importSsp.Remarks, createResponse.Data.Remarks)
+
+	// Test 2: Get ImportSsp
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/import-ssp", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	// Verify retrieval
+	var getResponse handler.GenericDataResponse[oscaltypes.ImportSsp]
+	err = json.Unmarshal(getRec.Body.Bytes(), &getResponse)
+	suite.Require().NoError(err)
+	suite.Equal("https://example.com/ssp.json", getResponse.Data.Href)
+	suite.Equal("Initial import SSP", getResponse.Data.Remarks)
+
+	// Test 3: Update ImportSsp
+	updatedImportSsp := oscaltypes.ImportSsp{
+		Href:    "https://example.com/updated-ssp.json",
+		Remarks: "Updated import SSP",
+	}
+
+	updateRec, updateReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/import-ssp", poamUUID), updatedImportSsp)
+	suite.server.E().ServeHTTP(updateRec, updateReq)
+	suite.Equal(http.StatusOK, updateRec.Code)
+
+	// Verify update
+	var updateResponse handler.GenericDataResponse[oscaltypes.ImportSsp]
+	err = json.Unmarshal(updateRec.Body.Bytes(), &updateResponse)
+	suite.Require().NoError(err)
+	suite.Equal(updatedImportSsp.Href, updateResponse.Data.Href)
+	suite.Equal(updatedImportSsp.Remarks, updateResponse.Data.Remarks)
+
+	// Test 4: Get Updated ImportSsp
+	finalGetRec, finalGetReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/import-ssp", poamUUID), nil)
+	suite.server.E().ServeHTTP(finalGetRec, finalGetReq)
+	suite.Equal(http.StatusOK, finalGetRec.Code)
+
+	// Verify final state
+	var finalResponse handler.GenericDataResponse[oscaltypes.ImportSsp]
+	err = json.Unmarshal(finalGetRec.Body.Bytes(), &finalResponse)
+	suite.Require().NoError(err)
+	suite.Equal("https://example.com/updated-ssp.json", finalResponse.Data.Href)
+	suite.Equal("Updated import SSP", finalResponse.Data.Remarks)
+}

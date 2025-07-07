@@ -60,6 +60,8 @@ func (h *PlanOfActionAndMilestonesHandler) Register(api *echo.Group) {
 	api.GET("/:id/full", h.Full) // GET /oscal/plan-of-action-and-milestones/:id/full
 	api.GET("/:id/metadata", h.GetMetadata)
 	api.GET("/:id/import-ssp", h.GetImportSsp)
+	api.POST("/:id/import-ssp", h.CreateImportSsp)
+	api.PUT("/:id/import-ssp", h.UpdateImportSsp)
 	api.GET("/:id/system-id", h.GetSystemId)
 	api.GET("/:id/local-definitions", h.GetLocalDefinitions)
 	api.GET("/:id/back-matter", h.GetBackMatter)
@@ -455,6 +457,126 @@ func (h *PlanOfActionAndMilestonesHandler) GetImportSsp(ctx echo.Context) error 
 	if importSsp.Href == "" {
 		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("no import-ssp for POA&M %s", idParam)))
 	}
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.ImportSsp]{Data: *importSsp.MarshalOscal()})
+}
+
+// CreateImportSsp godoc
+//
+//	@Summary		Create import-ssp for a POA&M
+//	@Description	Creates import-ssp for a given POA&M.
+//	@Tags			Plan Of Action and Milestones
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string							true	"POA&M ID"
+//	@Param			importSsp	body		oscalTypes_1_1_3.ImportSsp	true	"Import SSP data"
+//	@Success		200			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.ImportSsp]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Router			/oscal/plan-of-action-and-milestones/{id}/import-ssp [post]
+func (h *PlanOfActionAndMilestonesHandler) CreateImportSsp(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify POAM exists
+	if err := h.verifyPoamExists(ctx, id); err != nil {
+		return err
+	}
+
+	var oscalImportSsp oscalTypes_1_1_3.ImportSsp
+	if err := ctx.Bind(&oscalImportSsp); err != nil {
+		h.sugar.Warnw("Invalid create import-ssp request", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Validate input
+	if oscalImportSsp.Href == "" {
+		h.sugar.Warnw("Invalid import-ssp input", "error", "href is required")
+		return ctx.JSON(http.StatusBadRequest, api.NewError(fmt.Errorf("href is required")))
+	}
+
+	var poam relational.PlanOfActionAndMilestones
+	if err := h.db.First(&poam, "id = ?", id).Error; err != nil {
+		h.sugar.Errorw("failed to get poam", "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
+	// Create ImportSsp relational object
+	importSsp := &relational.ImportSsp{}
+	importSsp.UnmarshalOscal(oscalImportSsp)
+
+	// Update the POAM with the new import-ssp
+	poam.ImportSsp = datatypes.NewJSONType(*importSsp)
+
+	if err := h.db.Save(&poam).Error; err != nil {
+		h.sugar.Errorf("Failed to create import-ssp: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[oscalTypes_1_1_3.ImportSsp]{Data: *importSsp.MarshalOscal()})
+}
+
+// UpdateImportSsp godoc
+//
+//	@Summary		Update import-ssp for a POA&M
+//	@Description	Updates import-ssp for a given POA&M.
+//	@Tags			Plan Of Action and Milestones
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string							true	"POA&M ID"
+//	@Param			importSsp	body		oscalTypes_1_1_3.ImportSsp	true	"Import SSP data"
+//	@Success		200			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.ImportSsp]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Router			/oscal/plan-of-action-and-milestones/{id}/import-ssp [put]
+func (h *PlanOfActionAndMilestonesHandler) UpdateImportSsp(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify POAM exists
+	if err := h.verifyPoamExists(ctx, id); err != nil {
+		return err
+	}
+
+	var oscalImportSsp oscalTypes_1_1_3.ImportSsp
+	if err := ctx.Bind(&oscalImportSsp); err != nil {
+		h.sugar.Warnw("Invalid update import-ssp request", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Validate input
+	if oscalImportSsp.Href == "" {
+		h.sugar.Warnw("Invalid import-ssp input", "error", "href is required")
+		return ctx.JSON(http.StatusBadRequest, api.NewError(fmt.Errorf("href is required")))
+	}
+
+	var poam relational.PlanOfActionAndMilestones
+	if err := h.db.First(&poam, "id = ?", id).Error; err != nil {
+		h.sugar.Errorw("failed to get poam", "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
+	// Create ImportSsp relational object
+	importSsp := &relational.ImportSsp{}
+	importSsp.UnmarshalOscal(oscalImportSsp)
+
+	// Update the POAM with the new import-ssp
+	poam.ImportSsp = datatypes.NewJSONType(*importSsp)
+
+	if err := h.db.Save(&poam).Error; err != nil {
+		h.sugar.Errorf("Failed to update import-ssp: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.ImportSsp]{Data: *importSsp.MarshalOscal()})
 }
 
