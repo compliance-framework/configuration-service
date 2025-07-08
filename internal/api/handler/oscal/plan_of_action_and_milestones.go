@@ -870,7 +870,6 @@ func (h *PlanOfActionAndMilestonesHandler) GetBackMatter(ctx echo.Context) error
 		"back_matter_id", poam.BackMatter.ID,
 		"resources_count", len(poam.BackMatter.Resources))
 
-	// Check if back-matter has resources (OSCAL back-matter only exists if it has resources)
 	if len(poam.BackMatter.Resources) == 0 {
 		h.sugar.Errorw("no back matter resources found", "poam_id", idParam)
 		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("no back-matter for POA&M %s", idParam)))
