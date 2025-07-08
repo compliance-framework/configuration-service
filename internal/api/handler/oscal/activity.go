@@ -59,7 +59,7 @@ func (h *AssessmentPlanHandler) GetActivities(ctx echo.Context) error {
 	var activities []relational.Activity
 	if err := h.db.Joins("JOIN associated_activities ON activities.id = associated_activities.activity_id").
 		Joins("JOIN tasks ON associated_activities.task_id = tasks.id").
-		Where("tasks.parent_id = ? AND tasks.parent_type = ?", id, "AssessmentPlan").
+		Where("tasks.parent_id = ? AND tasks.parent_type = ?", id, "assessment_plans").
 		Find(&activities).Error; err != nil {
 		h.sugar.Errorf("Failed to retrieve activities: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
@@ -136,7 +136,7 @@ func (h *AssessmentPlanHandler) CreateActivity(ctx echo.Context) error {
 		Title:       fmt.Sprintf("Task for Activity: %s", activity.UUID),
 		Description: &activity.Description,
 		ParentID:    &id,
-		ParentType:  "AssessmentPlan",
+		ParentType:  "assessment_plans",
 	}
 
 	if err := tx.Create(task).Error; err != nil {
@@ -272,7 +272,7 @@ func (h *AssessmentPlanHandler) CreateActivityForTask(ctx echo.Context) error {
 
 	// Verify task exists and belongs to the assessment plan
 	var task relational.Task
-	if err := h.db.Where("id = ? AND parent_id = ? AND parent_type = ?", taskId, id, "AssessmentPlan").First(&task).Error; err != nil {
+	if err := h.db.Where("id = ? AND parent_id = ? AND parent_type = ?", taskId, id, "assessment_plans").First(&task).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			h.sugar.Warnw("Task not found in assessment plan", "taskId", taskId, "planId", id)
 			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("task with id %s not found in assessment plan %s", taskId, id)))

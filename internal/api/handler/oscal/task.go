@@ -61,7 +61,7 @@ func (h *AssessmentPlanHandler) GetTasks(ctx echo.Context) error {
 	}
 
 	var tasks []relational.Task
-	if err := h.db.Where("parent_id = ? AND parent_type = ?", id, "AssessmentPlan").Find(&tasks).Error; err != nil {
+	if err := h.db.Where("parent_id = ? AND parent_type = ?", id, "assessment_plans").Find(&tasks).Error; err != nil {
 		h.sugar.Errorf("Failed to retrieve tasks: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
@@ -116,7 +116,7 @@ func (h *AssessmentPlanHandler) CreateTask(ctx echo.Context) error {
 	relationalTask := &relational.Task{}
 	relationalTask.UnmarshalOscal(task)
 	relationalTask.ParentID = &id
-	relationalTask.ParentType = "AssessmentPlan"
+	relationalTask.ParentType = "assessment_plans"
 
 	// Save to database
 	if err := h.db.Create(relationalTask).Error; err != nil {
@@ -178,10 +178,10 @@ func (h *AssessmentPlanHandler) UpdateTask(ctx echo.Context) error {
 	relationalTask.UnmarshalOscal(task)
 	relationalTask.ID = &taskId
 	relationalTask.ParentID = &id
-	relationalTask.ParentType = "AssessmentPlan"
+	relationalTask.ParentType = "assessment_plans"
 
 	// Update in database and check if resource exists
-	result := h.db.Where("id = ? AND parent_id = ? AND parent_type = ?", taskId, id, "AssessmentPlan").Updates(relationalTask)
+	result := h.db.Where("id = ? AND parent_id = ? AND parent_type = ?", taskId, id, "assessment_plans").Updates(relationalTask)
 	if result.Error != nil {
 		h.sugar.Errorf("Failed to update task: %v", result.Error)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(result.Error))
@@ -230,7 +230,7 @@ func (h *AssessmentPlanHandler) DeleteTask(ctx echo.Context) error {
 	}
 
 	// Delete task and check if resource exists
-	result := h.db.Where("id = ? AND parent_id = ? AND parent_type = ?", taskId, id, "AssessmentPlan").Delete(&relational.Task{})
+	result := h.db.Where("id = ? AND parent_id = ? AND parent_type = ?", taskId, id, "assessment_plans").Delete(&relational.Task{})
 	if result.Error != nil {
 		h.sugar.Errorf("Failed to delete task: %v", result.Error)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(result.Error))

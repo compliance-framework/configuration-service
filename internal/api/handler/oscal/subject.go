@@ -50,7 +50,7 @@ func (h *AssessmentPlanHandler) GetAssessmentSubjects(ctx echo.Context) error {
 	var subjects []relational.AssessmentSubject
 	if err := h.db.Joins("JOIN task_subjects ON assessment_subjects.id = task_subjects.assessment_subject_id").
 		Joins("JOIN tasks ON task_subjects.task_id = tasks.id").
-		Where("tasks.parent_id = ? AND tasks.parent_type = ?", id, "AssessmentPlan").
+		Where("tasks.parent_id = ? AND tasks.parent_type = ?", id, "assessment_plans").
 		Find(&subjects).Error; err != nil {
 		h.sugar.Errorf("Failed to retrieve assessment subjects: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
@@ -127,7 +127,7 @@ func (h *AssessmentPlanHandler) CreateAssessmentSubject(ctx echo.Context) error 
 		Title:       fmt.Sprintf("Task for Subject: %s", subject.Type),
 		Description: &subject.Description,
 		ParentID:    &id,
-		ParentType:  "AssessmentPlan",
+		ParentType:  "assessment_plans",
 	}
 
 	if err := tx.Create(task).Error; err != nil {
