@@ -783,14 +783,25 @@ func (h *PlanOfActionAndMilestonesHandler) GetBackMatter(ctx echo.Context) error
 		h.sugar.Errorw("invalid id", "error", err)
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
+
 	var poam relational.PlanOfActionAndMilestones
-	if err := h.db.Preload("BackMatter").First(&poam, "id = ?", id).Error; err != nil {
+	// Make sure to preload BackMatter.Resources
+	if err := h.db.Preload("BackMatter.Resources").First(&poam, "id = ?", id).Error; err != nil {
 		h.sugar.Errorw("failed to get poam", "error", err)
 		return ctx.JSON(http.StatusNotFound, api.NewError(err))
 	}
+
+	// Add debug logging
+	h.sugar.Infow("found poam",
+		"poam_id", poam.ID,
+		"back_matter_id", poam.BackMatter.ID,
+		"resources_count", len(poam.BackMatter.Resources))
+
 	if len(poam.BackMatter.Resources) == 0 {
+		h.sugar.Errorw("no back matter resources found", "poam_id", idParam)
 		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("no back-matter for POA&M %s", idParam)))
 	}
+
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]{Data: *poam.BackMatter.MarshalOscal()})
 }
 
