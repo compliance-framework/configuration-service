@@ -67,6 +67,13 @@ func (h *PlanOfActionAndMilestonesHandler) Register(api *echo.Group) {
 	api.PUT("/:id/system-id", h.UpdateSystemId)
 	api.GET("/:id/local-definitions", h.GetLocalDefinitions)
 	api.GET("/:id/back-matter", h.GetBackMatter)
+	api.POST("/:id/back-matter", h.CreateBackMatter)
+	api.PUT("/:id/back-matter", h.UpdateBackMatter)
+	api.DELETE("/:id/back-matter", h.DeleteBackMatter)
+	api.GET("/:id/back-matter/resources", h.GetBackMatterResources)
+	api.POST("/:id/back-matter/resources", h.CreateBackMatterResource)
+	api.PUT("/:id/back-matter/resources/:resourceId", h.UpdateBackMatterResource)
+	api.DELETE("/:id/back-matter/resources/:resourceId", h.DeleteBackMatterResource)
 	api.GET("/:id/observations", h.GetObservations)
 	api.POST("/:id/observations", h.CreateObservation)
 	api.PUT("/:id/observations/:obsId", h.UpdateObservation)
@@ -469,7 +476,7 @@ func (h *PlanOfActionAndMilestonesHandler) GetImportSsp(ctx echo.Context) error 
 //	@Tags			Plan Of Action and Milestones
 //	@Accept			json
 //	@Produce		json
-//	@Param			id			path		string							true	"POA&M ID"
+//	@Param			id			path		string						true	"POA&M ID"
 //	@Param			importSsp	body		oscalTypes_1_1_3.ImportSsp	true	"Import SSP data"
 //	@Success		200			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.ImportSsp]
 //	@Failure		400			{object}	api.Error
@@ -529,7 +536,7 @@ func (h *PlanOfActionAndMilestonesHandler) CreateImportSsp(ctx echo.Context) err
 //	@Tags			Plan Of Action and Milestones
 //	@Accept			json
 //	@Produce		json
-//	@Param			id			path		string							true	"POA&M ID"
+//	@Param			id			path		string						true	"POA&M ID"
 //	@Param			importSsp	body		oscalTypes_1_1_3.ImportSsp	true	"Import SSP data"
 //	@Success		200			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.ImportSsp]
 //	@Failure		400			{object}	api.Error
@@ -803,6 +810,107 @@ func (h *PlanOfActionAndMilestonesHandler) GetBackMatter(ctx echo.Context) error
 	}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]{Data: *poam.BackMatter.MarshalOscal()})
+}
+
+// CreateBackMatter creates back-matter for a POA&M
+func (h *PlanOfActionAndMilestonesHandler) CreateBackMatter(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+	var poam relational.PlanOfActionAndMilestones
+	if err := h.db.First(&poam, "id = ?", id).Error; err != nil {
+		h.sugar.Errorw("failed to get poam", "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+	var oscalBackMatter oscalTypes_1_1_3.BackMatter
+	if err := ctx.Bind(&oscalBackMatter); err != nil {
+		h.sugar.Warnw("Invalid create back-matter request", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+	if oscalBackMatter.Resources != nil && len(*oscalBackMatter.Resources) > 0 {
+		for i, resource := range *oscalBackMatter.Resources {
+			if resource.UUID == "" {
+				h.sugar.Warnw("Invalid back-matter resource", "error", "resource UUID is required", "index", i)
+				return ctx.JSON(http.StatusBadRequest, api.NewError(fmt.Errorf("resource UUID is required")))
+			}
+			if _, err := uuid.Parse(resource.UUID); err != nil {
+				h.sugar.Warnw("Invalid back-matter resource UUID", "error", err, "index", i)
+				return ctx.JSON(http.StatusBadRequest, api.NewError(fmt.Errorf("invalid resource UUID format: %v", err)))
+			}
+		}
+	}
+	backMatter := &relational.BackMatter{}
+	backMatter.UnmarshalOscal(oscalBackMatter)
+	poam.BackMatter = *backMatter
+	if err := h.db.Save(&poam).Error; err != nil {
+		h.sugar.Errorf("Failed to create back-matter: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]{Data: *backMatter.MarshalOscal()})
+}
+
+// UpdateBackMatter updates back-matter for a POA&M
+func (h *PlanOfActionAndMilestonesHandler) UpdateBackMatter(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+	var poam relational.PlanOfActionAndMilestones
+	if err := h.db.First(&poam, "id = ?", id).Error; err != nil {
+		h.sugar.Errorw("failed to get poam", "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+	var oscalBackMatter oscalTypes_1_1_3.BackMatter
+	if err := ctx.Bind(&oscalBackMatter); err != nil {
+		h.sugar.Warnw("Invalid update back-matter request", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+	if oscalBackMatter.Resources != nil && len(*oscalBackMatter.Resources) > 0 {
+		for i, resource := range *oscalBackMatter.Resources {
+			if resource.UUID == "" {
+				h.sugar.Warnw("Invalid back-matter resource", "error", "resource UUID is required", "index", i)
+				return ctx.JSON(http.StatusBadRequest, api.NewError(fmt.Errorf("resource UUID is required")))
+			}
+			if _, err := uuid.Parse(resource.UUID); err != nil {
+				h.sugar.Warnw("Invalid back-matter resource UUID", "error", err, "index", i)
+				return ctx.JSON(http.StatusBadRequest, api.NewError(fmt.Errorf("invalid resource UUID format: %v", err)))
+			}
+		}
+	}
+	backMatter := &relational.BackMatter{}
+	backMatter.UnmarshalOscal(oscalBackMatter)
+	poam.BackMatter = *backMatter
+	if err := h.db.Save(&poam).Error; err != nil {
+		h.sugar.Errorf("Failed to update back-matter: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]{Data: *backMatter.MarshalOscal()})
+}
+
+// DeleteBackMatter deletes back-matter for a POA&M
+func (h *PlanOfActionAndMilestonesHandler) DeleteBackMatter(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+	var poam relational.PlanOfActionAndMilestones
+	if err := h.db.First(&poam, "id = ?", id).Error; err != nil {
+		h.sugar.Errorw("failed to get poam", "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+	poam.BackMatter = relational.BackMatter{}
+	if err := h.db.Save(&poam).Error; err != nil {
+		h.sugar.Errorf("Failed to delete back-matter: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	return ctx.NoContent(http.StatusNoContent)
 }
 
 // Create godoc
@@ -1709,6 +1817,225 @@ func (h *PlanOfActionAndMilestonesHandler) DeletePoamItem(ctx echo.Context) erro
 
 	if result.RowsAffected == 0 {
 		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("POAM item not found")))
+	}
+
+	return ctx.NoContent(http.StatusNoContent)
+}
+
+// GetBackMatterResources godoc
+//
+//	@Summary		Get back-matter resources for a POA&M
+//	@Description	Retrieves all back-matter resources for a given POA&M.
+//	@Tags			Plan Of Action and Milestones
+//	@Produce		json
+//	@Param			id	path		string	true	"POA&M ID"
+//	@Success		200	{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.Resource]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Router			/oscal/plan-of-action-and-milestones/{id}/back-matter/resources [get]
+func (h *PlanOfActionAndMilestonesHandler) GetBackMatterResources(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var poam relational.PlanOfActionAndMilestones
+	if err := h.db.Preload("BackMatter").Preload("BackMatter.Resources").First(&poam, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load POA&M", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	oscalResources := make([]oscalTypes_1_1_3.Resource, len(poam.BackMatter.Resources))
+	for i, resource := range poam.BackMatter.Resources {
+		oscalResources[i] = *resource.MarshalOscal()
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.Resource]{Data: oscalResources})
+}
+
+// CreateBackMatterResource godoc
+//
+//	@Summary		Create a new back-matter resource for a POA&M
+//	@Description	Creates a new back-matter resource for a given POA&M.
+//	@Tags			Plan Of Action and Milestones
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string						true	"POA&M ID"
+//	@Param			resource	body		oscalTypes_1_1_3.Resource	true	"Resource data"
+//	@Success		201			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Resource]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Router			/oscal/plan-of-action-and-milestones/{id}/back-matter/resources [post]
+func (h *PlanOfActionAndMilestonesHandler) CreateBackMatterResource(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify POAM exists
+	if err := h.verifyPoamExists(ctx, id); err != nil {
+		return err
+	}
+
+	var oscalResource oscalTypes_1_1_3.Resource
+	if err := ctx.Bind(&oscalResource); err != nil {
+		h.sugar.Warnw("Invalid create resource request", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Validate required fields
+	if oscalResource.UUID == "" {
+		h.sugar.Warnw("Invalid resource input", "error", "UUID is required")
+		return ctx.JSON(http.StatusBadRequest, api.NewError(fmt.Errorf("UUID is required")))
+	}
+	if _, err := uuid.Parse(oscalResource.UUID); err != nil {
+		h.sugar.Warnw("Invalid resource UUID", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(fmt.Errorf("invalid UUID format: %v", err)))
+	}
+
+	var poam relational.PlanOfActionAndMilestones
+	if err := h.db.Preload("BackMatter").First(&poam, "id = ?", id).Error; err != nil {
+		h.sugar.Errorw("failed to get poam", "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
+	relResource := &relational.BackMatterResource{}
+	relResource.UnmarshalOscal(oscalResource)
+	relResource.BackMatterID = *poam.BackMatter.ID
+
+	if err := h.db.Create(relResource).Error; err != nil {
+		h.sugar.Errorf("Failed to create resource: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[oscalTypes_1_1_3.Resource]{Data: *relResource.MarshalOscal()})
+}
+
+// UpdateBackMatterResource godoc
+//
+//	@Summary		Update a back-matter resource for a POA&M
+//	@Description	Updates an existing back-matter resource for a given POA&M.
+//	@Tags			Plan Of Action and Milestones
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string						true	"POA&M ID"
+//	@Param			resourceId	path		string						true	"Resource ID"
+//	@Param			resource	body		oscalTypes_1_1_3.Resource	true	"Resource data"
+//	@Success		200			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Resource]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Router			/oscal/plan-of-action-and-milestones/{id}/back-matter/resources/{resourceId} [put]
+func (h *PlanOfActionAndMilestonesHandler) UpdateBackMatterResource(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	poamID, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid POA&M id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	resourceIdParam := ctx.Param("resourceId")
+	resourceID, err := uuid.Parse(resourceIdParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid resource id", "resourceId", resourceIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify POAM exists
+	if err := h.verifyPoamExists(ctx, poamID); err != nil {
+		return err
+	}
+
+	var poam relational.PlanOfActionAndMilestones
+	if err := h.db.Preload("BackMatter").First(&poam, "id = ?", poamID).Error; err != nil {
+		h.sugar.Errorw("failed to get poam", "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
+	// Check if resource exists and belongs to this POAM
+	var existingResource relational.BackMatterResource
+	if err := h.db.Where("id = ? AND back_matter_id = ?", resourceID, poam.BackMatter.ID).First(&existingResource).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Errorf("Failed to find resource: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	var oscalResource oscalTypes_1_1_3.Resource
+	if err := ctx.Bind(&oscalResource); err != nil {
+		h.sugar.Warnw("Invalid update resource request", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	relResource := &relational.BackMatterResource{}
+	relResource.UnmarshalOscal(oscalResource)
+	relResource.BackMatterID = *poam.BackMatter.ID
+	relResource.ID = &resourceID
+
+	if err := h.db.Save(relResource).Error; err != nil {
+		h.sugar.Errorf("Failed to update resource: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Resource]{Data: *relResource.MarshalOscal()})
+}
+
+// DeleteBackMatterResource godoc
+//
+//	@Summary		Delete a back-matter resource from a POA&M
+//	@Description	Deletes an existing back-matter resource for a given POA&M.
+//	@Tags			Plan Of Action and Milestones
+//	@Param			id			path	string	true	"POA&M ID"
+//	@Param			resourceId	path	string	true	"Resource ID"
+//	@Success		204			"No Content"
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Router			/oscal/plan-of-action-and-milestones/{id}/back-matter/resources/{resourceId} [delete]
+func (h *PlanOfActionAndMilestonesHandler) DeleteBackMatterResource(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	poamID, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid POA&M id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	resourceIdParam := ctx.Param("resourceId")
+	resourceID, err := uuid.Parse(resourceIdParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid resource id", "resourceId", resourceIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify POAM exists
+	if err := h.verifyPoamExists(ctx, poamID); err != nil {
+		return err
+	}
+
+	var poam relational.PlanOfActionAndMilestones
+	if err := h.db.Preload("BackMatter").First(&poam, "id = ?", poamID).Error; err != nil {
+		h.sugar.Errorw("failed to get poam", "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
+	result := h.db.Where("id = ? AND back_matter_id = ?", resourceID, poam.BackMatter.ID).Delete(&relational.BackMatterResource{})
+	if result.Error != nil {
+		h.sugar.Errorf("Failed to delete resource: %v", result.Error)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(result.Error))
+	}
+
+	if result.RowsAffected == 0 {
+		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("resource not found")))
 	}
 
 	return ctx.NoContent(http.StatusNoContent)

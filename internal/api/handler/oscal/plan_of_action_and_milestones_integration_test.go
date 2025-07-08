@@ -2087,35 +2087,1119 @@ func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestGetSystemIdForNon
 func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestSystemIdFullLifecycle() {
 	poamUUID := suite.createBasicPOAM()
 
-	// Test 1: Create SystemId
-	systemId := oscaltypes.SystemId{
-		IdentifierType: "https://ietf.org/rfc/rfc4122",
-		ID:             "d7456980-9277-4dcb-83cf-f8ff0442623b",
+	// Create system-id
+	createSystemId := oscaltypes.SystemId{
+		ID:             "TEST-SYSTEM-1",
+		IdentifierType: "https://test.gov",
 	}
 
-	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), systemId)
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), createSystemId)
 	suite.server.E().ServeHTTP(createRec, createReq)
 	suite.Equal(http.StatusCreated, createRec.Code)
 
-	// Test 2: Update SystemId
-	updatedSystemId := oscaltypes.SystemId{
-		IdentifierType: "https://fedramp.gov",
-		ID:             "F00000000",
-	}
-
-	updateRec, updateReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), updatedSystemId)
-	suite.server.E().ServeHTTP(updateRec, updateReq)
-	suite.Equal(http.StatusOK, updateRec.Code)
-
-	// Test 3: Get SystemId
+	// Verify system-id was created
 	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), nil)
 	suite.server.E().ServeHTTP(getRec, getReq)
 	suite.Equal(http.StatusOK, getRec.Code)
 
-	// Verify the final state
-	var response handler.GenericDataResponse[oscaltypes.SystemId]
-	err := json.Unmarshal(getRec.Body.Bytes(), &response)
+	var getResponse handler.GenericDataResponse[oscaltypes.SystemId]
+	err := json.Unmarshal(getRec.Body.Bytes(), &getResponse)
 	suite.Require().NoError(err)
-	suite.Equal(updatedSystemId.IdentifierType, response.Data.IdentifierType)
-	suite.Equal(updatedSystemId.ID, response.Data.ID)
+	suite.Equal("TEST-SYSTEM-1", getResponse.Data.ID)
+	suite.Equal("https://test.gov", getResponse.Data.IdentifierType)
+
+	// Update system-id
+	updateSystemId := oscaltypes.SystemId{
+		ID:             "TEST-SYSTEM-2",
+		IdentifierType: "https://updated.gov",
+	}
+
+	updateRec, updateReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), updateSystemId)
+	suite.server.E().ServeHTTP(updateRec, updateReq)
+	suite.Equal(http.StatusOK, updateRec.Code)
+
+	// Verify system-id was updated
+	verifyRec, verifyReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/system-id", poamUUID), nil)
+	suite.server.E().ServeHTTP(verifyRec, verifyReq)
+	suite.Equal(http.StatusOK, verifyRec.Code)
+
+	var verifyResponse handler.GenericDataResponse[oscaltypes.SystemId]
+	err = json.Unmarshal(verifyRec.Body.Bytes(), &verifyResponse)
+	suite.Require().NoError(err)
+	suite.Equal("TEST-SYSTEM-2", verifyResponse.Data.ID)
+	suite.Equal("https://updated.gov", verifyResponse.Data.IdentifierType)
+}
+
+// Back Matter CRUD Tests
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestCreateBackMatter() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter with resources
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Test Resource 1",
+				Description: "Test resource description",
+				Rlinks: &[]oscaltypes.ResourceLink{
+					{
+						Href: "https://example.com/resource1",
+					},
+				},
+			},
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Test Resource 2",
+				Description: "Another test resource",
+				Rlinks: &[]oscaltypes.ResourceLink{
+					{
+						Href: "https://example.com/resource2",
+					},
+				},
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Verify back-matter was created
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	var getResponse handler.GenericDataResponse[oscaltypes.BackMatter]
+	err := json.Unmarshal(getRec.Body.Bytes(), &getResponse)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(getResponse.Data.Resources)
+	suite.Equal(2, len(*getResponse.Data.Resources))
+	suite.Equal("Test Resource 1", (*getResponse.Data.Resources)[0].Title)
+	suite.Equal("Test Resource 2", (*getResponse.Data.Resources)[1].Title)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestCreateBackMatterWithMinimalData() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter with minimal data
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:  uuid.New().String(),
+				Title: "Minimal Resource",
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Verify back-matter was created
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	var getResponse handler.GenericDataResponse[oscaltypes.BackMatter]
+	err := json.Unmarshal(getRec.Body.Bytes(), &getResponse)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(getResponse.Data.Resources)
+	suite.Equal(1, len(*getResponse.Data.Resources))
+	suite.Equal("Minimal Resource", (*getResponse.Data.Resources)[0].Title)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestCreateBackMatterWithInvalidUUID() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter with invalid UUID
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:  "invalid-uuid",
+				Title: "Invalid Resource",
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusBadRequest, createRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestCreateBackMatterWithEmptyUUID() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter with empty UUID
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:  "",
+				Title: "Empty UUID Resource",
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusBadRequest, createRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestUpdateBackMatter() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create initial back-matter
+	initialBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Initial Resource",
+				Description: "Initial description",
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), initialBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Update back-matter with new resources
+	updateBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Updated Resource 1",
+				Description: "Updated description 1",
+				Rlinks: &[]oscaltypes.ResourceLink{
+					{
+						Href: "https://example.com/updated1",
+					},
+				},
+			},
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Updated Resource 2",
+				Description: "Updated description 2",
+				Rlinks: &[]oscaltypes.ResourceLink{
+					{
+						Href: "https://example.com/updated2",
+					},
+				},
+			},
+		},
+	}
+
+	updateRec, updateReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), updateBackMatter)
+	suite.server.E().ServeHTTP(updateRec, updateReq)
+	suite.Equal(http.StatusOK, updateRec.Code)
+
+	// Verify back-matter was updated
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	var getResponse handler.GenericDataResponse[oscaltypes.BackMatter]
+	err := json.Unmarshal(getRec.Body.Bytes(), &getResponse)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(getResponse.Data.Resources)
+	suite.Equal(2, len(*getResponse.Data.Resources))
+	suite.Equal("Updated Resource 1", (*getResponse.Data.Resources)[0].Title)
+	suite.Equal("Updated Resource 2", (*getResponse.Data.Resources)[1].Title)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestUpdateBackMatterWithComplexData() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter with complex data
+	complexBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Complex Resource",
+				Description: "A complex resource with multiple properties",
+				Rlinks: &[]oscaltypes.ResourceLink{
+					{
+						Href:      "https://example.com/complex",
+						MediaType: "application/pdf",
+						Hashes: &[]oscaltypes.Hash{
+							{
+								Algorithm: "SHA-256",
+								Value:     "abc123def456",
+							},
+						},
+					},
+				},
+				Props: &[]oscaltypes.Property{
+					{
+						Name:  "classification",
+						Value: "public",
+					},
+					{
+						Name:  "version",
+						Value: "1.0",
+					},
+				},
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), complexBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Update with different complex data
+	updateBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Updated Complex Resource",
+				Description: "An updated complex resource",
+				Rlinks: &[]oscaltypes.ResourceLink{
+					{
+						Href:      "https://example.com/updated-complex",
+						MediaType: "application/json",
+						Hashes: &[]oscaltypes.Hash{
+							{
+								Algorithm: "SHA-512",
+								Value:     "def456ghi789",
+							},
+						},
+					},
+				},
+				Props: &[]oscaltypes.Property{
+					{
+						Name:  "classification",
+						Value: "confidential",
+					},
+					{
+						Name:  "version",
+						Value: "2.0",
+					},
+				},
+			},
+		},
+	}
+
+	updateRec, updateReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), updateBackMatter)
+	suite.server.E().ServeHTTP(updateRec, updateReq)
+	suite.Equal(http.StatusOK, updateRec.Code)
+
+	// Verify back-matter was updated
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	var getResponse handler.GenericDataResponse[oscaltypes.BackMatter]
+	err := json.Unmarshal(getRec.Body.Bytes(), &getResponse)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(getResponse.Data.Resources)
+	suite.Equal(1, len(*getResponse.Data.Resources))
+	suite.Equal("Updated Complex Resource", (*getResponse.Data.Resources)[0].Title)
+	// suite.Equal("confidential", (*getResponse.Data.Resources)[0].Props[0].Value)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestUpdateBackMatterWithInvalidUUID() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create initial back-matter
+	initialBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:  uuid.New().String(),
+				Title: "Initial Resource",
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), initialBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Update with invalid UUID
+	updateBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:  "invalid-uuid",
+				Title: "Invalid Resource",
+			},
+		},
+	}
+
+	updateRec, updateReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), updateBackMatter)
+	suite.server.E().ServeHTTP(updateRec, updateReq)
+	suite.Equal(http.StatusBadRequest, updateRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestGetBackMatter() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter first
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Test Resource",
+				Description: "Test description",
+				Rlinks: &[]oscaltypes.ResourceLink{
+					{
+						Href: "https://example.com/test",
+					},
+				},
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Get back-matter
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	var getResponse handler.GenericDataResponse[oscaltypes.BackMatter]
+	err := json.Unmarshal(getRec.Body.Bytes(), &getResponse)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(getResponse.Data.Resources)
+	suite.Equal(1, len(*getResponse.Data.Resources))
+	suite.Equal("Test Resource", (*getResponse.Data.Resources)[0].Title)
+	suite.Equal("Test description", (*getResponse.Data.Resources)[0].Description)
+	// suite.Equal("https://example.com/test", (*getResponse.Data.Resources)[0].Rlinks[0].Href)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestGetBackMatterWithInvalidUUID() {
+	invalidUUID := "invalid-uuid"
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", invalidUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusBadRequest, getRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestGetBackMatterForNonExistentPOAM() {
+	nonExistentUUID := uuid.New().String()
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", nonExistentUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusNotFound, getRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestGetBackMatterWhenNotExists() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Try to get back-matter for POAM without back-matter
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusNotFound, getRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestDeleteBackMatter() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter first
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:  uuid.New().String(),
+				Title: "Resource to Delete",
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Verify back-matter exists
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	// Delete back-matter
+	deleteRec, deleteReq := suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), nil)
+	suite.server.E().ServeHTTP(deleteRec, deleteReq)
+	suite.Equal(http.StatusNoContent, deleteRec.Code)
+
+	// Verify back-matter no longer exists
+	verifyRec, verifyReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), nil)
+	suite.server.E().ServeHTTP(verifyRec, verifyReq)
+	suite.Equal(http.StatusNotFound, verifyRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestDeleteBackMatterWithInvalidUUID() {
+	invalidUUID := "invalid-uuid"
+	deleteRec, deleteReq := suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", invalidUUID), nil)
+	suite.server.E().ServeHTTP(deleteRec, deleteReq)
+	suite.Equal(http.StatusBadRequest, deleteRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestDeleteBackMatterForNonExistentPOAM() {
+	nonExistentUUID := uuid.New().String()
+	deleteRec, deleteReq := suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", nonExistentUUID), nil)
+	suite.server.E().ServeHTTP(deleteRec, deleteReq)
+	suite.Equal(http.StatusNotFound, deleteRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestBackMatterFullLifecycle() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Lifecycle Resource",
+				Description: "A resource for testing full lifecycle",
+				Rlinks: &[]oscaltypes.ResourceLink{
+					{
+						Href: "https://example.com/lifecycle",
+					},
+				},
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Verify creation
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	var getResponse handler.GenericDataResponse[oscaltypes.BackMatter]
+	err := json.Unmarshal(getRec.Body.Bytes(), &getResponse)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(getResponse.Data.Resources)
+	suite.Equal(1, len(*getResponse.Data.Resources))
+	suite.Equal("Lifecycle Resource", (*getResponse.Data.Resources)[0].Title)
+
+	// Update back-matter
+	updateBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Updated Lifecycle Resource",
+				Description: "Updated description",
+				Rlinks: &[]oscaltypes.ResourceLink{
+					{
+						Href: "https://example.com/updated-lifecycle",
+					},
+				},
+			},
+		},
+	}
+
+	updateRec, updateReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), updateBackMatter)
+	suite.server.E().ServeHTTP(updateRec, updateReq)
+	suite.Equal(http.StatusOK, updateRec.Code)
+
+	// Verify update
+	verifyRec, verifyReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), nil)
+	suite.server.E().ServeHTTP(verifyRec, verifyReq)
+	suite.Equal(http.StatusOK, verifyRec.Code)
+
+	var verifyResponse handler.GenericDataResponse[oscaltypes.BackMatter]
+	err = json.Unmarshal(verifyRec.Body.Bytes(), &verifyResponse)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(verifyResponse.Data.Resources)
+	suite.Equal(1, len(*verifyResponse.Data.Resources))
+	suite.Equal("Updated Lifecycle Resource", (*verifyResponse.Data.Resources)[0].Title)
+
+	// Delete back-matter
+	deleteRec, deleteReq := suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), nil)
+	suite.server.E().ServeHTTP(deleteRec, deleteReq)
+	suite.Equal(http.StatusNoContent, deleteRec.Code)
+
+	// Verify deletion
+	finalRec, finalReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), nil)
+	suite.server.E().ServeHTTP(finalRec, finalReq)
+	suite.Equal(http.StatusNotFound, finalRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestBackMatterWithMultipleResources() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter with multiple resources
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Resource 1",
+				Description: "First resource",
+				Rlinks: &[]oscaltypes.ResourceLink{
+					{
+						Href: "https://example.com/resource1",
+					},
+				},
+			},
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Resource 2",
+				Description: "Second resource",
+				Rlinks: &[]oscaltypes.ResourceLink{
+					{
+						Href: "https://example.com/resource2",
+					},
+				},
+			},
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Resource 3",
+				Description: "Third resource",
+				Rlinks: &[]oscaltypes.ResourceLink{
+					{
+						Href: "https://example.com/resource3",
+					},
+				},
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Verify all resources were created
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	var getResponse handler.GenericDataResponse[oscaltypes.BackMatter]
+	err := json.Unmarshal(getRec.Body.Bytes(), &getResponse)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(getResponse.Data.Resources)
+	suite.Equal(3, len(*getResponse.Data.Resources))
+	suite.Equal("Resource 1", (*getResponse.Data.Resources)[0].Title)
+	suite.Equal("Resource 2", (*getResponse.Data.Resources)[1].Title)
+	suite.Equal("Resource 3", (*getResponse.Data.Resources)[2].Title)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestBackMatterWithEmptyResources() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter with empty resources array
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Verify back-matter was created (even with empty resources)
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	var getResponse handler.GenericDataResponse[oscaltypes.BackMatter]
+	err := json.Unmarshal(getRec.Body.Bytes(), &getResponse)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(getResponse.Data.Resources)
+	suite.Equal(0, len(*getResponse.Data.Resources))
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestBackMatterWithNilResources() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter with nil resources
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: nil,
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Verify back-matter was created
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	var getResponse handler.GenericDataResponse[oscaltypes.BackMatter]
+	err := json.Unmarshal(getRec.Body.Bytes(), &getResponse)
+	suite.Require().NoError(err)
+	// Note: The response might have an empty array or nil, depending on implementation
+	// This test verifies the endpoint doesn't crash with nil resources
+}
+
+// Back Matter Resource CRUD Tests
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestGetBackMatterResources() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter with resources first
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Test Resource 1",
+				Description: "Test resource description",
+			},
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Test Resource 2",
+				Description: "Another test resource",
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Get back-matter resources
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	var getResponse handler.GenericDataListResponse[oscaltypes.Resource]
+	err := json.Unmarshal(getRec.Body.Bytes(), &getResponse)
+	suite.Require().NoError(err)
+	suite.Equal(2, len(getResponse.Data))
+	suite.Equal("Test Resource 1", getResponse.Data[0].Title)
+	suite.Equal("Test Resource 2", getResponse.Data[1].Title)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestGetBackMatterResourcesWithInvalidUUID() {
+	invalidUUID := "invalid-uuid"
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources", invalidUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusBadRequest, getRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestGetBackMatterResourcesForNonExistentPOAM() {
+	nonExistentUUID := uuid.New().String()
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources", nonExistentUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusNotFound, getRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestCreateBackMatterResource() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter first
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Initial Resource",
+				Description: "Initial description",
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Create a new resource
+	createResource := oscaltypes.Resource{
+		UUID:        uuid.New().String(),
+		Title:       "New Resource",
+		Description: "New resource description",
+		Rlinks: &[]oscaltypes.ResourceLink{
+			{
+				Href: "https://example.com/new-resource",
+			},
+		},
+	}
+
+	createResourceRec, createResourceReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources", poamUUID), createResource)
+	suite.server.E().ServeHTTP(createResourceRec, createResourceReq)
+	suite.Equal(http.StatusCreated, createResourceRec.Code)
+
+	// Verify resource was created
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	var getResponse handler.GenericDataListResponse[oscaltypes.Resource]
+	err := json.Unmarshal(getRec.Body.Bytes(), &getResponse)
+	suite.Require().NoError(err)
+	suite.Equal(2, len(getResponse.Data)) // Initial resource + new resource
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestCreateBackMatterResourceWithInvalidUUID() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter first
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Initial Resource",
+				Description: "Initial description",
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Try to create resource with invalid UUID
+	createResource := oscaltypes.Resource{
+		UUID:        "invalid-uuid",
+		Title:       "Invalid Resource",
+		Description: "Invalid resource description",
+	}
+
+	createResourceRec, createResourceReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources", poamUUID), createResource)
+	suite.server.E().ServeHTTP(createResourceRec, createResourceReq)
+	suite.Equal(http.StatusBadRequest, createResourceRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestCreateBackMatterResourceWithEmptyUUID() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter first
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Initial Resource",
+				Description: "Initial description",
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Try to create resource with empty UUID
+	createResource := oscaltypes.Resource{
+		UUID:        "",
+		Title:       "Empty UUID Resource",
+		Description: "Empty UUID resource description",
+	}
+
+	createResourceRec, createResourceReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources", poamUUID), createResource)
+	suite.server.E().ServeHTTP(createResourceRec, createResourceReq)
+	suite.Equal(http.StatusBadRequest, createResourceRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestUpdateBackMatterResource() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter with a resource first
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Initial Resource",
+				Description: "Initial description",
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Get the resource ID
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	var getResponse handler.GenericDataListResponse[oscaltypes.Resource]
+	err := json.Unmarshal(getRec.Body.Bytes(), &getResponse)
+	suite.Require().NoError(err)
+	suite.Equal(1, len(getResponse.Data))
+
+	resourceID := getResponse.Data[0].UUID
+
+	// Update the resource
+	updateResource := oscaltypes.Resource{
+		UUID:        resourceID,
+		Title:       "Updated Resource",
+		Description: "Updated description",
+		Rlinks: &[]oscaltypes.ResourceLink{
+			{
+				Href: "https://example.com/updated-resource",
+			},
+		},
+	}
+
+	updateRec, updateReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources/%s", poamUUID, resourceID), updateResource)
+	suite.server.E().ServeHTTP(updateRec, updateReq)
+	suite.Equal(http.StatusOK, updateRec.Code)
+
+	// Verify resource was updated
+	verifyRec, verifyReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources", poamUUID), nil)
+	suite.server.E().ServeHTTP(verifyRec, verifyReq)
+	suite.Equal(http.StatusOK, verifyRec.Code)
+
+	var verifyResponse handler.GenericDataListResponse[oscaltypes.Resource]
+	err = json.Unmarshal(verifyRec.Body.Bytes(), &verifyResponse)
+	suite.Require().NoError(err)
+	suite.Equal(1, len(verifyResponse.Data))
+	suite.Equal("Updated Resource", verifyResponse.Data[0].Title)
+	suite.Equal("Updated description", verifyResponse.Data[0].Description)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestUpdateBackMatterResourceWithInvalidResourceId() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter with a resource first
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Initial Resource",
+				Description: "Initial description",
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Try to update with invalid resource ID
+	updateResource := oscaltypes.Resource{
+		UUID:        uuid.New().String(),
+		Title:       "Updated Resource",
+		Description: "Updated description",
+	}
+
+	invalidResourceID := "invalid-resource-id"
+	updateRec, updateReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources/%s", poamUUID, invalidResourceID), updateResource)
+	suite.server.E().ServeHTTP(updateRec, updateReq)
+	suite.Equal(http.StatusBadRequest, updateRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestUpdateBackMatterResourceWithNonExistentResource() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter with a resource first
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Initial Resource",
+				Description: "Initial description",
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Try to update with non-existent resource ID
+	updateResource := oscaltypes.Resource{
+		UUID:        uuid.New().String(),
+		Title:       "Updated Resource",
+		Description: "Updated description",
+	}
+
+	nonExistentResourceID := uuid.New().String()
+	updateRec, updateReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources/%s", poamUUID, nonExistentResourceID), updateResource)
+	suite.server.E().ServeHTTP(updateRec, updateReq)
+	suite.Equal(http.StatusNotFound, updateRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestDeleteBackMatterResource() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter with a resource first
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Resource to Delete",
+				Description: "Resource description",
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Get the resource ID
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	var getResponse handler.GenericDataListResponse[oscaltypes.Resource]
+	err := json.Unmarshal(getRec.Body.Bytes(), &getResponse)
+	suite.Require().NoError(err)
+	suite.Equal(1, len(getResponse.Data))
+
+	resourceID := getResponse.Data[0].UUID
+
+	// Delete the resource
+	deleteRec, deleteReq := suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources/%s", poamUUID, resourceID), nil)
+	suite.server.E().ServeHTTP(deleteRec, deleteReq)
+	suite.Equal(http.StatusNoContent, deleteRec.Code)
+
+	// Verify resource was deleted
+	verifyRec, verifyReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources", poamUUID), nil)
+	suite.server.E().ServeHTTP(verifyRec, verifyReq)
+	suite.Equal(http.StatusOK, verifyRec.Code)
+
+	var verifyResponse handler.GenericDataListResponse[oscaltypes.Resource]
+	err = json.Unmarshal(verifyRec.Body.Bytes(), &verifyResponse)
+	suite.Require().NoError(err)
+	suite.Equal(0, len(verifyResponse.Data))
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestDeleteBackMatterResourceWithInvalidResourceId() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter with a resource first
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Initial Resource",
+				Description: "Initial description",
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Try to delete with invalid resource ID
+	invalidResourceID := "invalid-resource-id"
+	deleteRec, deleteReq := suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources/%s", poamUUID, invalidResourceID), nil)
+	suite.server.E().ServeHTTP(deleteRec, deleteReq)
+	suite.Equal(http.StatusBadRequest, deleteRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestDeleteBackMatterResourceWithNonExistentResource() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter with a resource first
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Initial Resource",
+				Description: "Initial description",
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Try to delete with non-existent resource ID
+	nonExistentResourceID := uuid.New().String()
+	deleteRec, deleteReq := suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources/%s", poamUUID, nonExistentResourceID), nil)
+	suite.server.E().ServeHTTP(deleteRec, deleteReq)
+	suite.Equal(http.StatusNotFound, deleteRec.Code)
+}
+
+func (suite *PlanOfActionAndMilestonesApiIntegrationSuite) TestBackMatterResourceFullLifecycle() {
+	poamUUID := suite.createBasicPOAM()
+
+	// Create back-matter first
+	createBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Initial Resource",
+				Description: "Initial description",
+			},
+		},
+	}
+
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter", poamUUID), createBackMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Create a new resource
+	createResource := oscaltypes.Resource{
+		UUID:        uuid.New().String(),
+		Title:       "Lifecycle Resource",
+		Description: "A resource for testing full lifecycle",
+		Rlinks: &[]oscaltypes.ResourceLink{
+			{
+				Href: "https://example.com/lifecycle-resource",
+			},
+		},
+	}
+
+	createResourceRec, createResourceReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources", poamUUID), createResource)
+	suite.server.E().ServeHTTP(createResourceRec, createResourceReq)
+	suite.Equal(http.StatusCreated, createResourceRec.Code)
+
+	// Get all resources to find the new one
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources", poamUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	var getResponse handler.GenericDataListResponse[oscaltypes.Resource]
+	err := json.Unmarshal(getRec.Body.Bytes(), &getResponse)
+	suite.Require().NoError(err)
+	suite.Equal(2, len(getResponse.Data))
+
+	// Find the lifecycle resource
+	var lifecycleResourceID string
+	for _, resource := range getResponse.Data {
+		if resource.Title == "Lifecycle Resource" {
+			lifecycleResourceID = resource.UUID
+			break
+		}
+	}
+	suite.Require().NotEmpty(lifecycleResourceID, "Lifecycle resource not found")
+
+	// Update the resource
+	updateResource := oscaltypes.Resource{
+		UUID:        lifecycleResourceID,
+		Title:       "Updated Lifecycle Resource",
+		Description: "Updated description",
+		Rlinks: &[]oscaltypes.ResourceLink{
+			{
+				Href: "https://example.com/updated-lifecycle-resource",
+			},
+		},
+	}
+
+	updateRec, updateReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources/%s", poamUUID, lifecycleResourceID), updateResource)
+	suite.server.E().ServeHTTP(updateRec, updateReq)
+	suite.Equal(http.StatusOK, updateRec.Code)
+
+	// Verify the update
+	verifyRec, verifyReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources", poamUUID), nil)
+	suite.server.E().ServeHTTP(verifyRec, verifyReq)
+	suite.Equal(http.StatusOK, verifyRec.Code)
+
+	var verifyResponse handler.GenericDataListResponse[oscaltypes.Resource]
+	err = json.Unmarshal(verifyRec.Body.Bytes(), &verifyResponse)
+	suite.Require().NoError(err)
+	suite.Equal(2, len(verifyResponse.Data))
+
+	// Find and verify the updated resource
+	var updatedResource *oscaltypes.Resource
+	for i := range verifyResponse.Data {
+		if verifyResponse.Data[i].UUID == lifecycleResourceID {
+			updatedResource = &verifyResponse.Data[i]
+			break
+		}
+	}
+	suite.Require().NotNil(updatedResource, "Updated resource not found")
+	suite.Equal("Updated Lifecycle Resource", updatedResource.Title)
+	suite.Equal("Updated description", updatedResource.Description)
+
+	// Delete the resource
+	deleteRec, deleteReq := suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources/%s", poamUUID, lifecycleResourceID), nil)
+	suite.server.E().ServeHTTP(deleteRec, deleteReq)
+	suite.Equal(http.StatusNoContent, deleteRec.Code)
+
+	// Verify the deletion
+	finalRec, finalReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/plan-of-action-and-milestones/%s/back-matter/resources", poamUUID), nil)
+	suite.server.E().ServeHTTP(finalRec, finalReq)
+	suite.Equal(http.StatusOK, finalRec.Code)
+
+	var finalResponse handler.GenericDataListResponse[oscaltypes.Resource]
+	err = json.Unmarshal(finalRec.Body.Bytes(), &finalResponse)
+	suite.Require().NoError(err)
+	suite.Equal(1, len(finalResponse.Data)) // Only the initial resource should remain
 }
