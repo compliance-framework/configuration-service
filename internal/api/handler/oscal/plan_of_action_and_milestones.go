@@ -864,17 +864,17 @@ func (h *PlanOfActionAndMilestonesHandler) GetBackMatter(ctx echo.Context) error
 		return ctx.JSON(http.StatusNotFound, api.NewError(err))
 	}
 
-	// Check if back-matter exists (has an ID)
-	if poam.BackMatter.ID == nil {
-		h.sugar.Errorw("no back matter found", "poam_id", idParam)
-		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("no back-matter for POA&M %s", idParam)))
-	}
-
 	// Add debug logging
 	h.sugar.Infow("found poam",
 		"poam_id", poam.ID,
 		"back_matter_id", poam.BackMatter.ID,
 		"resources_count", len(poam.BackMatter.Resources))
+
+	// Check if back-matter has resources (OSCAL back-matter only exists if it has resources)
+	if len(poam.BackMatter.Resources) == 0 {
+		h.sugar.Errorw("no back matter resources found", "poam_id", idParam)
+		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("no back-matter for POA&M %s", idParam)))
+	}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]{Data: *poam.BackMatter.MarshalOscal()})
 }
