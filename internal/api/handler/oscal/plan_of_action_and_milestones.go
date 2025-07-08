@@ -59,6 +59,7 @@ func (h *PlanOfActionAndMilestonesHandler) Register(api *echo.Group) {
 	api.DELETE("/:id", h.Delete) // DELETE /oscal/plan-of-action-and-milestones/:id
 	api.GET("/:id/full", h.Full) // GET /oscal/plan-of-action-and-milestones/:id/full
 	api.GET("/:id/metadata", h.GetMetadata)
+	api.PUT("/:id/metadata", h.UpdateMetadata)
 	api.GET("/:id/import-ssp", h.GetImportSsp)
 	api.POST("/:id/import-ssp", h.CreateImportSsp)
 	api.PUT("/:id/import-ssp", h.UpdateImportSsp)
@@ -436,6 +437,71 @@ func (h *PlanOfActionAndMilestonesHandler) GetMetadata(ctx echo.Context) error {
 		return ctx.JSON(http.StatusNotFound, api.NewError(err))
 	}
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Metadata]{Data: *poam.Metadata.MarshalOscal()})
+}
+
+// UpdateMetadata godoc
+//
+//	@Summary		Update POA&M metadata
+//	@Description	Updates metadata for a given POA&M.
+//	@Tags			Plan Of Action and Milestones
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string						true	"POA&M ID"
+//	@Param			metadata	body		oscalTypes_1_1_3.Metadata	true	"Metadata data"
+//	@Success		200			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Metadata]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Router			/oscal/plan-of-action-and-milestones/{id}/metadata [put]
+func (h *PlanOfActionAndMilestonesHandler) UpdateMetadata(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify POAM exists
+	if err := h.verifyPoamExists(ctx, id); err != nil {
+		return err
+	}
+
+	var oscalMetadata oscalTypes_1_1_3.Metadata
+	if err := ctx.Bind(&oscalMetadata); err != nil {
+		h.sugar.Warnw("Invalid update metadata request", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Validate required fields
+	if oscalMetadata.Title == "" {
+		h.sugar.Warnw("Invalid metadata input", "error", "title is required")
+		return ctx.JSON(http.StatusBadRequest, api.NewError(fmt.Errorf("title is required")))
+	}
+	if oscalMetadata.Version == "" {
+		h.sugar.Warnw("Invalid metadata input", "error", "version is required")
+		return ctx.JSON(http.StatusBadRequest, api.NewError(fmt.Errorf("version is required")))
+	}
+
+	var poam relational.PlanOfActionAndMilestones
+	if err := h.db.Preload("Metadata").First(&poam, "id = ?", id).Error; err != nil {
+		h.sugar.Errorw("failed to get poam", "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
+	// Update metadata with current timestamp
+	now := time.Now()
+	relMetadata := &relational.Metadata{}
+	relMetadata.UnmarshalOscal(oscalMetadata)
+	relMetadata.LastModified = &now
+	relMetadata.OscalVersion = versioning.GetLatestSupportedVersion()
+
+	// Update the metadata
+	if err := h.db.Model(&poam.Metadata).Updates(relMetadata).Error; err != nil {
+		h.sugar.Errorf("Failed to update metadata: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Metadata]{Data: *relMetadata.MarshalOscal()})
 }
 
 // GetImportSsp godoc
