@@ -248,6 +248,7 @@ func MigrateDown(db *gorm.DB) error {
 		"evidence_subjects",
 		&relational.Labels{},
 		&relational.Filter{},
+		"filter_controls",
 	)
 	return err
 }
