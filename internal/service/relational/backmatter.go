@@ -27,13 +27,12 @@ func (b *BackMatter) UnmarshalOscal(resource oscaltypes113.BackMatter) *BackMatt
 // MarshalOscal converts the BackMatter back to an OSCAL BackMatter
 func (b *BackMatter) MarshalOscal() *oscaltypes113.BackMatter {
 	bm := &oscaltypes113.BackMatter{}
-	if len(b.Resources) > 0 {
-		resources := make([]oscaltypes113.Resource, len(b.Resources))
-		for i, r := range b.Resources {
-			resources[i] = *r.MarshalOscal()
-		}
-		bm.Resources = &resources
+	// Always set resources to an empty array, even if no resources exist
+	resources := make([]oscaltypes113.Resource, len(b.Resources))
+	for i, r := range b.Resources {
+		resources[i] = *r.MarshalOscal()
 	}
+	bm.Resources = &resources
 	return bm
 }
 

@@ -864,17 +864,18 @@ func (h *PlanOfActionAndMilestonesHandler) GetBackMatter(ctx echo.Context) error
 		return ctx.JSON(http.StatusNotFound, api.NewError(err))
 	}
 
-	// Add debug logging
-	h.sugar.Infow("found poam",
-		"poam_id", poam.ID,
-		"back_matter_id", poam.BackMatter.ID,
-		"resources_count", len(poam.BackMatter.Resources))
 
-	if len(poam.BackMatter.Resources) == 0 {
-		h.sugar.Errorw("no back matter resources found", "poam_id", idParam)
-		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("no back-matter for POA&M %s", idParam)))
+	// Check if back-matter exists by checking if it exists in the database
+	var backMatterRecord relational.BackMatter
+	if err := h.db.Where("parent_id = ? AND parent_type = ?", poam.ID.String(), "plan_of_action_and_milestones").First(&backMatterRecord).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("no back-matter for POA&M %s", idParam)))
+		}
+		h.sugar.Errorw("failed to check back matter existence", "error", err, "poam_id", idParam)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
+	// Return back-matter even if it has no resources (empty resources array is valid)
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]{Data: *poam.BackMatter.MarshalOscal()})
 }
 
@@ -910,6 +911,11 @@ func (h *PlanOfActionAndMilestonesHandler) CreateBackMatter(ctx echo.Context) er
 	}
 	backMatter := &relational.BackMatter{}
 	backMatter.UnmarshalOscal(oscalBackMatter)
+	// Ensure the BackMatter gets an ID even when created with nil resources
+	if backMatter.ID == nil {
+		id := uuid.New()
+		backMatter.ID = &id
+	}
 	poam.BackMatter = *backMatter
 	if err := h.db.Save(&poam).Error; err != nil {
 		h.sugar.Errorf("Failed to create back-matter: %v", err)
@@ -967,13 +973,32 @@ func (h *PlanOfActionAndMilestonesHandler) DeleteBackMatter(ctx echo.Context) er
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 	var poam relational.PlanOfActionAndMilestones
-	if err := h.db.First(&poam, "id = ?", id).Error; err != nil {
+	if err := h.db.Preload("BackMatter.Resources").First(&poam, "id = ?", id).Error; err != nil {
 		h.sugar.Errorw("failed to get poam", "error", err)
 		return ctx.JSON(http.StatusNotFound, api.NewError(err))
 	}
-	poam.BackMatter = relational.BackMatter{}
-	if err := h.db.Save(&poam).Error; err != nil {
-		h.sugar.Errorf("Failed to delete back-matter: %v", err)
+	// Store the old back-matter ID for resource cleanup
+	oldBackMatterID := poam.BackMatter.ID
+	
+	// Delete any existing back-matter resources first
+	if oldBackMatterID != nil {
+		result := h.db.Where("back_matter_id = ?", *oldBackMatterID).Delete(&relational.BackMatterResource{})
+		if result.Error != nil {
+			h.sugar.Errorf("Failed to delete back-matter resources: %v", result.Error)
+			return ctx.JSON(http.StatusInternalServerError, api.NewError(result.Error))
+		}
+		
+		// Delete the back-matter record itself
+		result = h.db.Delete(&relational.BackMatter{}, "id = ?", *oldBackMatterID)
+		if result.Error != nil {
+			h.sugar.Errorf("Failed to delete back-matter record: %v", result.Error)
+			return ctx.JSON(http.StatusInternalServerError, api.NewError(result.Error))
+		}
+	}
+	
+	// Clear the polymorphic association by setting parent fields to nil
+	if err := h.db.Model(&poam).Association("BackMatter").Clear(); err != nil {
+		h.sugar.Errorf("Failed to clear back-matter association: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 	return ctx.NoContent(http.StatusNoContent)
