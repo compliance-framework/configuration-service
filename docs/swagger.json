@@ -16659,7 +16659,7 @@
                 "description": {
                     "type": "string"
                 },
-                "documentIds": {
+                "document-ids": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/relational.DocumentID"
@@ -18091,7 +18091,7 @@
                     "description": "required",
                     "type": "string"
                 },
-                "mediaType": {
+                "media-type": {
                     "type": "string"
                 }
             }

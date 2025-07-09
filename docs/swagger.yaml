@@ -3923,7 +3923,7 @@ definitions:
         $ref: '#/definitions/datatypes.JSONType-relational_Citation'
       description:
         type: string
-      documentIds:
+      document-ids:
         items:
           $ref: '#/definitions/relational.DocumentID'
         type: array
@@ -4884,7 +4884,7 @@ definitions:
       href:
         description: required
         type: string
-      mediaType:
+      media-type:
         type: string
     type: object
   relational.ResponsibleParty:

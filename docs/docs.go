@@ -16665,7 +16665,7 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
-                "documentIds": {
+                "document-ids": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/relational.DocumentID"
@@ -18097,7 +18097,7 @@ const docTemplate = `{
                     "description": "required",
                     "type": "string"
                 },
-                "mediaType": {
+                "media-type": {
                     "type": "string"
                 }
             }
