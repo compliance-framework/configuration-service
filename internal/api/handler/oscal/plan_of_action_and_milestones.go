@@ -858,12 +858,13 @@ func (h *PlanOfActionAndMilestonesHandler) GetBackMatter(ctx echo.Context) error
 	}
 
 	var poam relational.PlanOfActionAndMilestones
-	// Make sure to preload BackMatter.Resources
-	if err := h.db.Preload("BackMatter.Resources").First(&poam, "id = ?", id).Error; err != nil {
-		h.sugar.Errorw("failed to get poam", "error", err)
-		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	if err := h.db.Preload("BackMatter").Preload("BackMatter.Resources").First(&poam, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Warnw("Failed to load POA&M", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
-
 
 	// Check if back-matter exists by checking if it exists in the database
 	var backMatterRecord relational.BackMatter
@@ -973,13 +974,13 @@ func (h *PlanOfActionAndMilestonesHandler) DeleteBackMatter(ctx echo.Context) er
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 	var poam relational.PlanOfActionAndMilestones
-	if err := h.db.Preload("BackMatter.Resources").First(&poam, "id = ?", id).Error; err != nil {
+	if err := h.db.Preload("BackMatter").Preload("BackMatter.Resources").First(&poam, "id = ?", id).Error; err != nil {
 		h.sugar.Errorw("failed to get poam", "error", err)
 		return ctx.JSON(http.StatusNotFound, api.NewError(err))
 	}
 	// Store the old back-matter ID for resource cleanup
 	oldBackMatterID := poam.BackMatter.ID
-	
+
 	// Delete any existing back-matter resources first
 	if oldBackMatterID != nil {
 		result := h.db.Where("back_matter_id = ?", *oldBackMatterID).Delete(&relational.BackMatterResource{})
@@ -987,7 +988,7 @@ func (h *PlanOfActionAndMilestonesHandler) DeleteBackMatter(ctx echo.Context) er
 			h.sugar.Errorf("Failed to delete back-matter resources: %v", result.Error)
 			return ctx.JSON(http.StatusInternalServerError, api.NewError(result.Error))
 		}
-		
+
 		// Delete the back-matter record itself
 		result = h.db.Delete(&relational.BackMatter{}, "id = ?", *oldBackMatterID)
 		if result.Error != nil {
@@ -995,7 +996,7 @@ func (h *PlanOfActionAndMilestonesHandler) DeleteBackMatter(ctx echo.Context) er
 			return ctx.JSON(http.StatusInternalServerError, api.NewError(result.Error))
 		}
 	}
-	
+
 	// Clear the polymorphic association by setting parent fields to nil
 	if err := h.db.Model(&poam).Association("BackMatter").Clear(); err != nil {
 		h.sugar.Errorf("Failed to clear back-matter association: %v", err)
