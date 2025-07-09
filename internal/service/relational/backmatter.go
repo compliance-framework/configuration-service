@@ -45,7 +45,7 @@ type BackMatterResource struct {
 	Citation     *datatypes.JSONType[Citation]     `json:"citation"`
 	Base64       *datatypes.JSONType[Base64]       `json:"base64"`
 	Props        datatypes.JSONSlice[Prop]         `json:"props"`
-	DocumentIDs  datatypes.JSONSlice[DocumentID]   `json:"documentIds"`
+	DocumentIDs  datatypes.JSONSlice[DocumentID]   `json:"document-ids"`
 	RLinks       datatypes.JSONSlice[ResourceLink] `json:"rlinks"`
 }
 
@@ -224,7 +224,7 @@ func (h *Hash) MarshalOscal() *oscaltypes113.Hash {
 
 type ResourceLink struct {
 	Href      string `json:"href"` // required
-	MediaType string `json:"mediaType"`
+	MediaType string `json:"media-type"`
 	Hashes    []Hash `json:"hashes"`
 }
 
@@ -258,7 +258,7 @@ func (r *ResourceLink) MarshalOscal() *oscaltypes113.ResourceLink {
 
 type Base64 struct {
 	Filename  string `json:"filename"`
-	MediaType string `json:"mediaType"`
+	MediaType string `json:"media-type"`
 	Value     string `json:"value"` // required
 }
 
