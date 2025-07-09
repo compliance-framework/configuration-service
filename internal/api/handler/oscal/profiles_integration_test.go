@@ -251,7 +251,7 @@ func (suite *ProfileIntegrationSuite) TestListImports() {
 
 		suite.server.E().ServeHTTP(rec, req)
 
-		suite.Require().Equal(http.StatusBadRequest, rec.Code, "Expected status code 500 Internal Server Error")
+		suite.Require().Equal(http.StatusBadRequest, rec.Code, "Expected status code 400 Bad Request")
 		suite.Require().Contains(rec.Body.String(), "invalid UUID length", "Expected error message for invalid UUID")
 	})
 }
