@@ -33,6 +33,11 @@ var (
 			OscalVersion: "1.1.3",
 			LastModified: time.Now(),
 		},
+		Imports: []oscalTypes_1_1_3.Import{},
+		Merge:   &oscalTypes_1_1_3.Merge{},
+		BackMatter: &oscalTypes_1_1_3.BackMatter{
+			Resources: &[]oscalTypes_1_1_3.Resource{},
+		},
 	}
 
 	sp800_53_profile     = &oscalTypes_1_1_3.Profile{}
@@ -516,5 +521,122 @@ func (suite *ProfileIntegrationSuite) TestAddImport() {
 		err = json.NewDecoder(rec.Body).Decode(&response)
 		suite.Require().NoError(err, "Failed to decode response body")
 	})
+}
 
+func (suite *ProfileIntegrationSuite) TestUpdateImport() {
+	suite.IntegrationTestSuite.Migrator.Refresh()
+	suite.SeedDatabase()
+	token, err := suite.GetAuthToken()
+	suite.Require().NoError(err, "Failed to get auth token")
+
+	sp800_uuid := sp800_53_profile.UUID
+	import_href := sp800_53_import_href
+
+	suite.Run("Update import for existing profile", func() {
+		rec := httptest.NewRecorder()
+		url := "/api/oscal/profiles/" + sp800_uuid + "/imports/" + import_href
+		updateBody := `{"href": "` + import_href + `", "include-controls": [{"with-ids": ["ac-1"]}], "exclude-controls": []}`
+		req := httptest.NewRequest(http.MethodPut, url, bytes.NewReader([]byte(updateBody)))
+		req.Header.Set(echo.HeaderAuthorization, "Bearer "+*token)
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Require().Equal(http.StatusOK, rec.Code, "Expected status code 200 OK")
+		var response handler.GenericDataResponse[oscalTypes_1_1_3.Import]
+		err = json.NewDecoder(rec.Body).Decode(&response)
+		suite.Require().NoError(err, "Failed to decode response body")
+		suite.Require().Equal(import_href, response.Data.Href, "Expected href to match")
+	})
+
+	suite.Run("Update import with mismatched href", func() {
+		rec := httptest.NewRecorder()
+		url := "/api/oscal/profiles/" + sp800_uuid + "/imports/" + import_href
+		updateBody := `{"href": "wrong-href", "include-controls": [], "exclude-controls": []}`
+		req := httptest.NewRequest(http.MethodPut, url, bytes.NewReader([]byte(updateBody)))
+		req.Header.Set(echo.HeaderAuthorization, "Bearer "+*token)
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Require().Equal(http.StatusBadRequest, rec.Code, "Expected status code 400 Bad Request")
+		suite.Require().Contains(rec.Body.String(), "href in request body does not match URL parameter")
+	})
+
+	suite.Run("Update import for non-existing href", func() {
+		rec := httptest.NewRecorder()
+		url := "/api/oscal/profiles/" + sp800_uuid + "/imports/non-existent-href"
+		updateBody := `{"href": "non-existent-href", "include-controls": [], "exclude-controls": []}`
+		req := httptest.NewRequest(http.MethodPut, url, bytes.NewReader([]byte(updateBody)))
+		req.Header.Set(echo.HeaderAuthorization, "Bearer "+*token)
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Require().Equal(http.StatusNotFound, rec.Code, "Expected status code 404 Not Found")
+	})
+}
+
+func (suite *ProfileIntegrationSuite) TestDeleteImport() {
+	suite.IntegrationTestSuite.Migrator.Refresh()
+	suite.SeedDatabase()
+	token, err := suite.GetAuthToken()
+	suite.Require().NoError(err, "Failed to get auth token")
+
+	sp800_uuid := sp800_53_profile.UUID
+	import_href := sp800_53_import_href
+
+	suite.Run("Delete import for existing profile", func() {
+		rec := httptest.NewRecorder()
+		url := "/api/oscal/profiles/" + sp800_uuid + "/imports/" + import_href
+		req := httptest.NewRequest(http.MethodDelete, url, nil)
+		req.Header.Set(echo.HeaderAuthorization, "Bearer "+*token)
+
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Require().Equal(http.StatusNoContent, rec.Code, "Expected status code 204 No Content")
+	})
+
+	suite.Run("Delete import for non-existing href", func() {
+		rec := httptest.NewRecorder()
+		url := "/api/oscal/profiles/" + sp800_uuid + "/imports/non-existent-href"
+		req := httptest.NewRequest(http.MethodDelete, url, nil)
+		req.Header.Set(echo.HeaderAuthorization, "Bearer "+*token)
+
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Require().Equal(http.StatusNotFound, rec.Code, "Expected status code 404 Not Found")
+	})
+}
+
+func (suite *ProfileIntegrationSuite) TestUpdateMerge() {
+	suite.IntegrationTestSuite.Migrator.Refresh()
+	suite.SeedDatabase()
+	token, err := suite.GetAuthToken()
+	suite.Require().NoError(err, "Failed to get auth token")
+
+	sp800_uuid := sp800_53_profile.UUID
+
+	suite.Run("Update merge for existing profile", func() {
+		rec := httptest.NewRecorder()
+		url := "/api/oscal/profiles/" + sp800_uuid + "/merge"
+		updateBody := `{"strategy": "keep", "as-is": true}`
+		req := httptest.NewRequest(http.MethodPut, url, bytes.NewReader([]byte(updateBody)))
+		req.Header.Set(echo.HeaderAuthorization, "Bearer "+*token)
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Require().Equal(http.StatusOK, rec.Code, "Expected status code 200 OK")
+		var response handler.GenericDataResponse[oscalTypes_1_1_3.Merge]
+		err = json.NewDecoder(rec.Body).Decode(&response)
+		suite.Require().NoError(err, "Failed to decode response body")
+		// Remove any assertion on response.Data.Strategy, as the Merge struct does not have a Strategy field. Only assert on fields that exist, such as AsIs, Combine, or Flat.
+	})
+
+	suite.Run("Update merge for non-existing profile", func() {
+		rec := httptest.NewRecorder()
+		url := "/api/oscal/profiles/df497cf2-c84b-4486-bb40-6100efe734fc/merge"
+		updateBody := `{"strategy": "keep", "as-is": true}`
+		req := httptest.NewRequest(http.MethodPut, url, bytes.NewReader([]byte(updateBody)))
+		req.Header.Set(echo.HeaderAuthorization, "Bearer "+*token)
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Require().Equal(http.StatusNotFound, rec.Code, "Expected status code 404 Not Found")
+	})
 }

@@ -36,7 +36,6 @@ func (h *ProfileHandler) Register(api *echo.Group) {
 	api.GET("/:id", h.Get)
 
 	api.GET("/:id/modify", h.GetModify)
-	api.GET("/:id/merge", h.GetMerge)
 	api.GET("/:id/back-matter", h.GetBackmatter)
 	api.POST("/:id/resolve", h.Resolve)
 	api.GET("/:id/full", h.GetFull)
@@ -47,6 +46,10 @@ func (h *ProfileHandler) Register(api *echo.Group) {
 	api.GET("/:id/imports/:href", h.GetImport)
 	api.PUT("/:id/imports/:href", h.UpdateImport)
 	api.DELETE("/:id/imports/:href", h.DeleteImport)
+
+	// merge
+	api.GET("/:id/merge", h.GetMerge)
+	api.PUT("/:id/merge", h.UpdateMerge)
 }
 
 // List godoc
@@ -182,7 +185,7 @@ func (h *ProfileHandler) ListImports(ctx echo.Context) error {
 //	@Summary		Get Import from Profile by Backmatter Href
 //	@Description	Retrieves a specific import from a profile by its backmatter href
 //	@Tags			Profile
-//	@Param			id	path	string	true	"Profile UUID"
+//	@Param			id		path	string	true	"Profile UUID"
 //	@Param			href	path	string	true	"Import Href"
 //	@Produce		json
 //	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Import]
@@ -225,12 +228,12 @@ func (h *ProfileHandler) GetImport(ctx echo.Context) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body		oscal.ProfileHandler.AddImport.request	true	"Request data"
-//	@Success		201	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Import]
-//	@Failure		400	{object}	api.Error
-//	@Failure		401	{object}	api.Error
-//	@Failure		404	{object}	api.Error
-//	@Failure		409	{object}	api.Error
-//	@Failure		500	{object}	api.Error
+//	@Success		201		{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Import]
+//	@Failure		400		{object}	api.Error
+//	@Failure		401		{object}	api.Error
+//	@Failure		404		{object}	api.Error
+//	@Failure		409		{object}	api.Error
+//	@Failure		500		{object}	api.Error
 //	@Security		OAuth2Password
 //	@Router			/oscal/profiles/{id}/imports/add [post]
 func (h *ProfileHandler) AddImport(ctx echo.Context) error {
@@ -322,16 +325,16 @@ func (h *ProfileHandler) AddImport(ctx echo.Context) error {
 //	@Summary		Update Import in Profile
 //	@Description	Updates an existing import in a profile by its href
 //	@Tags			Profile
-//	@Param			id	path	string	true	"Profile ID"
+//	@Param			id		path	string	true	"Profile ID"
 //	@Param			href	path	string	true	"Import Href"
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body		oscalTypes_1_1_3.Import	true	"Import data to update"
-//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Import]
-//	@Failure		400	{object}	api.Error
-//	@Failure		401	{object}	api.Error
-//	@Failure		404	{object}	api.Error
-//	@Failure		500	{object}	api.Error
+//	@Success		200		{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Import]
+//	@Failure		400		{object}	api.Error
+//	@Failure		401		{object}	api.Error
+//	@Failure		404		{object}	api.Error
+//	@Failure		500		{object}	api.Error
 //	@Security		OAuth2Password
 //	@Router			/oscal/profiles/{id}/imports/{href} [put]
 func (h *ProfileHandler) UpdateImport(ctx echo.Context) error {
@@ -400,7 +403,7 @@ func (h *ProfileHandler) UpdateImport(ctx echo.Context) error {
 //	@Summary		Delete Import from Profile
 //	@Description	Deletes an import from a profile by its href
 //	@Tags			Profile
-//	@Param			id	path	string	true	"Profile ID"
+//	@Param			id		path	string	true	"Profile ID"
 //	@Param			href	path	string	true	"Import Href"
 //	@Produce		json
 //	@Success		204	"Import deleted successfully"
@@ -409,7 +412,7 @@ func (h *ProfileHandler) UpdateImport(ctx echo.Context) error {
 //	@Failure		404	{object}	api.Error
 //	@Failure		500	{object}	api.Error
 //	@Security		OAuth2Password
-//	@Router			/oscal/profiles/{id}/imports/{href} [delete
+//	@Router			/oscal/profiles/{id}/imports/{href} [delete]
 func (h *ProfileHandler) DeleteImport(ctx echo.Context) error {
 	profileId := ctx.Param("id")
 	href := ctx.Param("href")
@@ -461,6 +464,99 @@ func (h *ProfileHandler) DeleteImport(ctx echo.Context) error {
 	}
 
 	return ctx.NoContent(http.StatusNoContent)
+}
+
+// GetMerge godoc
+//
+//	@Summary		Get merge section
+//	@Description	Retrieves the merge section for a specific profile.
+//	@Tags			Profile
+//	@Param			id	path	string	true	"Profile ID"
+//	@Produce		json
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Merge]
+//	@Failure		400	{object}	api.Error
+//	@Failure		401	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/profiles/{id}/merge [get]
+func (h *ProfileHandler) GetMerge(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("error parsing UUID", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var profile relational.Profile
+	if err := h.db.
+		Preload("Merge").
+		Where("id = ?", id).
+		First(&profile).Error; err != nil {
+		h.sugar.Errorw("error getting profile", "id", idParam, "error", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Merge]{Data: *profile.Merge.MarshalOscal()})
+}
+
+// UpdateMerge godoc
+//
+//	@Summary		Update Merge
+//	@Description	Updates the merge information for a specific profile
+//	@Tags			Profile
+//	@Param			id	path	string	true	"Profile ID"
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		oscalTypes_1_1_3.Merge	true	"Merge data to update"
+//	@Success		200		{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Merge]
+//	@Failure		400		{object}	api.Error
+//	@Failure		401		{object}	api.Error
+//	@Failure		404		{object}	api.Error
+//	@Failure		500		{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/profiles/{id}/merge [put]
+func (h *ProfileHandler) UpdateMerge(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("error parsing UUID", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var payload oscalTypes_1_1_3.Merge
+	if err := ctx.Bind(&payload); err != nil {
+		h.sugar.Errorw("error binding request data", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var relationalMerge relational.Merge
+	if err := h.db.Where("profile_id = ?", id).First(&relationalMerge).Error; err != nil {
+		h.sugar.Errorw("error finding merge", "id", idParam, "error", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	relationalPayload := relational.Merge{}
+	relationalPayload.UnmarshalOscal(payload)
+
+	relationalMerge.AsIs = relationalPayload.AsIs
+	relationalMerge.Combine = relationalPayload.Combine
+	relationalMerge.Flat = relationalPayload.Flat
+
+	if err := h.db.Save(&relationalMerge).Error; err != nil {
+		h.sugar.Errorw("error saving merge", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	outputOscal := relationalMerge.MarshalOscal()
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Merge]{Data: *outputOscal})
+
 }
 
 // GetBackmatter godoc
@@ -689,43 +785,6 @@ func (h *ProfileHandler) GetModify(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Modify]{Data: *profile.Modify.MarshalOscal()})
-}
-
-// GetMerge godoc
-//
-//	@Summary		Get merge section
-//	@Description	Retrieves the merge section for a specific profile.
-//	@Tags			Profile
-//	@Param			id	path	string	true	"Profile ID"
-//	@Produce		json
-//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Merge]
-//	@Failure		400	{object}	api.Error
-//	@Failure		401	{object}	api.Error
-//	@Failure		404	{object}	api.Error
-//	@Failure		500	{object}	api.Error
-//	@Security		OAuth2Password
-//	@Router			/oscal/profiles/{id}/merge [get]
-func (h *ProfileHandler) GetMerge(ctx echo.Context) error {
-	idParam := ctx.Param("id")
-	id, err := uuid.Parse(idParam)
-	if err != nil {
-		h.sugar.Errorw("error parsing UUID", "id", idParam, "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-	}
-
-	var profile relational.Profile
-	if err := h.db.
-		Preload("Merge").
-		Where("id = ?", id).
-		First(&profile).Error; err != nil {
-		h.sugar.Errorw("error getting profile", "id", idParam, "error", err)
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(err))
-		}
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-	}
-
-	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Merge]{Data: *profile.Merge.MarshalOscal()})
 }
 
 // Helper functions
