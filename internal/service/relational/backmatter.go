@@ -98,11 +98,18 @@ func (c *BackMatterResource) UnmarshalOscal(resource oscaltypes113.Resource) *Ba
 // MarshalOscal converts the BackMatterResource back to an OSCAL Resource
 func (b *BackMatterResource) MarshalOscal() *oscaltypes113.Resource {
 	res := &oscaltypes113.Resource{
-		UUID:        b.UUIDModel.ID.String(),
-		Title:       *b.Title,
-		Description: *b.Description,
-		Remarks:     *b.Remarks,
+		UUID:  b.UUIDModel.ID.String(),
+		Title: *b.Title,
 	}
+
+	if b.Description != nil {
+		res.Description = *b.Description
+	}
+
+	if b.Remarks != nil {
+		res.Remarks = *b.Remarks
+	}
+
 	if len(b.Props) > 0 {
 		props := *ConvertPropsToOscal(b.Props)
 		res.Props = &props
