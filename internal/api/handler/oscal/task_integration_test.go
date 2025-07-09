@@ -270,3 +270,99 @@ func (suite *TaskApiIntegrationSuite) TestTaskInvalidUUIDs() {
 	suite.server.E().ServeHTTP(deleteRec, deleteReq)
 	suite.Equal(http.StatusBadRequest, deleteRec.Code)
 }
+
+func (suite *TaskApiIntegrationSuite) TestTaskDependencyRemoval() {
+	// Create test assessment plan first
+	planID := suite.createTestAssessmentPlan()
+
+	// Create two tasks - one will depend on the other
+	task1ID := uuid.New()
+	task1 := &oscalTypes_1_1_3.Task{
+		UUID:        task1ID.String(),
+		Title:       "Task 1",
+		Description: "First task for dependency testing",
+		Type:        "milestone",
+	}
+
+	task2ID := uuid.New()
+	task2 := &oscalTypes_1_1_3.Task{
+		UUID:        task2ID.String(),
+		Title:       "Task 2",
+		Description: "Second task that will depend on Task 1",
+		Type:        "action",
+	}
+
+	// Create both tasks
+	createRec1, createReq1 := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-plans/%s/tasks", planID), task1)
+	suite.server.E().ServeHTTP(createRec1, createReq1)
+	suite.Require().Equal(http.StatusCreated, createRec1.Code)
+
+	createRec2, createReq2 := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-plans/%s/tasks", planID), task2)
+	suite.server.E().ServeHTTP(createRec2, createReq2)
+	suite.Require().Equal(http.StatusCreated, createRec2.Code)
+
+	// Add dependency: task2 depends on task1
+	dependencies := []oscalTypes_1_1_3.TaskDependency{
+		{
+			TaskUuid: task1ID.String(),
+			Remarks:  "Task 2 depends on Task 1 completion",
+		},
+	}
+	task2.Dependencies = &dependencies
+
+	// Update task2 with dependency
+	updateRec, updateReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/assessment-plans/%s/tasks/%s", planID, task2ID), task2)
+	suite.server.E().ServeHTTP(updateRec, updateReq)
+	suite.Equal(http.StatusOK, updateRec.Code)
+
+	// Verify dependency was added
+	var updateResponse handler.GenericDataResponse[*oscalTypes_1_1_3.Task]
+	err := json.Unmarshal(updateRec.Body.Bytes(), &updateResponse)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(updateResponse.Data.Dependencies)
+	suite.Require().Len(*updateResponse.Data.Dependencies, 1)
+	suite.Equal(task1ID.String(), (*updateResponse.Data.Dependencies)[0].TaskUuid)
+	suite.Equal("Task 2 depends on Task 1 completion", (*updateResponse.Data.Dependencies)[0].Remarks)
+
+	// Now remove the dependency by updating task2 with empty dependencies
+	task2.Dependencies = &[]oscalTypes_1_1_3.TaskDependency{} // Empty slice
+
+	removeRec, removeReq := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/assessment-plans/%s/tasks/%s", planID, task2ID), task2)
+	suite.server.E().ServeHTTP(removeRec, removeReq)
+	suite.Equal(http.StatusOK, removeRec.Code)
+
+	// Verify dependency was removed
+	var removeResponse handler.GenericDataResponse[*oscalTypes_1_1_3.Task]
+	err = json.Unmarshal(removeRec.Body.Bytes(), &removeResponse)
+	suite.Require().NoError(err)
+
+	// Dependencies should be empty or nil
+	if removeResponse.Data.Dependencies != nil {
+		suite.Len(*removeResponse.Data.Dependencies, 0, "Dependencies should be empty after removal")
+	}
+
+	// Verify by getting the task again
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-plans/%s/tasks", planID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+
+	var getResponse handler.GenericDataResponse[[]*oscalTypes_1_1_3.Task]
+	err = json.Unmarshal(getRec.Body.Bytes(), &getResponse)
+	suite.Require().NoError(err)
+	suite.Require().Len(getResponse.Data, 2)
+
+	// Find task2 in the response and verify no dependencies
+	var foundTask2 *oscalTypes_1_1_3.Task
+	for _, task := range getResponse.Data {
+		if task.UUID == task2ID.String() {
+			foundTask2 = task
+			break
+		}
+	}
+	suite.Require().NotNil(foundTask2, "Task 2 should be found in response")
+
+	// Verify dependencies are truly removed
+	if foundTask2.Dependencies != nil {
+		suite.Len(*foundTask2.Dependencies, 0, "Task 2 should have no dependencies after removal")
+	}
+}

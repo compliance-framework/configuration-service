@@ -1,11 +1,13 @@
 package oscal
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"gorm.io/gorm"
 
 	"github.com/compliance-framework/configuration-service/internal/api"
 	"github.com/compliance-framework/configuration-service/internal/api/handler"
@@ -183,20 +185,53 @@ func (h *AssessmentPlanHandler) UpdateTask(ctx echo.Context) error {
 	relationalTask.ParentID = &id
 	relationalTask.ParentType = "assessment_plans"
 
-	// Update in database and check if resource exists
-	result := h.db.Where("id = ? AND parent_id = ? AND parent_type = ?", taskId, id, "assessment_plans").Updates(relationalTask)
-	if result.Error != nil {
-		h.sugar.Errorf("Failed to update task: %v", result.Error)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(result.Error))
+	// Load the existing task first
+	var existingTask relational.Task
+	if err := h.db.Where("id = ? AND parent_id = ? AND parent_type = ?", taskId, id, "assessment_plans").First(&existingTask).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.sugar.Warnw("Task not found for update", "taskId", taskId, "planId", id)
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("task with id %s not found in plan %s", taskId, id)))
+		}
+		h.sugar.Errorf("Failed to load existing task: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	// Check if the task was found and updated
-	if result.RowsAffected == 0 {
-		h.sugar.Warnw("Task not found for update", "taskId", taskId, "planId", id)
-		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("task with id %s not found in plan %s", taskId, id)))
+	// Replace the dependencies association using GORM's Association API
+	if err := h.db.Model(&existingTask).Association("Dependencies").Replace(relationalTask.Dependencies); err != nil {
+		h.sugar.Errorf("Failed to update task dependencies: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[*oscalTypes_1_1_3.Task]{Data: relationalTask.MarshalOscal()})
+	// Update other task fields (excluding dependencies which were handled above)
+	updateData := map[string]interface{}{
+		"type":        relationalTask.Type,
+		"title":       relationalTask.Title,
+		"description": relationalTask.Description,
+		"remarks":     relationalTask.Remarks,
+		"props":       relationalTask.Props,
+		"links":       relationalTask.Links,
+		"timing":      relationalTask.Timing,
+	}
+
+	if err := h.db.Model(&existingTask).Updates(updateData).Error; err != nil {
+		h.sugar.Errorf("Failed to update task fields: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Handle ResponsibleRole association if needed
+	if err := h.db.Model(&existingTask).Association("ResponsibleRole").Replace(relationalTask.ResponsibleRole); err != nil {
+		h.sugar.Errorf("Failed to update task responsible roles: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Reload the task with all associations to return the updated data
+	var updatedTask relational.Task
+	if err := h.db.Preload("Dependencies").Preload("ResponsibleRole").Where("id = ?", taskId).First(&updatedTask).Error; err != nil {
+		h.sugar.Errorf("Failed to reload updated task: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[*oscalTypes_1_1_3.Task]{Data: updatedTask.MarshalOscal()})
 }
 
 // DeleteTask godoc
