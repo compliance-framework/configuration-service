@@ -2,6 +2,7 @@ package oscal
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -42,8 +43,10 @@ func (h *ProfileHandler) Register(api *echo.Group) {
 
 	// imports
 	api.GET("/:id/imports", h.ListImports)
-	api.GET("/:id/imports/:href", h.GetImport)
 	api.POST("/:id/imports/add", h.AddImport)
+	api.GET("/:id/imports/:href", h.GetImport)
+	api.PUT("/:id/imports/:href", h.UpdateImport)
+	api.DELETE("/:id/imports/:href", h.DeleteImport)
 }
 
 // List godoc
@@ -300,7 +303,7 @@ func (h *ProfileHandler) AddImport(ctx echo.Context) error {
 	}
 
 	newImport := relational.Import{
-		Href: idFragment,
+		Href: fmt.Sprintf("#%s", resourceUUID.String()),
 	}
 
 	profile.BackMatter.Resources = append(profile.BackMatter.Resources, resource)
@@ -312,6 +315,152 @@ func (h *ProfileHandler) AddImport(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[oscalTypes_1_1_3.Import]{Data: newImport.MarshalOscal()})
+}
+
+// UpdateImport godoc
+//
+//	@Summary		Update Import in Profile
+//	@Description	Updates an existing import in a profile by its href
+//	@Tags			Profile
+//	@Param			id	path	string	true	"Profile ID"
+//	@Param			href	path	string	true	"Import Href"
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		oscalTypes_1_1_3.Import	true	"Import data to update"
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Import]
+//	@Failure		400	{object}	api.Error
+//	@Failure		401	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/profiles/{id}/imports/{href} [put]
+func (h *ProfileHandler) UpdateImport(ctx echo.Context) error {
+	profileId := ctx.Param("id")
+	id, err := uuid.Parse(profileId)
+	if err != nil {
+		h.sugar.Warnw("error parsing UUID", "id", profileId, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	href := ctx.Param("href")
+	if href == "" {
+		h.sugar.Warnw("empty href parameter", "profile_id", profileId)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(errors.New("href parameter is required")))
+	}
+
+	var profileImport relational.Import
+	if err := h.db.Preload("IncludeControls").Preload("ExcludeControls").First(&profileImport, "profile_id = ? AND href = ?", id, href).Error; err != nil {
+		h.sugar.Warnw("error getting import", "profile_id", profileId, "href", href, "error", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	var updateData oscalTypes_1_1_3.Import
+	if err := ctx.Bind(&updateData); err != nil {
+		h.sugar.Warnw("error binding update data", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	fmt.Printf("%+v\n", updateData)
+
+	if updateData.Href != href {
+		h.sugar.Warnw("href mismatch", "expected", href, "received", updateData.Href)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(errors.New("href in request body does not match URL parameter")))
+	}
+
+	updatedImport := relational.Import{}
+	updatedImport.UnmarshalOscal(updateData)
+	updatedImport.UUIDModel.ID = profileImport.UUIDModel.ID
+	updatedImport.ProfileID = profileImport.ProfileID
+
+	// Overwrite associations: update the import and remove all other associations for this import
+	if err := h.db.Model(&profileImport).Association("IncludeControls").Replace(updatedImport.IncludeControls); err != nil {
+		h.sugar.Errorw("error updating IncludeControls association", "profile_id", profileId, "href", href, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	if err := h.db.Model(&profileImport).Association("ExcludeControls").Replace(updatedImport.ExcludeControls); err != nil {
+		h.sugar.Errorw("error updating ExcludeControls association", "profile_id", profileId, "href", href, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Save the updated import itself
+	if err := h.db.Model(&profileImport).Updates(updatedImport).Error; err != nil {
+		h.sugar.Errorw("error updating import", "profile_id", profileId, "href", href, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	oscalImport := updatedImport.MarshalOscal()
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Import]{Data: oscalImport})
+}
+
+// DeleteImport godoc
+//
+//	@Summary		Delete Import from Profile
+//	@Description	Deletes an import from a profile by its href
+//	@Tags			Profile
+//	@Param			id	path	string	true	"Profile ID"
+//	@Param			href	path	string	true	"Import Href"
+//	@Produce		json
+//	@Success		204	"Import deleted successfully"
+//	@Failure		400	{object}	api.Error
+//	@Failure		401	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/profiles/{id}/imports/{href} [delete
+func (h *ProfileHandler) DeleteImport(ctx echo.Context) error {
+	profileId := ctx.Param("id")
+	href := ctx.Param("href")
+
+	id, err := uuid.Parse(profileId)
+	if err != nil {
+		h.sugar.Warnw("error parsing UUID", "id", profileId, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var profileImport relational.Import
+	if err := h.db.First(&profileImport, "profile_id = ? AND href = ?", id, href).Error; err != nil {
+		h.sugar.Warnw("error getting import", "profile_id", profileId, "href", href, "error", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Remove associations first
+	if err := h.db.Model(&profileImport).Association("IncludeControls").Clear(); err != nil {
+		h.sugar.Errorw("error clearing IncludeControls association", "profile_id", profileId, "href", href, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	if err := h.db.Model(&profileImport).Association("ExcludeControls").Clear(); err != nil {
+		h.sugar.Errorw("error clearing ExcludeControls association", "profile_id", profileId, "href", href, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	referenceUUID := strings.TrimPrefix(profileImport.Href, "#")
+	var resourceToDelete relational.BackMatterResource
+	if err := h.db.Where("id = ?", referenceUUID).First(&resourceToDelete).Error; err != nil {
+		h.sugar.Errorw("error finding resource to delete", "profile_id", profileId, "href", href, "error", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Delete the resource from the backmatter
+	if err := h.db.Delete(&resourceToDelete).Error; err != nil {
+		h.sugar.Errorw("error deleting resource", "profile_id", profileId, "href", href, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	if err := h.db.Delete(&profileImport).Error; err != nil {
+		h.sugar.Errorw("error deleting import", "profile_id", profileId, "href", href, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.NoContent(http.StatusNoContent)
 }
 
 // GetBackmatter godoc
