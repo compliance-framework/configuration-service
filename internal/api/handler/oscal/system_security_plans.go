@@ -2194,6 +2194,73 @@ func (h *SystemSecurityPlanHandler) DeleteImplementedRequirement(ctx echo.Contex
 	return ctx.NoContent(http.StatusNoContent)
 }
 
+// CreateImplementedRequirementStatement godoc
+//
+//	@Summary		Create a new statement within an implemented requirement
+//	@Description	Creates a new statement within an implemented requirement for a given SSP.
+//	@Tags			Oscal
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string						true	"SSP ID"
+//	@Param			reqId		path		string						true	"Requirement ID"
+//	@Param			statement	body		oscalTypes_1_1_3.Statement	true	"Statement data"
+//	@Success		201			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Statement]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Router			/oscal/system-security-plans/{id}/control-implementation/implemented-requirements/{reqId}/statements [post]
+func (h *SystemSecurityPlanHandler) CreateImplementedRequirementStatement(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	sspID, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid SSP id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	reqIdParam := ctx.Param("reqId")
+	reqID, err := uuid.Parse(reqIdParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid requirement id", "reqId", reqIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	if err := h.verifySSPExists(ctx, sspID); err != nil {
+		return err
+	}
+
+	var ssp relational.SystemSecurityPlan
+	if err := h.db.Preload("ControlImplementation").First(&ssp, "id = ?", sspID).Error; err != nil {
+		h.sugar.Errorw("failed to get ssp", "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
+	var existingReq relational.ImplementedRequirement
+	if err := h.db.Where("id = ? AND control_implementation_id = ?", reqID, ssp.ControlImplementation.ID).First(&existingReq).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Errorf("Failed to find implemented requirement: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	var oscalStmt oscalTypes_1_1_3.Statement
+	if err := ctx.Bind(&oscalStmt); err != nil {
+		h.sugar.Warnw("Invalid create statement request", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	relStmt := &relational.Statement{}
+	relStmt.UnmarshalOscal(oscalStmt)
+	relStmt.ImplementedRequirementId = reqID
+
+	if err := h.db.Create(relStmt).Error; err != nil {
+		h.sugar.Errorf("Failed to create statement: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[oscalTypes_1_1_3.Statement]{Data: *relStmt.MarshalOscal()})
+}
+
 // GetBackMatter godoc
 //
 //	@Summary		Get SSP back-matter
@@ -2571,69 +2638,4 @@ func (h *SystemSecurityPlanHandler) UpdateImplementedRequirementStatement(ctx ec
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Statement]{Data: *relStmt.MarshalOscal()})
 }
 
-// CreateImplementedRequirementStatement godoc
-//
-//	@Summary		Create a new statement within an implemented requirement
-//	@Description	Creates a new statement within an implemented requirement for a given SSP.
-//	@Tags			Oscal
-//	@Accept			json
-//	@Produce		json
-//	@Param			id			path		string						true	"SSP ID"
-//	@Param			reqId		path		string						true	"Requirement ID"
-//	@Param			statement	body		oscalTypes_1_1_3.Statement	true	"Statement data"
-//	@Success		201			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Statement]
-//	@Failure		400			{object}	api.Error
-//	@Failure		404			{object}	api.Error
-//	@Failure		500			{object}	api.Error
-//	@Router			/oscal/system-security-plans/{id}/control-implementation/implemented-requirements/{reqId}/statements [post]
-func (h *SystemSecurityPlanHandler) CreateImplementedRequirementStatement(ctx echo.Context) error {
-	idParam := ctx.Param("id")
-	sspID, err := uuid.Parse(idParam)
-	if err != nil {
-		h.sugar.Warnw("Invalid SSP id", "id", idParam, "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-	}
 
-	reqIdParam := ctx.Param("reqId")
-	reqID, err := uuid.Parse(reqIdParam)
-	if err != nil {
-		h.sugar.Warnw("Invalid requirement id", "reqId", reqIdParam, "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-	}
-
-	if err := h.verifySSPExists(ctx, sspID); err != nil {
-		return err
-	}
-
-	var ssp relational.SystemSecurityPlan
-	if err := h.db.Preload("ControlImplementation").First(&ssp, "id = ?", sspID).Error; err != nil {
-		h.sugar.Errorw("failed to get ssp", "error", err)
-		return ctx.JSON(http.StatusNotFound, api.NewError(err))
-	}
-
-	var existingReq relational.ImplementedRequirement
-	if err := h.db.Where("id = ? AND control_implementation_id = ?", reqID, ssp.ControlImplementation.ID).First(&existingReq).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(err))
-		}
-		h.sugar.Errorf("Failed to find implemented requirement: %v", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-	}
-
-	var oscalStmt oscalTypes_1_1_3.Statement
-	if err := ctx.Bind(&oscalStmt); err != nil {
-		h.sugar.Warnw("Invalid create statement request", "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-	}
-
-	relStmt := &relational.Statement{}
-	relStmt.UnmarshalOscal(oscalStmt)
-	relStmt.ImplementedRequirementId = reqID
-
-	if err := h.db.Create(relStmt).Error; err != nil {
-		h.sugar.Errorf("Failed to create statement: %v", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-	}
-
-	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[oscalTypes_1_1_3.Statement]{Data: *relStmt.MarshalOscal()})
-}

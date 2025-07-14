@@ -18916,7 +18916,7 @@ const docTemplate = `{
                 "remarks": {
                     "type": "string"
                 },
-                "responsable-roles": {
+                "responsible-roles": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/relational.ResponsibleRole"

@@ -741,7 +741,7 @@ type SystemUser struct {
 	Description          string                      `json:"description"`
 	Props                datatypes.JSONSlice[Prop]   `json:"props"`
 	Links                datatypes.JSONSlice[Link]   `json:"links"`
-	RoleIDs              datatypes.JSONSlice[string] `json:"role_ids"`
+	RoleIDs              datatypes.JSONSlice[string] `json:"role-ids"`
 	AuthorizedPrivileges []AuthorizedPrivilege       `json:"authorized-privileges"`
 
 	SystemImplementationId uuid.UUID
@@ -900,7 +900,7 @@ type SystemComponent struct {
 	Description      string                                    `json:"description"`
 	Purpose          string                                    `json:"purpose"`
 	Status           datatypes.JSONType[SystemComponentStatus] `json:"status"`
-	ResponsibleRoles []ResponsibleRole                         `json:"responsable-roles" gorm:"polymorphic:Parent;"`
+	ResponsibleRoles []ResponsibleRole                         `json:"responsible-roles" gorm:"polymorphic:Parent;"`
 	Protocols        datatypes.JSONSlice[Protocol]             `json:"protocols"`
 	Remarks          string                                    `json:"remarks"`
 	Props            datatypes.JSONSlice[Prop]                 `json:"props"`

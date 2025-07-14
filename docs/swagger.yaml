@@ -5189,7 +5189,7 @@ definitions:
         type: string
       remarks:
         type: string
-      responsable-roles:
+      responsible-roles:
         items:
           $ref: '#/definitions/relational.ResponsibleRole'
         type: array
