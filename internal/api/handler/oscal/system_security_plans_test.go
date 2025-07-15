@@ -193,7 +193,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestCreateSSPValidationError
 		{
 			name: "invalid UUID format",
 			modifySSP: func(ssp *oscalTypes_1_1_3.SystemSecurityPlan) {
-				ssp.UUID = "invalid-uuid"
+				ssp.UUID = "invalid-uuid-format-123456789012345"
 			},
 			expectedMsg: "invalid UUID format",
 		},
@@ -475,6 +475,12 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestCreateImplementedRequire
 	resp := httptest.NewRecorder()
 	server.E().ServeHTTP(resp, req)
 	suite.Equal(http.StatusCreated, resp.Code)
+	
+	// Parse response to get the actual SSP UUID
+	var createSSPResponse handler.GenericDataResponse[oscalTypes_1_1_3.SystemSecurityPlan]
+	err = json.Unmarshal(resp.Body.Bytes(), &createSSPResponse)
+	suite.NoError(err)
+	actualSSPUUID := createSSPResponse.Data.UUID
 
 	testCases := []struct {
 		name           string
@@ -484,14 +490,14 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestCreateImplementedRequire
 	}{
 		{
 			name:           "invalid SSP ID",
-			sspID:          "invalid-uuid",
+			sspID:          "invalid-uuid-format-123456789012345",
 			reqID:          uuid.New().String(),
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name:           "invalid requirement ID",
-			sspID:          ssp.UUID,
-			reqID:          "invalid-uuid",
+			sspID:          actualSSPUUID,
+			reqID:          "invalid-uuid-format-123456789012345",
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
@@ -502,7 +508,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestCreateImplementedRequire
 		},
 		{
 			name:           "non-existent requirement",
-			sspID:          ssp.UUID,
+			sspID:          actualSSPUUID,
 			reqID:          uuid.New().String(),
 			expectedStatus: http.StatusNotFound,
 		},
@@ -644,6 +650,12 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestUpdateImplementedRequire
 	resp := httptest.NewRecorder()
 	server.E().ServeHTTP(resp, req)
 	suite.Equal(http.StatusCreated, resp.Code)
+	
+	// Parse response to get the actual SSP UUID
+	var createSSPResponse handler.GenericDataResponse[oscalTypes_1_1_3.SystemSecurityPlan]
+	err = json.Unmarshal(resp.Body.Bytes(), &createSSPResponse)
+	suite.NoError(err)
+	actualSSPUUID := createSSPResponse.Data.UUID
 
 	testCases := []struct {
 		name           string
@@ -654,23 +666,23 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestUpdateImplementedRequire
 	}{
 		{
 			name:           "invalid SSP ID",
-			sspID:          "invalid-uuid",
+			sspID:          "invalid-uuid-format-123456789012345",
 			reqID:          uuid.New().String(),
 			stmtID:         uuid.New().String(),
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name:           "invalid requirement ID",
-			sspID:          ssp.UUID,
-			reqID:          "invalid-uuid",
+			sspID:          actualSSPUUID,
+			reqID:          "invalid-uuid-format-123456789012345",
 			stmtID:         uuid.New().String(),
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name:           "invalid statement ID",
-			sspID:          ssp.UUID,
+			sspID:          actualSSPUUID,
 			reqID:          uuid.New().String(),
-			stmtID:         "invalid-uuid",
+			stmtID:         "invalid-uuid-format-123456789012345",
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
