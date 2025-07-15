@@ -739,6 +739,7 @@ type SystemUser struct {
 	Title                string                      `json:"title"`
 	ShortName            string                      `json:"short-name"`
 	Description          string                      `json:"description"`
+	Remarks              string                      `json:"remarks"`
 	Props                datatypes.JSONSlice[Prop]   `json:"props"`
 	Links                datatypes.JSONSlice[Link]   `json:"links"`
 	RoleIDs              datatypes.JSONSlice[string] `json:"role-ids"`
@@ -756,6 +757,7 @@ func (u *SystemUser) UnmarshalOscal(ou oscalTypes_1_1_3.SystemUser) *SystemUser 
 		Title:       ou.Title,
 		ShortName:   ou.ShortName,
 		Description: ou.Description,
+		Remarks:     ou.Remarks,
 		Props:       ConvertOscalToProps(ou.Props),
 		Links:       ConvertOscalToLinks(ou.Links),
 		RoleIDs:     datatypes.NewJSONSlice(*ou.RoleIds),
@@ -774,6 +776,7 @@ func (u *SystemUser) MarshalOscal() *oscalTypes_1_1_3.SystemUser {
 		Title:       u.Title,
 		ShortName:   u.ShortName,
 		Description: u.Description,
+		Remarks:     u.Remarks,
 	}
 	if len(u.Props) > 0 {
 		ret.Props = ConvertPropsToOscal(u.Props)
