@@ -11201,7 +11201,7 @@ paths:
             $ref: '#/definitions/api.Error'
       summary: Create a new statement within an implemented requirement
       tags:
-      - System Security Plans
+      - Oscal
   /oscal/system-security-plans/{id}/control-implementation/implemented-requirements/{reqId}/statements/{stmtId}:
     put:
       consumes:

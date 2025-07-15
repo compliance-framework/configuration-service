@@ -9109,7 +9109,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "System Security Plans"
+                    "Oscal"
                 ],
                 "summary": "Create a new statement within an implemented requirement",
                 "parameters": [
