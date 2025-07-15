@@ -37,10 +37,12 @@ func (h *SystemSecurityPlanHandler) verifySSPExists(ctx echo.Context, sspID uuid
 	var ssp relational.SystemSecurityPlan
 	if err := h.db.First(&ssp, "id = ?", sspID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+			ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+			return fmt.Errorf("SSP not found")
 		}
 		h.sugar.Errorf("Failed to find SSP: %v", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		return fmt.Errorf("failed to find SSP: %v", err)
 	}
 	return nil
 }
