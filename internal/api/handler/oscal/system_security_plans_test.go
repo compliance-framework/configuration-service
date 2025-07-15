@@ -802,7 +802,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationCRUD
 				},
 				ResponsibleParties: &[]oscalTypes_1_1_3.ResponsibleParty{
 					{
-						RoleId:   "asset-manager",
+						RoleId:     "asset-manager",
 						PartyUuids: []string{"org-1"},
 					},
 				},
@@ -810,15 +810,15 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationCRUD
 		},
 		LeveragedAuthorizations: &[]oscalTypes_1_1_3.LeveragedAuthorization{
 			{
-				UUID:        uuid.New().String(),
-				Title:       "Cloud Platform Authorization",
+				UUID:  uuid.New().String(),
+				Title: "Cloud Platform Authorization",
 				Links: &[]oscalTypes_1_1_3.Link{
 					{
 						Href: "https://example.com/cloud-auth",
 						Text: "Cloud Authorization Documentation",
 					},
 				},
-				PartyUuid: uuid.New().String(),
+				PartyUuid:      uuid.New().String(),
 				DateAuthorized: time.Now().Format("2006-01-02"),
 			},
 		},
@@ -833,22 +833,22 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationCRUD
 	var updateResponse handler.GenericDataResponse[oscalTypes_1_1_3.SystemImplementation]
 	err = json.Unmarshal(resp.Body.Bytes(), &updateResponse)
 	suite.NoError(err)
-	
+
 	// Verify updated fields
 	suite.Equal("Updated system implementation with comprehensive configuration", updateResponse.Data.Remarks)
 	suite.Require().NotNil(updateResponse.Data.Props)
 	suite.Len(*updateResponse.Data.Props, 2)
 	suite.Equal("environment", (*updateResponse.Data.Props)[0].Name)
 	suite.Equal("production", (*updateResponse.Data.Props)[0].Value)
-	
+
 	suite.Require().NotNil(updateResponse.Data.Links)
 	suite.Len(*updateResponse.Data.Links, 1)
 	suite.Equal("https://example.com/system-architecture", (*updateResponse.Data.Links)[0].Href)
-	
+
 	suite.Require().NotNil(updateResponse.Data.InventoryItems)
 	suite.Len(*updateResponse.Data.InventoryItems, 1)
 	suite.Equal("Test Inventory Item", (*updateResponse.Data.InventoryItems)[0].Description)
-	
+
 	suite.Require().NotNil(updateResponse.Data.LeveragedAuthorizations)
 	suite.Len(*updateResponse.Data.LeveragedAuthorizations, 1)
 	suite.Equal("Cloud Platform Authorization", (*updateResponse.Data.LeveragedAuthorizations)[0].Title)
@@ -918,7 +918,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationUser
 	suite.NoError(err)
 	suite.Equal("Security Officer", createUserResponse.Data.Title)
 	suite.Equal("Responsible for security oversight and compliance monitoring", createUserResponse.Data.Remarks)
-	
+
 	userID := createUserResponse.Data.UUID
 
 	// Test UPDATE user
@@ -961,7 +961,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationUser
 	suite.NoError(err)
 	suite.Equal("Senior Security Officer", updateUserResponse.Data.Title)
 	suite.Equal("Senior security officer with advanced privileges and oversight responsibilities", updateUserResponse.Data.Remarks)
-	
+
 	// Verify props
 	suite.Require().NotNil(updateUserResponse.Data.Props)
 	suite.Len(*updateUserResponse.Data.Props, 2)
@@ -983,7 +983,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationUser
 	var finalUsersResponse handler.GenericDataListResponse[oscalTypes_1_1_3.SystemUser]
 	err = json.Unmarshal(resp.Body.Bytes(), &finalUsersResponse)
 	suite.NoError(err)
-	
+
 	// Should not contain the deleted user
 	for _, user := range finalUsersResponse.Data {
 		suite.NotEqual(userID, user.UUID)
@@ -1064,7 +1064,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationComp
 	suite.Equal("Authentication Service", createComponentResponse.Data.Title)
 	suite.Equal("service", createComponentResponse.Data.Type)
 	suite.Equal("Critical authentication service providing SSO capabilities", createComponentResponse.Data.Remarks)
-	
+
 	componentID := createComponentResponse.Data.UUID
 
 	// Test UPDATE component
@@ -1120,7 +1120,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationComp
 	suite.NoError(err)
 	suite.Equal("Enhanced Authentication Service", updateComponentResponse.Data.Title)
 	suite.Equal("Enhanced authentication service with multi-factor authentication capabilities", updateComponentResponse.Data.Remarks)
-	
+
 	// Verify props
 	suite.Require().NotNil(updateComponentResponse.Data.Props)
 	suite.Len(*updateComponentResponse.Data.Props, 3)
@@ -1144,7 +1144,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationComp
 	var finalComponentsResponse handler.GenericDataListResponse[oscalTypes_1_1_3.SystemComponent]
 	err = json.Unmarshal(resp.Body.Bytes(), &finalComponentsResponse)
 	suite.NoError(err)
-	
+
 	// Should not contain the deleted component
 	for _, component := range finalComponentsResponse.Data {
 		suite.NotEqual(componentID, component.UUID)
@@ -1205,11 +1205,11 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationInve
 		},
 		ResponsibleParties: &[]oscalTypes_1_1_3.ResponsibleParty{
 			{
-				RoleId:   "asset-manager",
+				RoleId:     "asset-manager",
 				PartyUuids: []string{"org-1"},
 			},
 			{
-				RoleId:   "system-administrator",
+				RoleId:     "system-administrator",
 				PartyUuids: []string{"admin-1"},
 			},
 		},
@@ -1232,7 +1232,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationInve
 	suite.NoError(err)
 	suite.Equal("Primary Database Server", createInventoryResponse.Data.Description)
 	suite.Equal("Critical database server hosting production data", createInventoryResponse.Data.Remarks)
-	
+
 	inventoryID := createInventoryResponse.Data.UUID
 
 	// Test UPDATE inventory item
@@ -1271,15 +1271,15 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationInve
 		},
 		ResponsibleParties: &[]oscalTypes_1_1_3.ResponsibleParty{
 			{
-				RoleId:   "asset-manager",
+				RoleId:     "asset-manager",
 				PartyUuids: []string{"org-1"},
 			},
 			{
-				RoleId:   "system-administrator",
+				RoleId:     "system-administrator",
 				PartyUuids: []string{"admin-1"},
 			},
 			{
-				RoleId:   "database-administrator",
+				RoleId:     "database-administrator",
 				PartyUuids: []string{"dba-1"},
 			},
 		},
@@ -1302,7 +1302,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationInve
 	suite.NoError(err)
 	suite.Equal("Enhanced Primary Database Server", updateInventoryResponse.Data.Description)
 	suite.Equal("Enhanced critical database server with improved monitoring and high availability", updateInventoryResponse.Data.Remarks)
-	
+
 	// Verify props
 	suite.Require().NotNil(updateInventoryResponse.Data.Props)
 	suite.Len(*updateInventoryResponse.Data.Props, 4)
@@ -1326,7 +1326,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationInve
 	var finalInventoryResponse handler.GenericDataListResponse[oscalTypes_1_1_3.InventoryItem]
 	err = json.Unmarshal(resp.Body.Bytes(), &finalInventoryResponse)
 	suite.NoError(err)
-	
+
 	// Should not contain the deleted inventory item
 	for _, item := range finalInventoryResponse.Data {
 		suite.NotEqual(inventoryID, item.UUID)
@@ -1362,8 +1362,8 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationLeve
 
 	// Test CREATE leveraged authorization
 	newLeveragedAuth := oscalTypes_1_1_3.LeveragedAuthorization{
-		UUID:        uuid.New().String(),
-		Title:       "AWS Cloud Platform Authorization",
+		UUID:  uuid.New().String(),
+		Title: "AWS Cloud Platform Authorization",
 		Props: &[]oscalTypes_1_1_3.Property{
 			{
 				Name:  "authorization-type",
@@ -1381,10 +1381,9 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationLeve
 				Text:      "AWS FedRAMP Authorization Package",
 			},
 		},
-		PartyUuid: uuid.New().String(),
+		PartyUuid:      uuid.New().String(),
 		DateAuthorized: time.Now().Format("2006-01-02"),
-		StatusState: "active",
-		Remarks: "Leveraged authorization for AWS cloud platform services under FedRAMP High",
+		Remarks:        "Leveraged authorization for AWS cloud platform services under FedRAMP High",
 	}
 
 	req = suite.createRequest("POST", fmt.Sprintf("/api/oscal/system-security-plans/%s/system-implementation/leveraged-authorizations", ssp.UUID), newLeveragedAuth)
@@ -1397,13 +1396,13 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationLeve
 	suite.NoError(err)
 	suite.Equal("AWS Cloud Platform Authorization", createLeveragedAuthResponse.Data.Title)
 	suite.Equal("Leveraged authorization for AWS cloud platform services under FedRAMP High", createLeveragedAuthResponse.Data.Remarks)
-	
+
 	authID := createLeveragedAuthResponse.Data.UUID
 
 	// Test UPDATE leveraged authorization
 	updatedLeveragedAuth := oscalTypes_1_1_3.LeveragedAuthorization{
-		UUID:        authID,
-		Title:       "Enhanced AWS Cloud Platform Authorization",
+		UUID:  authID,
+		Title: "Enhanced AWS Cloud Platform Authorization",
 		Props: &[]oscalTypes_1_1_3.Property{
 			{
 				Name:  "authorization-type",
@@ -1430,10 +1429,9 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationLeve
 				Text:      "Internal Security Review Report",
 			},
 		},
-		PartyUuid: uuid.New().String(),
+		PartyUuid:      uuid.New().String(),
 		DateAuthorized: time.Now().Format("2006-01-02"),
-		StatusState: "active",
-		Remarks: "Enhanced leveraged authorization for AWS cloud platform services with additional security controls and regular reviews",
+		Remarks:        "Enhanced leveraged authorization for AWS cloud platform services with additional security controls and regular reviews",
 	}
 
 	req = suite.createRequest("PUT", fmt.Sprintf("/api/oscal/system-security-plans/%s/system-implementation/leveraged-authorizations/%s", ssp.UUID, authID), updatedLeveragedAuth)
@@ -1446,7 +1444,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationLeve
 	suite.NoError(err)
 	suite.Equal("Enhanced AWS Cloud Platform Authorization", updateLeveragedAuthResponse.Data.Title)
 	suite.Equal("Enhanced leveraged authorization for AWS cloud platform services with additional security controls and regular reviews", updateLeveragedAuthResponse.Data.Remarks)
-	
+
 	// Verify props
 	suite.Require().NotNil(updateLeveragedAuthResponse.Data.Props)
 	suite.Len(*updateLeveragedAuthResponse.Data.Props, 3)
@@ -1468,7 +1466,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationLeve
 	var finalLeveragedAuthsResponse handler.GenericDataListResponse[oscalTypes_1_1_3.LeveragedAuthorization]
 	err = json.Unmarshal(resp.Body.Bytes(), &finalLeveragedAuthsResponse)
 	suite.NoError(err)
-	
+
 	// Should not contain the deleted leveraged authorization
 	for _, auth := range finalLeveragedAuthsResponse.Data {
 		suite.NotEqual(authID, auth.UUID)
