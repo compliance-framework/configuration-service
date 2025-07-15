@@ -453,7 +453,7 @@ const docTemplate = `{
         },
         "/evidence/status-over-time": {
             "post": {
-                "description": "Retrieves counts of evidence statuses at various intervals.",
+                "description": "Retrieves counts of evidence statuses at various time intervals based on a label filter.",
                 "consumes": [
                     "application/json"
                 ],
@@ -463,7 +463,7 @@ const docTemplate = `{
                 "tags": [
                     "Evidence"
                 ],
-                "summary": "Evidence status metrics",
+                "summary": "Evidence status metrics over intervals",
                 "parameters": [
                     {
                         "description": "Label filter",
@@ -473,13 +473,25 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/labelfilter.Filter"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Comma-separated list of duration intervals (e.g., '10m,1h,24h')",
+                        "name": "intervals",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-handler_StatusOverTime_StatusInterval"
+                            "$ref": "#/definitions/handler.GenericDataListResponse-handler_StatusInterval"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "422": {
@@ -498,34 +510,41 @@ const docTemplate = `{
             }
         },
         "/evidence/status-over-time/{id}": {
-            "post": {
-                "description": "Retrieves counts of evidence statuses at various intervals.",
-                "consumes": [
-                    "application/json"
-                ],
+            "get": {
+                "description": "Retrieves counts of evidence statuses at various time intervals for a specific evidence stream identified by UUID.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Evidence"
                 ],
-                "summary": "Evidence status metrics",
+                "summary": "Evidence status metrics over intervals by UUID",
                 "parameters": [
                     {
-                        "description": "Label filter",
-                        "name": "filter",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/labelfilter.Filter"
-                        }
+                        "type": "string",
+                        "description": "Evidence UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Comma-separated list of duration intervals (e.g., '10m,1h,24h')",
+                        "name": "intervals",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handler.GenericDataListResponse-handler_StatusOverTime_StatusInterval"
+                            "$ref": "#/definitions/handler.GenericDataListResponse-handler_StatusInterval"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "422": {
@@ -5648,6 +5667,222 @@ const docTemplate = `{
                 }
             }
         },
+        "/oscal/plan-of-action-and-milestones/{id}/back-matter/resources": {
+            "get": {
+                "description": "Retrieves all back-matter resources for a given POA\u0026M.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Plan Of Action and Milestones"
+                ],
+                "summary": "Get back-matter resources for a POA\u0026M",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "POA\u0026M ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_Resource"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates a new back-matter resource for a given POA\u0026M.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Plan Of Action and Milestones"
+                ],
+                "summary": "Create a new back-matter resource for a POA\u0026M",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "POA\u0026M ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Resource data",
+                        "name": "resource",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/oscalTypes_1_1_3.Resource"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Resource"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/oscal/plan-of-action-and-milestones/{id}/back-matter/resources/{resourceId}": {
+            "put": {
+                "description": "Updates an existing back-matter resource for a given POA\u0026M.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Plan Of Action and Milestones"
+                ],
+                "summary": "Update a back-matter resource for a POA\u0026M",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "POA\u0026M ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Resource ID",
+                        "name": "resourceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Resource data",
+                        "name": "resource",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/oscalTypes_1_1_3.Resource"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Resource"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes an existing back-matter resource for a given POA\u0026M.",
+                "tags": [
+                    "Plan Of Action and Milestones"
+                ],
+                "summary": "Delete a back-matter resource from a POA\u0026M",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "POA\u0026M ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Resource ID",
+                        "name": "resourceId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/oscal/plan-of-action-and-milestones/{id}/findings": {
             "get": {
                 "description": "Retrieves all findings for a given POA\u0026M.",
@@ -5956,6 +6191,120 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "put": {
+                "description": "Updates import-ssp for a given POA\u0026M.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Plan Of Action and Milestones"
+                ],
+                "summary": "Update import-ssp for a POA\u0026M",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "POA\u0026M ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Import SSP data",
+                        "name": "importSsp",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/oscalTypes_1_1_3.ImportSsp"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_ImportSsp"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates import-ssp for a given POA\u0026M.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Plan Of Action and Milestones"
+                ],
+                "summary": "Create import-ssp for a POA\u0026M",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "POA\u0026M ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Import SSP data",
+                        "name": "importSsp",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/oscalTypes_1_1_3.ImportSsp"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_ImportSsp"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
             }
         },
         "/oscal/plan-of-action-and-milestones/{id}/local-definitions": {
@@ -6022,6 +6371,63 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Metadata"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Updates metadata for a given POA\u0026M.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Plan Of Action and Milestones"
+                ],
+                "summary": "Update POA\u0026M metadata",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "POA\u0026M ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Metadata data",
+                        "name": "metadata",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/oscalTypes_1_1_3.Metadata"
+                        }
                     }
                 ],
                 "responses": {
@@ -6745,6 +7151,120 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "put": {
+                "description": "Updates system-id for a given POA\u0026M.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Plan Of Action and Milestones"
+                ],
+                "summary": "Update system-id for a POA\u0026M",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "POA\u0026M ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "System ID data",
+                        "name": "systemId",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/oscalTypes_1_1_3.SystemId"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_SystemId"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates system-id for a given POA\u0026M.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Plan Of Action and Milestones"
+                ],
+                "summary": "Create system-id for a POA\u0026M",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "POA\u0026M ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "System ID data",
+                        "name": "systemId",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/oscalTypes_1_1_3.SystemId"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_SystemId"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
             }
         },
         "/oscal/profiles": {
@@ -7077,6 +7597,282 @@ const docTemplate = `{
                 }
             }
         },
+        "/oscal/profiles/{id}/imports/add": {
+            "post": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
+                "description": "Adds an import to a profile by its UUID and type (catalog/profile). Only catalogs are currently supported currently",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Profile"
+                ],
+                "summary": "Add Import to Profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Profile ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Request data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/oscal.ProfileHandler"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Import"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/oscal/profiles/{id}/imports/{href}": {
+            "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
+                "description": "Retrieves a specific import from a profile by its backmatter href",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Profile"
+                ],
+                "summary": "Get Import from Profile by Backmatter Href",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Profile UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Import Href",
+                        "name": "href",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Import"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
+                "description": "Updates an existing import in a profile by its href",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Profile"
+                ],
+                "summary": "Update Import in Profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Profile ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Import Href",
+                        "name": "href",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Import data to update",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/oscalTypes_1_1_3.Import"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Import"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
+                "description": "Deletes an import from a profile by its href",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Profile"
+                ],
+                "summary": "Delete Import from Profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Profile ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Import Href",
+                        "name": "href",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Import deleted successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/oscal/profiles/{id}/merge": {
             "get": {
                 "security": [
@@ -7099,6 +7895,74 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Merge"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
+                "description": "Updates the merge information for a specific profile",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Profile"
+                ],
+                "summary": "Update Merge",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Profile ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Merge data to update",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/oscalTypes_1_1_3.Merge"
+                        }
                     }
                 ],
                 "responses": {
@@ -7496,7 +8360,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Update a System Security Plan",
                 "parameters": [
@@ -7547,7 +8411,7 @@ const docTemplate = `{
             "delete": {
                 "description": "Deletes an existing System Security Plan and all its related data.",
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Delete a System Security Plan",
                 "parameters": [
@@ -7591,7 +8455,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Get SSP back-matter",
                 "parameters": [
@@ -7639,7 +8503,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Update SSP back-matter",
                 "parameters": [
@@ -7695,7 +8559,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Get back-matter resources for a SSP",
                 "parameters": [
@@ -7743,7 +8607,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Create a new back-matter resource for a SSP",
                 "parameters": [
@@ -7802,7 +8666,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Update a back-matter resource for a SSP",
                 "parameters": [
@@ -7860,7 +8724,7 @@ const docTemplate = `{
             "delete": {
                 "description": "Deletes an existing back-matter resource for a given SSP.",
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Delete a back-matter resource from a SSP",
                 "parameters": [
@@ -7970,7 +8834,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Update Control Implementation",
                 "parameters": [
@@ -8026,7 +8890,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Get implemented requirements for a SSP",
                 "parameters": [
@@ -8074,7 +8938,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Create a new implemented requirement for a SSP",
                 "parameters": [
@@ -8133,7 +8997,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Update an implemented requirement for a SSP",
                 "parameters": [
@@ -8191,7 +9055,7 @@ const docTemplate = `{
             "delete": {
                 "description": "Deletes an existing implemented requirement for a given SSP.",
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Delete an implemented requirement from a SSP",
                 "parameters": [
@@ -8245,7 +9109,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Create a new statement within an implemented requirement",
                 "parameters": [
@@ -8311,7 +9175,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Update a statement within an implemented requirement",
                 "parameters": [
@@ -8381,7 +9245,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Get SSP import-profile",
                 "parameters": [
@@ -8429,7 +9293,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Update SSP import-profile",
                 "parameters": [
@@ -8485,7 +9349,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Get SSP metadata",
                 "parameters": [
@@ -8533,7 +9397,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Update SSP metadata",
                 "parameters": [
@@ -9184,7 +10048,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Update System Implementation",
                 "parameters": [
@@ -9305,7 +10169,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Create a new system component",
                 "parameters": [
@@ -9355,6 +10219,69 @@ const docTemplate = `{
             }
         },
         "/oscal/system-security-plans/{id}/system-implementation/components/{componentId}": {
+            "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
+                "description": "Retrieves component in the System Implementation for a given System Security Plan.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System Security Plans"
+                ],
+                "summary": "Get System Implementation Component",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "System Security Plan ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Component ID",
+                        "name": "componentId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_SystemComponent"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            },
             "put": {
                 "description": "Updates an existing system component for a given SSP.",
                 "consumes": [
@@ -9364,7 +10291,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Update a system component",
                 "parameters": [
@@ -9422,7 +10349,7 @@ const docTemplate = `{
             "delete": {
                 "description": "Deletes an existing system component for a given SSP.",
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Delete a system component",
                 "parameters": [
@@ -9532,7 +10459,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Create a new inventory item",
                 "parameters": [
@@ -9591,7 +10518,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Update an inventory item",
                 "parameters": [
@@ -9649,7 +10576,7 @@ const docTemplate = `{
             "delete": {
                 "description": "Deletes an existing inventory item for a given SSP.",
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Delete an inventory item",
                 "parameters": [
@@ -9759,7 +10686,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Create a new leveraged authorization",
                 "parameters": [
@@ -9818,7 +10745,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Update a leveraged authorization",
                 "parameters": [
@@ -9876,7 +10803,7 @@ const docTemplate = `{
             "delete": {
                 "description": "Deletes an existing leveraged authorization for a given SSP.",
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Delete a leveraged authorization",
                 "parameters": [
@@ -9986,7 +10913,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Create a new system user",
                 "parameters": [
@@ -10045,7 +10972,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Update a system user",
                 "parameters": [
@@ -10103,7 +11030,7 @@ const docTemplate = `{
             "delete": {
                 "description": "Deletes an existing system user for a given SSP.",
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Delete a system user",
                 "parameters": [
@@ -10584,14 +11511,14 @@ const docTemplate = `{
                 }
             }
         },
-        "handler.GenericDataListResponse-handler_StatusOverTime_StatusInterval": {
+        "handler.GenericDataListResponse-handler_StatusInterval": {
             "type": "object",
             "properties": {
                 "data": {
                     "description": "Items from the list response",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/handler.StatusOverTime.StatusInterval"
+                        "$ref": "#/definitions/handler.StatusInterval"
                     }
                 }
             }
@@ -11278,6 +12205,19 @@ const docTemplate = `{
                 }
             }
         },
+        "handler.GenericDataResponse-oscalTypes_1_1_3_Import": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Items from the list response",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/oscalTypes_1_1_3.Import"
+                        }
+                    ]
+                }
+            }
+        },
         "handler.GenericDataResponse-oscalTypes_1_1_3_ImportProfile": {
             "type": "object",
             "properties": {
@@ -11777,7 +12717,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handler.StatusOverTime.StatusCount": {
+        "handler.StatusCount": {
             "type": "object",
             "properties": {
                 "count": {
@@ -11788,7 +12728,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handler.StatusOverTime.StatusInterval": {
+        "handler.StatusInterval": {
             "type": "object",
             "properties": {
                 "interval": {
@@ -11797,7 +12737,7 @@ const docTemplate = `{
                 "statuses": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/handler.StatusOverTime.StatusCount"
+                        "$ref": "#/definitions/handler.StatusCount"
                     }
                 }
             }
