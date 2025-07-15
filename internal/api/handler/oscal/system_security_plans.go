@@ -748,6 +748,9 @@ func (h *SystemSecurityPlanHandler) GetSystemImplementation(ctx echo.Context) er
 	var ssp relational.SystemSecurityPlan
 	if err := h.db.
 		Preload("SystemImplementation").
+		Preload("SystemImplementation.Users").
+		Preload("SystemImplementation.Users.AuthorizedPrivileges").
+		Preload("SystemImplementation.Components").
 		First(&ssp, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
