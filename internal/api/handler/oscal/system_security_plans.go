@@ -1650,6 +1650,13 @@ func (h *SystemSecurityPlanHandler) CreateSystemImplementationInventoryItem(ctx 
 		return err
 	}
 
+	// Get the system implementation ID directly from the database
+	var systemImpl relational.SystemImplementation
+	if err := h.db.Where("system_security_plan_id = ?", id).First(&systemImpl).Error; err != nil {
+		h.sugar.Errorw("failed to get system implementation", "sspID", id, "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
 	var oscalItem oscalTypes_1_1_3.InventoryItem
 	if err := ctx.Bind(&oscalItem); err != nil {
 		h.sugar.Warnw("Invalid create inventory item request", "error", err)
@@ -1663,7 +1670,7 @@ func (h *SystemSecurityPlanHandler) CreateSystemImplementationInventoryItem(ctx 
 
 	relItem := &relational.InventoryItem{}
 	relItem.UnmarshalOscal(oscalItem)
-	relItem.SystemImplementationId = id
+	relItem.SystemImplementationId = *systemImpl.ID
 
 	if err := h.db.Create(relItem).Error; err != nil {
 		h.sugar.Errorf("Failed to create inventory item: %v", err)
@@ -1707,8 +1714,15 @@ func (h *SystemSecurityPlanHandler) UpdateSystemImplementationInventoryItem(ctx 
 		return err
 	}
 
+	// Get the system implementation ID directly from the database
+	var systemImpl relational.SystemImplementation
+	if err := h.db.Where("system_security_plan_id = ?", sspID).First(&systemImpl).Error; err != nil {
+		h.sugar.Errorw("failed to get system implementation", "sspID", sspID, "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
 	var existingItem relational.InventoryItem
-	if err := h.db.Where("id = ? AND system_implementation_id = ?", itemID, sspID).First(&existingItem).Error; err != nil {
+	if err := h.db.Where("id = ? AND system_implementation_id = ?", itemID, *systemImpl.ID).First(&existingItem).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
 		}
@@ -1724,7 +1738,8 @@ func (h *SystemSecurityPlanHandler) UpdateSystemImplementationInventoryItem(ctx 
 
 	relItem := &relational.InventoryItem{}
 	relItem.UnmarshalOscal(oscalItem)
-	relItem.SystemImplementationId = sspID
+	
+	relItem.SystemImplementationId = *systemImpl.ID
 	relItem.ID = &itemID
 
 	if err := h.db.Save(relItem).Error; err != nil {
@@ -1766,7 +1781,14 @@ func (h *SystemSecurityPlanHandler) DeleteSystemImplementationInventoryItem(ctx 
 		return err
 	}
 
-	result := h.db.Where("id = ? AND system_implementation_id = ?", itemID, sspID).Delete(&relational.InventoryItem{})
+	// Get the system implementation ID directly from the database
+	var systemImpl relational.SystemImplementation
+	if err := h.db.Where("system_security_plan_id = ?", sspID).First(&systemImpl).Error; err != nil {
+		h.sugar.Errorw("failed to get system implementation", "sspID", sspID, "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
+	result := h.db.Where("id = ? AND system_implementation_id = ?", itemID, *systemImpl.ID).Delete(&relational.InventoryItem{})
 	if result.Error != nil {
 		h.sugar.Errorf("Failed to delete inventory item: %v", result.Error)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(result.Error))

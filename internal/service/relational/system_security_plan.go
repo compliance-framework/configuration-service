@@ -1067,7 +1067,17 @@ type ImplementedComponent struct {
 }
 
 func (ic *ImplementedComponent) UnmarshalOscal(oic oscalTypes_1_1_3.ImplementedComponent) *ImplementedComponent {
-	componentId := uuid.MustParse(oic.ComponentUuid)
+	// Handle empty or invalid component UUID
+	var componentId uuid.UUID
+	if oic.ComponentUuid == "" {
+		componentId = uuid.New() // Generate a new UUID for empty component UUID
+	} else {
+		var err error
+		componentId, err = uuid.Parse(oic.ComponentUuid)
+		if err != nil {
+			componentId = uuid.New() // Generate a new UUID for invalid component UUID
+		}
+	}
 	*ic = ImplementedComponent{
 		UUIDModel:   UUIDModel{},
 		ComponentID: componentId,

@@ -195,7 +195,14 @@ type ResponsibleParty struct {
 }
 
 func (r *ResponsibleParty) UnmarshalOscal(or oscaltypes113.ResponsibleParty) *ResponsibleParty {
+	// Ensure we have an ID before processing parties
+	if r.UUIDModel.ID == nil {
+		newID := uuid.New()
+		r.UUIDModel.ID = &newID
+	}
+	
 	*r = ResponsibleParty{
+		UUIDModel: r.UUIDModel, // Preserve the generated ID
 		Props: ConvertList(or.Props, func(property oscaltypes113.Property) Prop {
 			prop := Prop{}
 			prop.UnmarshalOscal(property)
@@ -209,7 +216,15 @@ func (r *ResponsibleParty) UnmarshalOscal(or oscaltypes113.ResponsibleParty) *Re
 		Remarks: or.Remarks,
 		RoleID:  or.RoleId,
 		Parties: ConvertList(&or.PartyUuids, func(olink string) ResponsiblePartyParties {
-			id := uuid.MustParse(olink)
+			// Skip empty or invalid UUIDs to prevent panics
+			if olink == "" {
+				return ResponsiblePartyParties{}
+			}
+			id, err := uuid.Parse(olink)
+			if err != nil {
+				// Skip invalid UUIDs 
+				return ResponsiblePartyParties{}
+			}
 			return ResponsiblePartyParties{
 				ResponsiblePartyID: r.UUIDModel.ID,
 				PartyID:            &id,
@@ -277,7 +292,15 @@ func (rr *ResponsibleRole) UnmarshalOscal(or oscaltypes113.ResponsibleRole) *Res
 		Links:   ConvertOscalToLinks(or.Links),
 		Remarks: or.Remarks,
 		Parties: ConvertList(or.PartyUuids, func(olink string) Party {
-			id := uuid.MustParse(olink)
+			// Skip empty or invalid UUIDs to prevent panics
+			if olink == "" {
+				return Party{}
+			}
+			id, err := uuid.Parse(olink)
+			if err != nil {
+				// Skip invalid UUIDs
+				return Party{}
+			}
 			return Party{
 				UUIDModel: UUIDModel{
 					ID: &id,
