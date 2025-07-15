@@ -236,24 +236,38 @@ func (r *ResponsibleParty) UnmarshalOscal(or oscaltypes113.ResponsibleParty) *Re
 }
 
 func (r *ResponsibleParty) MarshalOscal() *oscaltypes113.ResponsibleParty {
+	if r == nil {
+		return nil
+	}
+	
 	rp := &oscaltypes113.ResponsibleParty{
 		Remarks: r.Remarks,
 		RoleId:  r.RoleID,
 	}
 	if len(r.Props) > 0 {
-		props := *ConvertPropsToOscal(r.Props)
-		rp.Props = &props
+		propsPtr := ConvertPropsToOscal(r.Props)
+		if propsPtr != nil {
+			props := *propsPtr
+			rp.Props = &props
+		}
 	}
 	if len(r.Links) > 0 {
-		links := *ConvertLinksToOscal(r.Links)
-		rp.Links = &links
+		linksPtr := ConvertLinksToOscal(r.Links)
+		if linksPtr != nil {
+			links := *linksPtr
+			rp.Links = &links
+		}
 	}
 	if len(r.Parties) > 0 {
-		uuids := make([]string, len(r.Parties))
-		for i, p := range r.Parties {
-			uuids[i] = p.PartyID.String()
+		uuids := make([]string, 0, len(r.Parties))
+		for _, p := range r.Parties {
+			if p.PartyID != nil {
+				uuids = append(uuids, p.PartyID.String())
+			}
 		}
-		rp.PartyUuids = uuids
+		if len(uuids) > 0 {
+			rp.PartyUuids = uuids
+		}
 	}
 	return rp
 }
