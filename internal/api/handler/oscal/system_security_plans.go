@@ -913,7 +913,12 @@ func (h *SystemSecurityPlanHandler) GetSystemImplementationInventoryItems(ctx ec
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.InventoryItem]{Data: *ssp.MarshalOscal().SystemImplementation.InventoryItems})
+	oscalSSP := ssp.MarshalOscal()
+	if oscalSSP.SystemImplementation.InventoryItems == nil {
+		return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.InventoryItem]{Data: []oscalTypes_1_1_3.InventoryItem{}})
+	}
+	
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.InventoryItem]{Data: *oscalSSP.SystemImplementation.InventoryItems})
 }
 
 // GetSystemImplementationLeveragedAuthorizations godoc
@@ -950,7 +955,12 @@ func (h *SystemSecurityPlanHandler) GetSystemImplementationLeveragedAuthorizatio
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.LeveragedAuthorization]{Data: *ssp.MarshalOscal().SystemImplementation.LeveragedAuthorizations})
+	oscalSSP := ssp.MarshalOscal()
+	if oscalSSP.SystemImplementation.LeveragedAuthorizations == nil {
+		return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.LeveragedAuthorization]{Data: []oscalTypes_1_1_3.LeveragedAuthorization{}})
+	}
+	
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.LeveragedAuthorization]{Data: *oscalSSP.SystemImplementation.LeveragedAuthorizations})
 }
 
 // GetControlImplementation godoc
@@ -1161,7 +1171,12 @@ func (h *SystemSecurityPlanHandler) GetMetadata(ctx echo.Context) error {
 		return ctx.JSON(http.StatusNotFound, api.NewError(err))
 	}
 
-	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Metadata]{Data: *ssp.Metadata.MarshalOscal()})
+	metadata := ssp.Metadata.MarshalOscal()
+	if metadata == nil {
+		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("no metadata for SSP %s", idParam)))
+	}
+	
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Metadata]{Data: *metadata})
 }
 
 // UpdateMetadata godoc
@@ -2354,6 +2369,10 @@ func (h *SystemSecurityPlanHandler) GetBackMatter(ctx echo.Context) error {
 		return ctx.JSON(http.StatusNotFound, api.NewError(err))
 	}
 
+	if ssp.BackMatter == nil {
+		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("no back-matter for SSP %s", idParam)))
+	}
+	
 	if len(ssp.BackMatter.Resources) == 0 {
 		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("no back-matter for SSP %s", idParam)))
 	}
