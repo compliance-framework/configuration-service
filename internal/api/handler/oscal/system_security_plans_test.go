@@ -193,7 +193,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestCreateSSPValidationError
 		{
 			name: "invalid UUID format",
 			modifySSP: func(ssp *oscalTypes_1_1_3.SystemSecurityPlan) {
-				ssp.UUID = "invalid-uuid-format-123456789012345"
+				ssp.UUID = "invalid0-uuid-4mat-1234-567890123456"
 			},
 			expectedMsg: "invalid UUID format",
 		},
@@ -490,14 +490,14 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestCreateImplementedRequire
 	}{
 		{
 			name:           "invalid SSP ID",
-			sspID:          "invalid-uuid-format-123456789012345",
+			sspID:          "invalid0-uuid-4mat-1234-567890123456",
 			reqID:          uuid.New().String(),
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name:           "invalid requirement ID",
 			sspID:          actualSSPUUID,
-			reqID:          "invalid-uuid-format-123456789012345",
+			reqID:          "invalid0-uuid-4mat-1234-567890123456",
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
@@ -666,7 +666,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestUpdateImplementedRequire
 	}{
 		{
 			name:           "invalid SSP ID",
-			sspID:          "invalid-uuid-format-123456789012345",
+			sspID:          "invalid0-uuid-4mat-1234-567890123456",
 			reqID:          uuid.New().String(),
 			stmtID:         uuid.New().String(),
 			expectedStatus: http.StatusBadRequest,
@@ -674,7 +674,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestUpdateImplementedRequire
 		{
 			name:           "invalid requirement ID",
 			sspID:          actualSSPUUID,
-			reqID:          "invalid-uuid-format-123456789012345",
+			reqID:          "invalid0-uuid-4mat-1234-567890123456",
 			stmtID:         uuid.New().String(),
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -682,7 +682,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestUpdateImplementedRequire
 			name:           "invalid statement ID",
 			sspID:          actualSSPUUID,
 			reqID:          uuid.New().String(),
-			stmtID:         "invalid-uuid-format-123456789012345",
+			stmtID:         "invalid0-uuid-4mat-1234-567890123456",
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
