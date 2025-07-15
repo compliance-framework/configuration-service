@@ -803,7 +803,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationCRUD
 				ResponsibleParties: &[]oscalTypes_1_1_3.ResponsibleParty{
 					{
 						RoleId:   "asset-manager",
-						PartyIds: []string{"org-1"},
+						PartyUuids: []string{"org-1"},
 					},
 				},
 			},
@@ -818,7 +818,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationCRUD
 						Text: "Cloud Authorization Documentation",
 					},
 				},
-				PartyUUID: uuid.New().String(),
+				PartyUuid: uuid.New().String(),
 				DateAuthorized: time.Now().Format("2006-01-02"),
 			},
 		},
@@ -1206,16 +1206,16 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationInve
 		ResponsibleParties: &[]oscalTypes_1_1_3.ResponsibleParty{
 			{
 				RoleId:   "asset-manager",
-				PartyIds: []string{"org-1"},
+				PartyUuids: []string{"org-1"},
 			},
 			{
 				RoleId:   "system-administrator",
-				PartyIds: []string{"admin-1"},
+				PartyUuids: []string{"admin-1"},
 			},
 		},
 		ImplementedComponents: &[]oscalTypes_1_1_3.ImplementedComponent{
 			{
-				ComponentUUID: uuid.New().String(),
+				ComponentUuid: uuid.New().String(),
 				Remarks:       "Database management system running on this server",
 			},
 		},
@@ -1272,20 +1272,20 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationInve
 		ResponsibleParties: &[]oscalTypes_1_1_3.ResponsibleParty{
 			{
 				RoleId:   "asset-manager",
-				PartyIds: []string{"org-1"},
+				PartyUuids: []string{"org-1"},
 			},
 			{
 				RoleId:   "system-administrator",
-				PartyIds: []string{"admin-1"},
+				PartyUuids: []string{"admin-1"},
 			},
 			{
 				RoleId:   "database-administrator",
-				PartyIds: []string{"dba-1"},
+				PartyUuids: []string{"dba-1"},
 			},
 		},
 		ImplementedComponents: &[]oscalTypes_1_1_3.ImplementedComponent{
 			{
-				ComponentUUID: uuid.New().String(),
+				ComponentUuid: uuid.New().String(),
 				Remarks:       "Enhanced database management system with high availability",
 			},
 		},
@@ -1381,7 +1381,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationLeve
 				Text:      "AWS FedRAMP Authorization Package",
 			},
 		},
-		PartyUUID: uuid.New().String(),
+		PartyUuid: uuid.New().String(),
 		DateAuthorized: time.Now().Format("2006-01-02"),
 		StatusState: "active",
 		Remarks: "Leveraged authorization for AWS cloud platform services under FedRAMP High",
@@ -1430,7 +1430,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationLeve
 				Text:      "Internal Security Review Report",
 			},
 		},
-		PartyUUID: uuid.New().String(),
+		PartyUuid: uuid.New().String(),
 		DateAuthorized: time.Now().Format("2006-01-02"),
 		StatusState: "active",
 		Remarks: "Enhanced leveraged authorization for AWS cloud platform services with additional security controls and regular reviews",
