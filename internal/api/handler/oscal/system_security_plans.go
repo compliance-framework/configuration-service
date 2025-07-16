@@ -2800,14 +2800,13 @@ func (h *SystemSecurityPlanHandler) UpdateImplementedRequirementStatement(ctx ec
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	if err := h.verifySSPExists(ctx, sspID); err != nil {
-		return err
-	}
-
 	var ssp relational.SystemSecurityPlan
 	if err := h.db.Preload("ControlImplementation").First(&ssp, "id = ?", sspID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+		}
 		h.sugar.Errorw("failed to get ssp", "error", err)
-		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	var existingReq relational.ImplementedRequirement
