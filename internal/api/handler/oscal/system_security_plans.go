@@ -746,12 +746,7 @@ func (h *SystemSecurityPlanHandler) GetSystemImplementation(ctx echo.Context) er
 	}
 
 	var ssp relational.SystemSecurityPlan
-	if err := h.db.
-		Preload("SystemImplementation").
-		Preload("SystemImplementation.Users").
-		Preload("SystemImplementation.Users.AuthorizedPrivileges").
-		Preload("SystemImplementation.Components").
-		First(&ssp, "id = ?", id).Error; err != nil {
+	if err := h.db.First(&ssp, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
 		}
@@ -759,7 +754,39 @@ func (h *SystemSecurityPlanHandler) GetSystemImplementation(ctx echo.Context) er
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.SystemImplementation]{Data: ssp.MarshalOscal().SystemImplementation})
+	// Load SystemImplementation separately with all its associations
+	var si relational.SystemImplementation
+	if err := h.db.
+		Preload("Users").
+		Preload("Users.AuthorizedPrivileges").
+		Preload("Components").
+		Preload("LeveragedAuthorizations").
+		Preload("InventoryItems").
+		Where("system_security_plan_id = ?", id).
+		First(&si).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// SystemImplementation might not exist yet
+			h.sugar.Infow("SystemImplementation not found for SSP", "sspId", id)
+			return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.SystemImplementation]{Data: oscalTypes_1_1_3.SystemImplementation{}})
+		}
+		h.sugar.Warnw("Failed to load system implementation", "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	h.sugar.Infow("Loaded SystemImplementation from database", 
+		"id", si.ID, 
+		"remarks", si.Remarks, 
+		"props", si.Props, 
+		"links", si.Links,
+		"systemSecurityPlanId", si.SystemSecurityPlanId)
+
+	marshaledData := si.MarshalOscal()
+	h.sugar.Infow("Marshaled SystemImplementation data", 
+		"remarks", marshaledData.Remarks, 
+		"props", marshaledData.Props, 
+		"links", marshaledData.Links)
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.SystemImplementation]{Data: *marshaledData})
 }
 
 // GetSystemImplementationUsers godoc
@@ -1369,12 +1396,42 @@ func (h *SystemSecurityPlanHandler) UpdateSystemImplementation(ctx echo.Context)
 	si.SystemSecurityPlanId = *ssp.ID
 	si.ID = ssp.SystemImplementation.ID
 
-	if err := h.db.Model(&si).Omit("Users", "Components", "InventoryItems", "LeveragedAuthorizations").Updates(&si).Error; err != nil {
+	h.sugar.Infow("Before save to database", 
+		"systemImplementationId", si.ID, 
+		"remarks", si.Remarks, 
+		"props", si.Props, 
+		"links", si.Links,
+		"systemSecurityPlanId", si.SystemSecurityPlanId)
+
+	// Use Save instead of Updates to ensure all fields are properly saved
+	if err := h.db.Save(&si).Error; err != nil {
 		h.sugar.Errorf("Failed to update system implementation: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.SystemImplementation]{Data: *si.MarshalOscal()})
+	// Debug: Check what's actually in the database immediately after save
+	var dbCheck relational.SystemImplementation
+	if err := h.db.First(&dbCheck, "id = ?", si.ID).Error; err != nil {
+		h.sugar.Errorf("Failed to check database after save: %v", err)
+	} else {
+		h.sugar.Infow("Database verification immediately after save", 
+			"id", dbCheck.ID, 
+			"remarks", dbCheck.Remarks, 
+			"props", dbCheck.Props, 
+			"links", dbCheck.Links,
+			"systemSecurityPlanId", dbCheck.SystemSecurityPlanId)
+	}
+
+
+	// Reload the updated system implementation from database to get the latest data
+	var updatedSI relational.SystemImplementation
+	if err := h.db.First(&updatedSI, "id = ?", si.ID).Error; err != nil {
+		h.sugar.Errorf("Failed to reload updated system implementation: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.SystemImplementation]{Data: *updatedSI.MarshalOscal()})
 }
 
 // CreateSystemImplementationUser godoc
