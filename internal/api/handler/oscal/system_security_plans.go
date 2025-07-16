@@ -1403,6 +1403,13 @@ func (h *SystemSecurityPlanHandler) CreateSystemImplementationUser(ctx echo.Cont
 		return err
 	}
 
+	// Get the system implementation ID directly from the database
+	var systemImpl relational.SystemImplementation
+	if err := h.db.Where("system_security_plan_id = ?", id).First(&systemImpl).Error; err != nil {
+		h.sugar.Errorw("failed to get system implementation", "sspID", id, "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
 	var oscalUser oscalTypes_1_1_3.SystemUser
 	if err := ctx.Bind(&oscalUser); err != nil {
 		h.sugar.Warnw("Invalid create user request", "error", err)
@@ -1416,7 +1423,7 @@ func (h *SystemSecurityPlanHandler) CreateSystemImplementationUser(ctx echo.Cont
 
 	relUser := &relational.SystemUser{}
 	relUser.UnmarshalOscal(oscalUser)
-	relUser.SystemImplementationId = id
+	relUser.SystemImplementationId = *systemImpl.ID
 
 	if err := h.db.Create(relUser).Error; err != nil {
 		h.sugar.Errorf("Failed to create user: %v", err)
@@ -1460,8 +1467,15 @@ func (h *SystemSecurityPlanHandler) UpdateSystemImplementationUser(ctx echo.Cont
 		return err
 	}
 
+	// Get the system implementation ID directly from the database
+	var systemImpl relational.SystemImplementation
+	if err := h.db.Where("system_security_plan_id = ?", sspID).First(&systemImpl).Error; err != nil {
+		h.sugar.Errorw("failed to get system implementation", "sspID", sspID, "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
 	var existingUser relational.SystemUser
-	if err := h.db.Where("id = ? AND system_implementation_id = ?", userID, sspID).First(&existingUser).Error; err != nil {
+	if err := h.db.Where("id = ? AND system_implementation_id = ?", userID, *systemImpl.ID).First(&existingUser).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
 		}
@@ -1477,7 +1491,7 @@ func (h *SystemSecurityPlanHandler) UpdateSystemImplementationUser(ctx echo.Cont
 
 	relUser := &relational.SystemUser{}
 	relUser.UnmarshalOscal(oscalUser)
-	relUser.SystemImplementationId = sspID
+	relUser.SystemImplementationId = *systemImpl.ID
 	relUser.ID = &userID
 
 	if err := h.db.Save(relUser).Error; err != nil {
@@ -1519,7 +1533,14 @@ func (h *SystemSecurityPlanHandler) DeleteSystemImplementationUser(ctx echo.Cont
 		return err
 	}
 
-	result := h.db.Where("id = ? AND system_implementation_id = ?", userID, sspID).Delete(&relational.SystemUser{})
+	// Get the system implementation ID directly from the database
+	var systemImpl relational.SystemImplementation
+	if err := h.db.Where("system_security_plan_id = ?", sspID).First(&systemImpl).Error; err != nil {
+		h.sugar.Errorw("failed to get system implementation", "sspID", sspID, "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
+	result := h.db.Where("id = ? AND system_implementation_id = ?", userID, *systemImpl.ID).Delete(&relational.SystemUser{})
 	if result.Error != nil {
 		h.sugar.Errorf("Failed to delete user: %v", result.Error)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(result.Error))
@@ -1558,6 +1579,13 @@ func (h *SystemSecurityPlanHandler) CreateSystemImplementationComponent(ctx echo
 		return err
 	}
 
+	// Get the system implementation ID directly from the database
+	var systemImpl relational.SystemImplementation
+	if err := h.db.Where("system_security_plan_id = ?", id).First(&systemImpl).Error; err != nil {
+		h.sugar.Errorw("failed to get system implementation", "sspID", id, "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
 	var oscalComponent oscalTypes_1_1_3.SystemComponent
 	if err := ctx.Bind(&oscalComponent); err != nil {
 		h.sugar.Warnw("Invalid create component request", "error", err)
@@ -1571,7 +1599,7 @@ func (h *SystemSecurityPlanHandler) CreateSystemImplementationComponent(ctx echo
 
 	relComponent := &relational.SystemComponent{}
 	relComponent.UnmarshalOscal(oscalComponent)
-	relComponent.SystemImplementationId = id
+	relComponent.SystemImplementationId = *systemImpl.ID
 
 	if err := h.db.Create(relComponent).Error; err != nil {
 		h.sugar.Errorf("Failed to create component: %v", err)
@@ -1615,8 +1643,15 @@ func (h *SystemSecurityPlanHandler) UpdateSystemImplementationComponent(ctx echo
 		return err
 	}
 
+	// Get the system implementation ID directly from the database
+	var systemImpl relational.SystemImplementation
+	if err := h.db.Where("system_security_plan_id = ?", sspID).First(&systemImpl).Error; err != nil {
+		h.sugar.Errorw("failed to get system implementation", "sspID", sspID, "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
 	var existingComponent relational.SystemComponent
-	if err := h.db.Where("id = ? AND system_implementation_id = ?", componentID, sspID).First(&existingComponent).Error; err != nil {
+	if err := h.db.Where("id = ? AND system_implementation_id = ?", componentID, *systemImpl.ID).First(&existingComponent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
 		}
@@ -1632,7 +1667,7 @@ func (h *SystemSecurityPlanHandler) UpdateSystemImplementationComponent(ctx echo
 
 	relComponent := &relational.SystemComponent{}
 	relComponent.UnmarshalOscal(oscalComponent)
-	relComponent.SystemImplementationId = sspID
+	relComponent.SystemImplementationId = *systemImpl.ID
 	relComponent.ID = &componentID
 
 	if err := h.db.Save(relComponent).Error; err != nil {
@@ -1674,7 +1709,14 @@ func (h *SystemSecurityPlanHandler) DeleteSystemImplementationComponent(ctx echo
 		return err
 	}
 
-	result := h.db.Where("id = ? AND system_implementation_id = ?", componentID, sspID).Delete(&relational.SystemComponent{})
+	// Get the system implementation ID directly from the database
+	var systemImpl relational.SystemImplementation
+	if err := h.db.Where("system_security_plan_id = ?", sspID).First(&systemImpl).Error; err != nil {
+		h.sugar.Errorw("failed to get system implementation", "sspID", sspID, "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
+	result := h.db.Where("id = ? AND system_implementation_id = ?", componentID, *systemImpl.ID).Delete(&relational.SystemComponent{})
 	if result.Error != nil {
 		h.sugar.Errorf("Failed to delete component: %v", result.Error)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(result.Error))
@@ -1890,6 +1932,13 @@ func (h *SystemSecurityPlanHandler) CreateSystemImplementationLeveragedAuthoriza
 		return err
 	}
 
+	// Get the system implementation ID directly from the database
+	var systemImpl relational.SystemImplementation
+	if err := h.db.Where("system_security_plan_id = ?", id).First(&systemImpl).Error; err != nil {
+		h.sugar.Errorw("failed to get system implementation", "sspID", id, "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
 	var oscalAuth oscalTypes_1_1_3.LeveragedAuthorization
 	if err := ctx.Bind(&oscalAuth); err != nil {
 		h.sugar.Warnw("Invalid create leveraged authorization request", "error", err)
@@ -1898,7 +1947,7 @@ func (h *SystemSecurityPlanHandler) CreateSystemImplementationLeveragedAuthoriza
 
 	relAuth := &relational.LeveragedAuthorization{}
 	relAuth.UnmarshalOscal(oscalAuth)
-	relAuth.SystemImplementationId = id
+	relAuth.SystemImplementationId = *systemImpl.ID
 
 	if err := h.db.Create(relAuth).Error; err != nil {
 		h.sugar.Errorf("Failed to create leveraged authorization: %v", err)
@@ -1942,8 +1991,15 @@ func (h *SystemSecurityPlanHandler) UpdateSystemImplementationLeveragedAuthoriza
 		return err
 	}
 
+	// Get the system implementation ID directly from the database
+	var systemImpl relational.SystemImplementation
+	if err := h.db.Where("system_security_plan_id = ?", sspID).First(&systemImpl).Error; err != nil {
+		h.sugar.Errorw("failed to get system implementation", "sspID", sspID, "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
 	var existingAuth relational.LeveragedAuthorization
-	if err := h.db.Where("id = ? AND system_implementation_id = ?", authID, sspID).First(&existingAuth).Error; err != nil {
+	if err := h.db.Where("id = ? AND system_implementation_id = ?", authID, *systemImpl.ID).First(&existingAuth).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ctx.JSON(http.StatusNotFound, api.NewError(err))
 		}
@@ -1959,7 +2015,7 @@ func (h *SystemSecurityPlanHandler) UpdateSystemImplementationLeveragedAuthoriza
 
 	relAuth := &relational.LeveragedAuthorization{}
 	relAuth.UnmarshalOscal(oscalAuth)
-	relAuth.SystemImplementationId = sspID
+	relAuth.SystemImplementationId = *systemImpl.ID
 	relAuth.ID = &authID
 
 	if err := h.db.Save(relAuth).Error; err != nil {
@@ -2001,7 +2057,14 @@ func (h *SystemSecurityPlanHandler) DeleteSystemImplementationLeveragedAuthoriza
 		return err
 	}
 
-	result := h.db.Where("id = ? AND system_implementation_id = ?", authID, sspID).Delete(&relational.LeveragedAuthorization{})
+	// Get the system implementation ID directly from the database
+	var systemImpl relational.SystemImplementation
+	if err := h.db.Where("system_security_plan_id = ?", sspID).First(&systemImpl).Error; err != nil {
+		h.sugar.Errorw("failed to get system implementation", "sspID", sspID, "error", err)
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
+
+	result := h.db.Where("id = ? AND system_implementation_id = ?", authID, *systemImpl.ID).Delete(&relational.LeveragedAuthorization{})
 	if result.Error != nil {
 		h.sugar.Errorf("Failed to delete leveraged authorization: %v", result.Error)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(result.Error))
