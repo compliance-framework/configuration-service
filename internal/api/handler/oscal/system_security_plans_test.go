@@ -635,83 +635,82 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestUpdateImplementedRequire
 }
 
 // Test updating a statement with invalid IDs
-// TEMPORARILY COMMENTED OUT - Testing if this is the root cause of CI failures
-// func (suite *SystemSecurityPlanApiIntegrationSuite) TestUpdateImplementedRequirementStatementInvalidIDs() {
-// 	logger, _ := zap.NewDevelopment()
+func (suite *SystemSecurityPlanApiIntegrationSuite) TestUpdateImplementedRequirementStatementInvalidIDs() {
+	logger, _ := zap.NewDevelopment()
 
-// 	err := suite.Migrator.Refresh()
-// 	suite.Require().NoError(err)
+	err := suite.Migrator.Refresh()
+	suite.Require().NoError(err)
 
-// 	server := api.NewServer(context.Background(), logger.Sugar(), suite.Config)
-// 	RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config)
+	server := api.NewServer(context.Background(), logger.Sugar(), suite.Config)
+	RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config)
 
-// 	// Create SSP first
-// 	ssp := suite.createBasicSSP()
-// 	req := suite.createRequest("POST", "/api/oscal/system-security-plans", ssp)
-// 	resp := httptest.NewRecorder()
-// 	server.E().ServeHTTP(resp, req)
-// 	suite.Equal(http.StatusCreated, resp.Code)
+	// Create SSP first
+	ssp := suite.createBasicSSP()
+	req := suite.createRequest("POST", "/api/oscal/system-security-plans", ssp)
+	resp := httptest.NewRecorder()
+	server.E().ServeHTTP(resp, req)
+	suite.Equal(http.StatusCreated, resp.Code)
 	
-// 	// Parse response to get the actual SSP UUID
-// 	var createSSPResponse handler.GenericDataResponse[oscalTypes_1_1_3.SystemSecurityPlan]
-// 	err = json.Unmarshal(resp.Body.Bytes(), &createSSPResponse)
-// 	suite.NoError(err)
-// 	actualSSPUUID := createSSPResponse.Data.UUID
+	// Parse response to get the actual SSP UUID
+	var createSSPResponse handler.GenericDataResponse[oscalTypes_1_1_3.SystemSecurityPlan]
+	err = json.Unmarshal(resp.Body.Bytes(), &createSSPResponse)
+	suite.NoError(err)
+	actualSSPUUID := createSSPResponse.Data.UUID
 
-// 	testCases := []struct {
-// 		name           string
-// 		sspID          string
-// 		reqID          string
-// 		stmtID         string
-// 		expectedStatus int
-// 	}{
-// 		{
-// 			name:           "invalid SSP ID",
-// 			sspID:          "invalid0-uuid-4mat-1234-567890123456",
-// 			reqID:          uuid.New().String(),
-// 			stmtID:         uuid.New().String(),
-// 			expectedStatus: http.StatusBadRequest,
-// 		},
-// 		{
-// 			name:           "invalid requirement ID",
-// 			sspID:          actualSSPUUID,
-// 			reqID:          "invalid0-uuid-4mat-1234-567890123456",
-// 			stmtID:         uuid.New().String(),
-// 			expectedStatus: http.StatusBadRequest,
-// 		},
-// 		{
-// 			name:           "invalid statement ID",
-// 			sspID:          actualSSPUUID,
-// 			reqID:          uuid.New().String(),
-// 			stmtID:         "invalid0-uuid-4mat-1234-567890123456",
-// 			expectedStatus: http.StatusBadRequest,
-// 		},
-// 		{
-// 			name:           "non-existent SSP",
-// 			sspID:          uuid.New().String(),
-// 			reqID:          uuid.New().String(),
-// 			stmtID:         uuid.New().String(),
-// 			expectedStatus: http.StatusNotFound,
-// 		},
-// 	}
+	testCases := []struct {
+		name           string
+		sspID          string
+		reqID          string
+		stmtID         string
+		expectedStatus int
+	}{
+		{
+			name:           "invalid SSP ID",
+			sspID:          "invalid0-uuid-4mat-1234-567890123456",
+			reqID:          uuid.New().String(),
+			stmtID:         uuid.New().String(),
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "invalid requirement ID",
+			sspID:          actualSSPUUID,
+			reqID:          "invalid0-uuid-4mat-1234-567890123456",
+			stmtID:         uuid.New().String(),
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "invalid statement ID",
+			sspID:          actualSSPUUID,
+			reqID:          uuid.New().String(),
+			stmtID:         "invalid0-uuid-4mat-1234-567890123456",
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "non-existent SSP",
+			sspID:          uuid.New().String(),
+			reqID:          uuid.New().String(),
+			stmtID:         uuid.New().String(),
+			expectedStatus: http.StatusNotFound,
+		},
+	}
 
-// 	for _, tc := range testCases {
-// 		suite.Run(tc.name, func() {
-// 			updatedStatement := oscalTypes_1_1_3.Statement{
-// 				UUID:        uuid.New().String(),
-// 				StatementId: "test-statement",
-// 				Remarks:     "Test statement",
-// 			}
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			updatedStatement := oscalTypes_1_1_3.Statement{
+				UUID:        uuid.New().String(),
+				StatementId: "test-statement",
+				Remarks:     "Test statement",
+			}
 
-// 			req := suite.createRequest("PUT", fmt.Sprintf("/api/oscal/system-security-plans/%s/control-implementation/implemented-requirements/%s/statements/%s",
-// 				tc.sspID, tc.reqID, tc.stmtID), updatedStatement)
-// 			resp := httptest.NewRecorder()
-// 			server.E().ServeHTTP(resp, req)
+			req := suite.createRequest("PUT", fmt.Sprintf("/api/oscal/system-security-plans/%s/control-implementation/implemented-requirements/%s/statements/%s",
+				tc.sspID, tc.reqID, tc.stmtID), updatedStatement)
+			resp := httptest.NewRecorder()
+			server.E().ServeHTTP(resp, req)
 
-// 			suite.Equal(tc.expectedStatus, resp.Code)
-// 		})
-// 	}
-// }
+			suite.Equal(tc.expectedStatus, resp.Code)
+		})
+	}
+}
 
 // Test system implementation CRUD operations
 func (suite *SystemSecurityPlanApiIntegrationSuite) TestSystemImplementationCRUD() {
