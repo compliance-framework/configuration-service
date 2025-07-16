@@ -57,6 +57,7 @@ func init() {
 	rootCmd.AddCommand(users.RootCmd)
 	rootCmd.AddCommand(seed.RootCmd)
 	rootCmd.AddCommand(newMigrateCMD())
+	rootCmd.AddCommand(newGenerateKeysCMD())
 }
 
 func Execute() error {

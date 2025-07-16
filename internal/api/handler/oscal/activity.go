@@ -113,6 +113,7 @@ func (h *ActivityHandler) GetActivity(ctx echo.Context) error {
 	var activity relational.Activity
 	if err := h.db.
 		Preload("RelatedControls").
+		Preload("Steps").
 		First(&activity, "id = ?", id).Error; err != nil {
 		h.sugar.Errorf("Failed to retrieve tasks: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
