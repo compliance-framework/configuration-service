@@ -320,6 +320,7 @@ func (h *AssessmentPlanHandler) GetTaskActivities(ctx echo.Context) error {
 	var task relational.Task
 	if err := h.db.
 		Preload("AssociatedActivities").
+		Preload("AssociatedActivities.Activity").
 		First(&task, "id = ?", taskId).Error; err != nil {
 		h.sugar.Errorf("Failed to retrieve tasks: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))

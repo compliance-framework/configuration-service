@@ -30,9 +30,9 @@ func NewActivityHandler(sugar *zap.SugaredLogger, db *gorm.DB) *ActivityHandler 
 func (h *ActivityHandler) Register(api *echo.Group) {
 	// Activities sub-resource management
 	api.POST("", h.CreateActivity)
-	api.GET(":id", h.UpdateActivity)
-	api.PUT(":id", h.UpdateActivity)
-	api.DELETE(":id", h.DeleteActivity)
+	api.GET("/:id", h.GetActivity)
+	api.PUT("/:id", h.UpdateActivity)
+	api.DELETE("/:id", h.DeleteActivity)
 }
 
 // validateActivityInput validates activity input
@@ -102,6 +102,7 @@ func (h *ActivityHandler) CreateActivity(ctx echo.Context) error {
 //	@Security		OAuth2Password
 //	@Router			/oscal/activities/{id} [get]
 func (h *ActivityHandler) GetActivity(ctx echo.Context) error {
+	fmt.Println("Trying to GET activity")
 	idParam := ctx.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
