@@ -32,15 +32,11 @@ func NewSystemSecurityPlanHandler(sugar *zap.SugaredLogger, db *gorm.DB) *System
 	}
 }
 
-// verifySSPExists checks if a SSP exists by ID and returns appropriate HTTP error if not
-func (h *SystemSecurityPlanHandler) verifySSPExists(ctx echo.Context, sspID uuid.UUID) error {
+// verifySSPExists checks if a SSP exists by ID and returns error if not found
+func (h *SystemSecurityPlanHandler) verifySSPExists(sspID uuid.UUID) error {
 	var ssp relational.SystemSecurityPlan
 	if err := h.db.First(&ssp, "id = ?", sspID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
-		}
-		h.sugar.Errorf("Failed to find SSP: %v", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		return err
 	}
 	return nil
 }
@@ -1321,8 +1317,12 @@ func (h *SystemSecurityPlanHandler) UpdateImportProfile(ctx echo.Context) error 
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	if err := h.verifySSPExists(ctx, id); err != nil {
-		return err
+	if err := h.verifySSPExists(id); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+		}
+		h.sugar.Errorf("Failed to find SSP: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	var oscalImportProfile oscalTypes_1_1_3.ImportProfile
@@ -1455,8 +1455,12 @@ func (h *SystemSecurityPlanHandler) CreateSystemImplementationUser(ctx echo.Cont
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	if err := h.verifySSPExists(ctx, id); err != nil {
-		return err
+	if err := h.verifySSPExists(id); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+		}
+		h.sugar.Errorf("Failed to find SSP: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	// Get the system implementation ID directly from the database
@@ -1519,8 +1523,12 @@ func (h *SystemSecurityPlanHandler) UpdateSystemImplementationUser(ctx echo.Cont
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	if err := h.verifySSPExists(ctx, sspID); err != nil {
-		return err
+	if err := h.verifySSPExists(sspID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+		}
+		h.sugar.Errorf("Failed to find SSP: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	// Get the system implementation ID directly from the database
@@ -1585,8 +1593,12 @@ func (h *SystemSecurityPlanHandler) DeleteSystemImplementationUser(ctx echo.Cont
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	if err := h.verifySSPExists(ctx, sspID); err != nil {
-		return err
+	if err := h.verifySSPExists(sspID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+		}
+		h.sugar.Errorf("Failed to find SSP: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	// Get the system implementation ID directly from the database
@@ -1631,8 +1643,12 @@ func (h *SystemSecurityPlanHandler) CreateSystemImplementationComponent(ctx echo
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	if err := h.verifySSPExists(ctx, id); err != nil {
-		return err
+	if err := h.verifySSPExists(id); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+		}
+		h.sugar.Errorf("Failed to find SSP: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	// Get the system implementation ID directly from the database
@@ -1695,8 +1711,12 @@ func (h *SystemSecurityPlanHandler) UpdateSystemImplementationComponent(ctx echo
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	if err := h.verifySSPExists(ctx, sspID); err != nil {
-		return err
+	if err := h.verifySSPExists(sspID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+		}
+		h.sugar.Errorf("Failed to find SSP: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	// Get the system implementation ID directly from the database
@@ -1761,8 +1781,12 @@ func (h *SystemSecurityPlanHandler) DeleteSystemImplementationComponent(ctx echo
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	if err := h.verifySSPExists(ctx, sspID); err != nil {
-		return err
+	if err := h.verifySSPExists(sspID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+		}
+		h.sugar.Errorf("Failed to find SSP: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	// Get the system implementation ID directly from the database
@@ -1807,8 +1831,12 @@ func (h *SystemSecurityPlanHandler) CreateSystemImplementationInventoryItem(ctx 
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	if err := h.verifySSPExists(ctx, id); err != nil {
-		return err
+	if err := h.verifySSPExists(id); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+		}
+		h.sugar.Errorf("Failed to find SSP: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	// Get the system implementation ID directly from the database
@@ -1871,8 +1899,12 @@ func (h *SystemSecurityPlanHandler) UpdateSystemImplementationInventoryItem(ctx 
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	if err := h.verifySSPExists(ctx, sspID); err != nil {
-		return err
+	if err := h.verifySSPExists(sspID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+		}
+		h.sugar.Errorf("Failed to find SSP: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	// Get the system implementation ID directly from the database
@@ -1938,8 +1970,12 @@ func (h *SystemSecurityPlanHandler) DeleteSystemImplementationInventoryItem(ctx 
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	if err := h.verifySSPExists(ctx, sspID); err != nil {
-		return err
+	if err := h.verifySSPExists(sspID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+		}
+		h.sugar.Errorf("Failed to find SSP: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	// Get the system implementation ID directly from the database
@@ -1984,8 +2020,12 @@ func (h *SystemSecurityPlanHandler) CreateSystemImplementationLeveragedAuthoriza
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	if err := h.verifySSPExists(ctx, id); err != nil {
-		return err
+	if err := h.verifySSPExists(id); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+		}
+		h.sugar.Errorf("Failed to find SSP: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	// Get the system implementation ID directly from the database
@@ -2043,8 +2083,12 @@ func (h *SystemSecurityPlanHandler) UpdateSystemImplementationLeveragedAuthoriza
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	if err := h.verifySSPExists(ctx, sspID); err != nil {
-		return err
+	if err := h.verifySSPExists(sspID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+		}
+		h.sugar.Errorf("Failed to find SSP: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	// Get the system implementation ID directly from the database
@@ -2109,8 +2153,12 @@ func (h *SystemSecurityPlanHandler) DeleteSystemImplementationLeveragedAuthoriza
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	if err := h.verifySSPExists(ctx, sspID); err != nil {
-		return err
+	if err := h.verifySSPExists(sspID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+		}
+		h.sugar.Errorf("Failed to find SSP: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	// Get the system implementation ID directly from the database
@@ -2247,8 +2295,12 @@ func (h *SystemSecurityPlanHandler) CreateImplementedRequirement(ctx echo.Contex
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	if err := h.verifySSPExists(ctx, id); err != nil {
-		return err
+	if err := h.verifySSPExists(id); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+		}
+		h.sugar.Errorf("Failed to find SSP: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	var oscalReq oscalTypes_1_1_3.ImplementedRequirement
@@ -2521,8 +2573,12 @@ func (h *SystemSecurityPlanHandler) UpdateBackMatter(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	if err := h.verifySSPExists(ctx, id); err != nil {
-		return err
+	if err := h.verifySSPExists(id); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+		}
+		h.sugar.Errorf("Failed to find SSP: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	var oscalBackMatter oscalTypes_1_1_3.BackMatter
@@ -2612,8 +2668,12 @@ func (h *SystemSecurityPlanHandler) CreateBackMatterResource(ctx echo.Context) e
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	if err := h.verifySSPExists(ctx, id); err != nil {
-		return err
+	if err := h.verifySSPExists(id); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+		}
+		h.sugar.Errorf("Failed to find SSP: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	var oscalResource oscalTypes_1_1_3.Resource
@@ -2794,8 +2854,12 @@ func (h *SystemSecurityPlanHandler) UpdateImplementedRequirementStatement(ctx ec
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	if err := h.verifySSPExists(ctx, sspID); err != nil {
-		return err
+	if err := h.verifySSPExists(sspID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+		}
+		h.sugar.Errorf("Failed to find SSP: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	var ssp relational.SystemSecurityPlan
