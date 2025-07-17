@@ -243,7 +243,9 @@ func (h *SystemSecurityPlanHandler) Get(ctx echo.Context) error {
 //	@Summary		Create a System Security Plan
 //	@Description	Creates a System Security Plan from input.
 //	@Tags			System Security Plans
+//	@Accept			json
 //	@Produce		json
+//	@Param			ssp	body		oscalTypes_1_1_3.SystemSecurityPlan	true	"SSP data"
 //	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.SystemSecurityPlan]
 //	@Failure		400	{object}	api.Error
 //	@Failure		401	{object}	api.Error

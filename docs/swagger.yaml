@@ -10653,7 +10653,16 @@ paths:
       tags:
       - System Security Plans
     post:
+      consumes:
+      - application/json
       description: Creates a System Security Plan from input.
+      parameters:
+      - description: SSP data
+        in: body
+        name: ssp
+        required: true
+        schema:
+          $ref: '#/definitions/oscalTypes_1_1_3.SystemSecurityPlan'
       produces:
       - application/json
       responses:
