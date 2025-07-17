@@ -1321,7 +1321,7 @@ func (h *SystemSecurityPlanHandler) UpdateImportProfile(ctx echo.Context) error 
 	relImportProfile.UnmarshalOscal(oscalImportProfile)
 
 	// Update the ImportProfile field in the SSP
-	ssp.ImportProfile = datatypes.NewJSONType[relational.ImportProfile](*relImportProfile)
+	ssp.ImportProfile = datatypes.NewJSONType(*relImportProfile)
 
 	if err := h.db.Save(&ssp).Error; err != nil {
 		h.sugar.Errorf("Failed to update import-profile: %v", err)
