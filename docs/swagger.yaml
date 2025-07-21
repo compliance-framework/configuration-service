@@ -5268,8 +5268,6 @@ definitions:
         type: string
       lastName:
         type: string
-      resetTokenExpiry:
-        type: string
       updatedAt:
         type: string
     type: object
