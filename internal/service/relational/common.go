@@ -200,7 +200,7 @@ func (r *ResponsibleParty) UnmarshalOscal(or oscaltypes113.ResponsibleParty) *Re
 		newID := uuid.New()
 		r.UUIDModel.ID = &newID
 	}
-	
+
 	*r = ResponsibleParty{
 		UUIDModel: r.UUIDModel, // Preserve the generated ID
 		Props: ConvertList(or.Props, func(property oscaltypes113.Property) Prop {
@@ -222,7 +222,7 @@ func (r *ResponsibleParty) UnmarshalOscal(or oscaltypes113.ResponsibleParty) *Re
 			}
 			id, err := uuid.Parse(olink)
 			if err != nil {
-				// Skip invalid UUIDs 
+				// Skip invalid UUIDs
 				return ResponsiblePartyParties{}
 			}
 			return ResponsiblePartyParties{
@@ -239,7 +239,7 @@ func (r *ResponsibleParty) MarshalOscal() *oscaltypes113.ResponsibleParty {
 	if r == nil {
 		return nil
 	}
-	
+
 	rp := &oscaltypes113.ResponsibleParty{
 		Remarks: r.Remarks,
 		RoleId:  r.RoleID,

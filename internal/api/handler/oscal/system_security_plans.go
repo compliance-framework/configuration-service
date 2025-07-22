@@ -32,7 +32,6 @@ func NewSystemSecurityPlanHandler(sugar *zap.SugaredLogger, db *gorm.DB) *System
 	}
 }
 
-
 // validateSSPInput validates SSP input following OSCAL requirements
 func (h *SystemSecurityPlanHandler) validateSSPInput(ssp *oscalTypes_1_1_3.SystemSecurityPlan) error {
 	if ssp.UUID == "" {
@@ -924,7 +923,7 @@ func (h *SystemSecurityPlanHandler) GetSystemImplementationInventoryItems(ctx ec
 	if oscalSSP.SystemImplementation.InventoryItems == nil {
 		return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.InventoryItem]{Data: []oscalTypes_1_1_3.InventoryItem{}})
 	}
-	
+
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.InventoryItem]{Data: *oscalSSP.SystemImplementation.InventoryItems})
 }
 
@@ -966,7 +965,7 @@ func (h *SystemSecurityPlanHandler) GetSystemImplementationLeveragedAuthorizatio
 	if oscalSSP.SystemImplementation.LeveragedAuthorizations == nil {
 		return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.LeveragedAuthorization]{Data: []oscalTypes_1_1_3.LeveragedAuthorization{}})
 	}
-	
+
 	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.LeveragedAuthorization]{Data: *oscalSSP.SystemImplementation.LeveragedAuthorizations})
 }
 
@@ -1182,7 +1181,7 @@ func (h *SystemSecurityPlanHandler) GetMetadata(ctx echo.Context) error {
 	if metadata == nil {
 		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("no metadata for SSP %s", idParam)))
 	}
-	
+
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Metadata]{Data: *metadata})
 }
 
@@ -1906,7 +1905,7 @@ func (h *SystemSecurityPlanHandler) UpdateSystemImplementationInventoryItem(ctx 
 
 	relItem := &relational.InventoryItem{}
 	relItem.UnmarshalOscal(oscalItem)
-	
+
 	relItem.SystemImplementationId = *systemImpl.ID
 	relItem.ID = &itemID
 
@@ -2161,6 +2160,7 @@ func (h *SystemSecurityPlanHandler) DeleteSystemImplementationLeveragedAuthoriza
 }
 
 // UpdateControlImplementation godoc
+//
 //	@Summary		Update Control Implementation
 //	@Description	Updates the Control Implementation for a given System Security Plan.
 //	@Tags			System Security Plans
@@ -2523,7 +2523,7 @@ func (h *SystemSecurityPlanHandler) GetBackMatter(ctx echo.Context) error {
 	if ssp.BackMatter == nil {
 		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("no back-matter for SSP %s", idParam)))
 	}
-	
+
 	if len(ssp.BackMatter.Resources) == 0 {
 		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("no back-matter for SSP %s", idParam)))
 	}
@@ -2881,4 +2881,3 @@ func (h *SystemSecurityPlanHandler) UpdateImplementedRequirementStatement(ctx ec
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Statement]{Data: *relStmt.MarshalOscal()})
 }
-

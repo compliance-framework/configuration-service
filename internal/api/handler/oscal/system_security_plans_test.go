@@ -475,7 +475,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestCreateImplementedRequire
 	resp := httptest.NewRecorder()
 	server.E().ServeHTTP(resp, req)
 	suite.Equal(http.StatusCreated, resp.Code)
-	
+
 	// Parse response to get the actual SSP UUID
 	var createSSPResponse handler.GenericDataResponse[oscalTypes_1_1_3.SystemSecurityPlan]
 	err = json.Unmarshal(resp.Body.Bytes(), &createSSPResponse)
@@ -650,7 +650,7 @@ func (suite *SystemSecurityPlanApiIntegrationSuite) TestUpdateImplementedRequire
 	resp := httptest.NewRecorder()
 	server.E().ServeHTTP(resp, req)
 	suite.Equal(http.StatusCreated, resp.Code)
-	
+
 	// Parse response to get the actual SSP UUID
 	var createSSPResponse handler.GenericDataResponse[oscalTypes_1_1_3.SystemSecurityPlan]
 	err = json.Unmarshal(resp.Body.Bytes(), &createSSPResponse)
