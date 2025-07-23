@@ -141,6 +141,7 @@ func (h *ProfileHandler) Get(ctx echo.Context) error {
 }
 
 // Resolved godoc
+//
 //	@Summary		Get Resolved Profile
 //	@Description	Returns a resolved OSCAL catalog based on a given Profile ID, applying all imports and modifications.
 //	@Tags			Profile

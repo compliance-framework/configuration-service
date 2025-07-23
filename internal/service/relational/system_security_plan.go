@@ -17,6 +17,9 @@ type SystemSecurityPlan struct {
 	SystemCharacteristics SystemCharacteristics             `json:"system-characteristics"`
 	SystemImplementation  SystemImplementation              `json:"system-implementation"`
 	ControlImplementation ControlImplementation             `json:"control-implementation"`
+
+	ProfileID uuid.UUID
+	Profile   Profile
 }
 
 func (s *SystemSecurityPlan) UnmarshalOscal(os oscalTypes_1_1_3.SystemSecurityPlan) *SystemSecurityPlan {
