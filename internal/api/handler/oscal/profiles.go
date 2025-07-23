@@ -141,8 +141,18 @@ func (h *ProfileHandler) Get(ctx echo.Context) error {
 }
 
 // Resolved godoc
-//
-
+//	@Summary		Get Resolved Profile
+//	@Description	Returns a resolved OSCAL catalog based on a given Profile ID, applying all imports and modifications.
+//	@Tags			Profile
+//	@Param			id	path	string	true	"Profile ID"
+//	@Produce		json
+//	@Success		200	{object}	oscalTypes_1_1_3.Catalog
+//	@Failure		400	{object}	api.Error
+//	@Failure		401	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/profiles/{id}/resolved [get]
 func (h *ProfileHandler) Resolved(ctx echo.Context) error {
 	type response struct {
 		ID string `json:"id"`
