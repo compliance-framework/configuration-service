@@ -147,7 +147,7 @@ func (h *ProfileHandler) Get(ctx echo.Context) error {
 //	@Tags			Profile
 //	@Param			id	path	string	true	"Profile ID"
 //	@Produce		json
-//	@Success		200	{object}	oscalTypes_1_1_3.Catalog
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Catalog]
 //	@Failure		400	{object}	api.Error
 //	@Failure		401	{object}	api.Error
 //	@Failure		404	{object}	api.Error
@@ -182,7 +182,7 @@ func (h *ProfileHandler) Resolved(ctx echo.Context) error {
 	}
 	catalog.ID = &newID
 	catalog.Metadata = profile.Metadata
-	return ctx.JSON(http.StatusOK, catalog.MarshalOscal())
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Catalog]{Data: *catalog.MarshalOscal()})
 
 	//if err := h.db.Save(&catalog).Error; err != nil {
 	//	h.sugar.Errorw("error saving new catalog to database", "id", idParam, "error", err)
