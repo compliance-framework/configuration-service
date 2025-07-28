@@ -304,7 +304,6 @@ func (h *AssessmentResultsHandler) Update(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 	
-	h.sugar.Infof("DEBUG: Received update request - Title: '%s', UUID: '%s'", oscalAR.Metadata.Title, oscalAR.UUID)
 
 	// Validate required fields
 	if err := h.validateAssessmentResultsInput(&oscalAR); err != nil {
