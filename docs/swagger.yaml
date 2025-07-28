@@ -4077,7 +4077,7 @@ definitions:
     type: object
   relational.BackMatterResource:
     properties:
-      back-matter-id:
+      backMatterID:
         type: string
       base64:
         $ref: '#/definitions/datatypes.JSONType-relational_Base64'
@@ -4090,6 +4090,7 @@ definitions:
           $ref: '#/definitions/relational.DocumentID'
         type: array
       id:
+        description: required
         type: string
       props:
         items:

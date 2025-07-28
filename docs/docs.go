@@ -18603,7 +18603,7 @@ const docTemplate = `{
         "relational.BackMatterResource": {
             "type": "object",
             "properties": {
-                "back-matter-id": {
+                "backMatterID": {
                     "type": "string"
                 },
                 "base64": {
@@ -18622,6 +18622,7 @@ const docTemplate = `{
                     }
                 },
                 "id": {
+                    "description": "required",
                     "type": "string"
                 },
                 "props": {
