@@ -146,10 +146,14 @@ func (i *AssessmentResult) UnmarshalOscal(op oscalTypes_1_1_3.AssessmentResults)
 
 func (i *AssessmentResult) MarshalOscal() *oscalTypes_1_1_3.AssessmentResults {
 	ret := oscalTypes_1_1_3.AssessmentResults{
-		ImportAp:         oscalTypes_1_1_3.ImportAp(i.ImportAp.Data()),
-		Metadata:         *i.Metadata.MarshalOscal(),
-		LocalDefinitions: i.LocalDefinitions.MarshalOscal(),
-		UUID:             i.ID.String(),
+		ImportAp: oscalTypes_1_1_3.ImportAp(i.ImportAp.Data()),
+		Metadata: *i.Metadata.MarshalOscal(),
+		UUID:     i.ID.String(),
+	}
+	
+	// Only set LocalDefinitions if it's not nil
+	if i.LocalDefinitions != nil {
+		ret.LocalDefinitions = i.LocalDefinitions.MarshalOscal()
 	}
 
 	// Results
@@ -759,6 +763,11 @@ func (i *LocalDefinitions) UnmarshalOscal(op oscalTypes_1_1_3.LocalDefinitions) 
 }
 
 func (i *LocalDefinitions) MarshalOscal() *oscalTypes_1_1_3.LocalDefinitions {
+	// Handle nil LocalDefinitions
+	if i == nil {
+		return nil
+	}
+	
 	ret := &oscalTypes_1_1_3.LocalDefinitions{}
 
 	// Remarks - check for nil before dereferencing
