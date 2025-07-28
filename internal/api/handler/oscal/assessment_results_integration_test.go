@@ -233,13 +233,7 @@ func (suite *AssessmentResultsApiIntegrationSuite) TestDeleteAssessmentResults()
 	rec, req := suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/assessment-results/%s", arUUID), nil)
 	suite.server.E().ServeHTTP(rec, req)
 
-	suite.Equal(http.StatusOK, rec.Code)
-	var response struct {
-		Message string `json:"message"`
-	}
-	err := json.Unmarshal(rec.Body.Bytes(), &response)
-	suite.NoError(err)
-	suite.Equal("Assessment results deleted successfully", response.Message)
+	suite.Equal(http.StatusNoContent, rec.Code)
 
 	// Verify deletion
 	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s", arUUID), nil)
@@ -444,13 +438,7 @@ func (suite *AssessmentResultsApiIntegrationSuite) TestDeleteResult() {
 	rec, req := suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s", arUUID, testResult.UUID), nil)
 	suite.server.E().ServeHTTP(rec, req)
 
-	suite.Equal(http.StatusOK, rec.Code)
-	var response struct {
-		Message string `json:"message"`
-	}
-	err := json.Unmarshal(rec.Body.Bytes(), &response)
-	suite.NoError(err)
-	suite.Equal("Result deleted successfully", response.Message)
+	suite.Equal(http.StatusNoContent, rec.Code)
 
 	// Verify deletion
 	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s", arUUID, testResult.UUID), nil)

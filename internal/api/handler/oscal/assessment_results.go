@@ -411,9 +411,8 @@ func (h *AssessmentResultsHandler) Update(ctx echo.Context) error {
 //	@Summary		Delete an Assessment Results
 //	@Description	Deletes an Assessment Results by its ID.
 //	@Tags			Assessment Results
-//	@Produce		json
 //	@Param			id	path		string	true	"Assessment Results ID"
-//	@Success		200	{object}	api.Response
+//	@Success		204	"No Content"
 //	@Failure		400	{object}	api.Error
 //	@Failure		404	{object}	api.Error
 //	@Failure		500	{object}	api.Error
@@ -437,7 +436,7 @@ func (h *AssessmentResultsHandler) Delete(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	return ctx.JSON(http.StatusOK, struct{Message string `json:"message"`}{Message: "Assessment results deleted successfully"})
+	return ctx.NoContent(http.StatusNoContent)
 }
 
 // GetMetadata godoc
@@ -945,10 +944,9 @@ func (h *AssessmentResultsHandler) UpdateResult(ctx echo.Context) error {
 //	@Summary		Delete a result
 //	@Description	Deletes a specific result from an Assessment Results.
 //	@Tags			Assessment Results
-//	@Produce		json
 //	@Param			id			path		string	true	"Assessment Results ID"
 //	@Param			resultId	path		string	true	"Result ID"
-//	@Success		200			{object}	api.Response
+//	@Success		204			"No Content"
 //	@Failure		400			{object}	api.Error
 //	@Failure		404			{object}	api.Error
 //	@Failure		500			{object}	api.Error
@@ -992,7 +990,7 @@ func (h *AssessmentResultsHandler) DeleteResult(ctx echo.Context) error {
 		h.db.Model(&relational.Metadata{}).Where("id = ?", ar.Metadata.ID).Update("last_modified", now)
 	}
 
-	return ctx.JSON(http.StatusOK, struct{Message string `json:"message"`}{Message: "Result deleted successfully"})
+	return ctx.NoContent(http.StatusNoContent)
 }
 
 // Additional endpoint implementations would follow the same pattern for:
