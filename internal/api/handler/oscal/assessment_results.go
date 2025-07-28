@@ -411,7 +411,7 @@ func (h *AssessmentResultsHandler) Update(ctx echo.Context) error {
 //	@Summary		Delete an Assessment Results
 //	@Description	Deletes an Assessment Results by its ID.
 //	@Tags			Assessment Results
-//	@Param			id	path		string	true	"Assessment Results ID"
+//	@Param			id	path	string	true	"Assessment Results ID"
 //	@Success		204	"No Content"
 //	@Failure		400	{object}	api.Error
 //	@Failure		404	{object}	api.Error
@@ -944,8 +944,8 @@ func (h *AssessmentResultsHandler) UpdateResult(ctx echo.Context) error {
 //	@Summary		Delete a result
 //	@Description	Deletes a specific result from an Assessment Results.
 //	@Tags			Assessment Results
-//	@Param			id			path		string	true	"Assessment Results ID"
-//	@Param			resultId	path		string	true	"Result ID"
+//	@Param			id			path	string	true	"Assessment Results ID"
+//	@Param			resultId	path	string	true	"Result ID"
 //	@Success		204			"No Content"
 //	@Failure		400			{object}	api.Error
 //	@Failure		404			{object}	api.Error
