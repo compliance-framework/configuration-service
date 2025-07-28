@@ -1106,34 +1106,571 @@ func (h *AssessmentResultsHandler) DeleteResultAttestation(ctx echo.Context) err
 	return ctx.JSON(http.StatusNotImplemented, api.NewError(fmt.Errorf("not implemented")))
 }
 
+// GetBackMatter godoc
+//
+//	@Summary		Get back matter
+//	@Description	Retrieves the back matter for an Assessment Results.
+//	@Tags			Assessment Results
+//	@Produce		json
+//	@Param			id	path		string	true	"Assessment Results ID"
+//	@Success		200	{object}	handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/back-matter [get]
 func (h *AssessmentResultsHandler) GetBackMatter(ctx echo.Context) error {
-	return ctx.JSON(http.StatusNotImplemented, api.NewError(fmt.Errorf("not implemented")))
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid assessment results id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var assessmentResult relational.AssessmentResult
+	if err := h.db.Preload("BackMatter").Preload("BackMatter.Resources").First(&assessmentResult, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Errorf("Failed to find assessment results: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Return empty back matter if none exists
+	if assessmentResult.BackMatter == nil {
+		emptyBackMatter := &oscalTypes_1_1_3.BackMatter{
+			Resources: &[]oscalTypes_1_1_3.Resource{},
+		}
+		return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]{Data: *emptyBackMatter})
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]{Data: *assessmentResult.BackMatter.MarshalOscal()})
 }
 
+// CreateBackMatter godoc
+//
+//	@Summary		Create back matter
+//	@Description	Creates or replaces the back matter for an Assessment Results.
+//	@Tags			Assessment Results
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string						true	"Assessment Results ID"
+//	@Param			backMatter	body		oscalTypes_1_1_3.BackMatter	true	"Back Matter"
+//	@Success		201			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/back-matter [post]
 func (h *AssessmentResultsHandler) CreateBackMatter(ctx echo.Context) error {
-	return ctx.JSON(http.StatusNotImplemented, api.NewError(fmt.Errorf("not implemented")))
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid assessment results id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var oscalBackMatter oscalTypes_1_1_3.BackMatter
+	if err := ctx.Bind(&oscalBackMatter); err != nil {
+		h.sugar.Errorw("invalid back matter", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Validate resources if present
+	if oscalBackMatter.Resources != nil && len(*oscalBackMatter.Resources) > 0 {
+		for i, resource := range *oscalBackMatter.Resources {
+			if resource.UUID == "" {
+				h.sugar.Warnw("Invalid back-matter resource", "error", "resource UUID is required", "index", i)
+				return ctx.JSON(http.StatusBadRequest, api.NewError(fmt.Errorf("resource UUID is required")))
+			}
+			if _, err := uuid.Parse(resource.UUID); err != nil {
+				h.sugar.Warnw("Invalid back-matter resource UUID", "error", err, "index", i)
+				return ctx.JSON(http.StatusBadRequest, api.NewError(fmt.Errorf("invalid resource UUID format: %v", err)))
+			}
+		}
+	}
+
+	// Check if assessment results exists
+	var assessmentResult relational.AssessmentResult
+	if err := h.db.Preload("BackMatter").First(&assessmentResult, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Errorf("Failed to find assessment results: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Delete existing back matter if present
+	if assessmentResult.BackMatter != nil {
+		if err := h.db.Delete(&relational.BackMatter{}, "id = ?", assessmentResult.BackMatter.ID).Error; err != nil {
+			h.sugar.Errorf("Failed to delete existing back matter: %v", err)
+			return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		}
+	}
+
+	// Create new back matter
+	backMatter := &relational.BackMatter{}
+	backMatter.UnmarshalOscal(oscalBackMatter)
+	
+	// Set the ID for BackMatter
+	if backMatter.ID == nil {
+		id := uuid.New()
+		backMatter.ID = &id
+	}
+	
+	// Set parent relationship for polymorphic association
+	parentID := id.String()
+	parentType := "AssessmentResult"
+	backMatter.ParentID = &parentID
+	backMatter.ParentType = &parentType
+	
+	// Update the assessment result with the new back matter
+	assessmentResult.BackMatter = backMatter
+	
+	// Save the assessment result which will create the back matter and resources
+	if err := h.db.Save(&assessmentResult).Error; err != nil {
+		h.sugar.Errorf("Failed to save assessment result with back matter: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+	
+	// Reload the back matter with resources for response
+	if err := h.db.Preload("Resources").First(backMatter, "id = ?", backMatter.ID).Error; err != nil {
+		h.sugar.Errorf("Failed to preload resources: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update metadata last-modified
+	now := time.Now()
+	h.db.Model(&relational.Metadata{}).Where("id = ?", assessmentResult.Metadata.ID).Update("last_modified", now)
+
+	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]{Data: *backMatter.MarshalOscal()})
 }
 
+// UpdateBackMatter godoc
+//
+//	@Summary		Update back matter
+//	@Description	Updates the back matter for an Assessment Results.
+//	@Tags			Assessment Results
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string						true	"Assessment Results ID"
+//	@Param			backMatter	body		oscalTypes_1_1_3.BackMatter	true	"Back Matter"
+//	@Success		200			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/back-matter [put]
 func (h *AssessmentResultsHandler) UpdateBackMatter(ctx echo.Context) error {
-	return ctx.JSON(http.StatusNotImplemented, api.NewError(fmt.Errorf("not implemented")))
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid assessment results id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var oscalBackMatter oscalTypes_1_1_3.BackMatter
+	if err := ctx.Bind(&oscalBackMatter); err != nil {
+		h.sugar.Errorw("invalid back matter", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Validate resources if present
+	if oscalBackMatter.Resources != nil && len(*oscalBackMatter.Resources) > 0 {
+		for i, resource := range *oscalBackMatter.Resources {
+			if resource.UUID == "" {
+				h.sugar.Warnw("Invalid back-matter resource", "error", "resource UUID is required", "index", i)
+				return ctx.JSON(http.StatusBadRequest, api.NewError(fmt.Errorf("resource UUID is required")))
+			}
+			if _, err := uuid.Parse(resource.UUID); err != nil {
+				h.sugar.Warnw("Invalid back-matter resource UUID", "error", err, "index", i)
+				return ctx.JSON(http.StatusBadRequest, api.NewError(fmt.Errorf("invalid resource UUID format: %v", err)))
+			}
+		}
+	}
+
+	// Check if assessment results exists
+	var assessmentResult relational.AssessmentResult
+	if err := h.db.Preload("BackMatter").First(&assessmentResult, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Errorf("Failed to find assessment results: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Check if back matter exists
+	if assessmentResult.BackMatter == nil {
+		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("back matter not found")))
+	}
+
+	// Update back matter
+	backMatter := assessmentResult.BackMatter
+
+	// Delete existing resources and create new ones
+	if err := h.db.Delete(&relational.BackMatterResource{}, "back_matter_id = ?", backMatter.ID).Error; err != nil {
+		h.sugar.Errorf("Failed to delete existing resources: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Create new resources with proper BackMatterID
+	if oscalBackMatter.Resources != nil && len(*oscalBackMatter.Resources) > 0 {
+		for _, res := range *oscalBackMatter.Resources {
+			resource := &relational.BackMatterResource{}
+			resource.UnmarshalOscal(res)
+			resource.BackMatterID = *backMatter.ID
+			
+			if err := h.db.Create(resource).Error; err != nil {
+				h.sugar.Errorf("Failed to create resource: %v", err)
+				return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+			}
+		}
+	}
+	
+	// Preload resources for response
+	if err := h.db.Preload("Resources").First(backMatter, "id = ?", backMatter.ID).Error; err != nil {
+		h.sugar.Errorf("Failed to preload resources: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update metadata last-modified
+	now := time.Now()
+	h.db.Model(&relational.Metadata{}).Where("id = ?", assessmentResult.Metadata.ID).Update("last_modified", now)
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.BackMatter]{Data: *backMatter.MarshalOscal()})
 }
 
+// DeleteBackMatter godoc
+//
+//	@Summary		Delete back matter
+//	@Description	Deletes the back matter for an Assessment Results.
+//	@Tags			Assessment Results
+//	@Param			id	path	string	true	"Assessment Results ID"
+//	@Success		204	"No Content"
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/back-matter [delete]
 func (h *AssessmentResultsHandler) DeleteBackMatter(ctx echo.Context) error {
-	return ctx.JSON(http.StatusNotImplemented, api.NewError(fmt.Errorf("not implemented")))
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid assessment results id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Check if assessment results exists
+	var assessmentResult relational.AssessmentResult
+	if err := h.db.Preload("BackMatter").First(&assessmentResult, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Errorf("Failed to find assessment results: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Check if back matter exists
+	if assessmentResult.BackMatter == nil {
+		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("back matter not found")))
+	}
+
+	// Delete back matter and its resources
+	if err := h.db.Delete(&relational.BackMatter{}, "id = ?", assessmentResult.BackMatter.ID).Error; err != nil {
+		h.sugar.Errorf("Failed to delete back matter: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update metadata last-modified
+	now := time.Now()
+	h.db.Model(&relational.Metadata{}).Where("id = ?", assessmentResult.Metadata.ID).Update("last_modified", now)
+
+	return ctx.NoContent(http.StatusNoContent)
 }
 
+// GetBackMatterResources godoc
+//
+//	@Summary		Get back matter resources
+//	@Description	Retrieves all resources from the back matter for an Assessment Results.
+//	@Tags			Assessment Results
+//	@Produce		json
+//	@Param			id	path		string	true	"Assessment Results ID"
+//	@Success		200	{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.Resource]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/back-matter/resources [get]
 func (h *AssessmentResultsHandler) GetBackMatterResources(ctx echo.Context) error {
-	return ctx.JSON(http.StatusNotImplemented, api.NewError(fmt.Errorf("not implemented")))
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid assessment results id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var assessmentResult relational.AssessmentResult
+	if err := h.db.Preload("BackMatter").Preload("BackMatter.Resources").First(&assessmentResult, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Errorf("Failed to find assessment results: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Return empty list if no back matter
+	if assessmentResult.BackMatter == nil {
+		return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.Resource]{Data: []oscalTypes_1_1_3.Resource{}})
+	}
+
+	// Convert resources to OSCAL format
+	resources := make([]oscalTypes_1_1_3.Resource, len(assessmentResult.BackMatter.Resources))
+	for i, r := range assessmentResult.BackMatter.Resources {
+		resources[i] = *r.MarshalOscal()
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[oscalTypes_1_1_3.Resource]{Data: resources})
 }
 
+// CreateBackMatterResource godoc
+//
+//	@Summary		Create back matter resource
+//	@Description	Creates a new resource in the back matter for an Assessment Results.
+//	@Tags			Assessment Results
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string						true	"Assessment Results ID"
+//	@Param			resource	body		oscalTypes_1_1_3.Resource	true	"Resource"
+//	@Success		201			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Resource]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/back-matter/resources [post]
 func (h *AssessmentResultsHandler) CreateBackMatterResource(ctx echo.Context) error {
-	return ctx.JSON(http.StatusNotImplemented, api.NewError(fmt.Errorf("not implemented")))
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid assessment results id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var oscalResource oscalTypes_1_1_3.Resource
+	if err := ctx.Bind(&oscalResource); err != nil {
+		h.sugar.Errorw("invalid resource", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Validate resource
+	if err := h.validateResourceInput(&oscalResource); err != nil {
+		h.sugar.Warnw("Invalid resource input", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Check if assessment results exists
+	var assessmentResult relational.AssessmentResult
+	if err := h.db.Preload("BackMatter").First(&assessmentResult, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Errorf("Failed to find assessment results: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Create back matter if it doesn't exist
+	if assessmentResult.BackMatter == nil {
+		backMatter := &relational.BackMatter{}
+		if backMatter.ID == nil {
+			id := uuid.New()
+			backMatter.ID = &id
+		}
+		parentID := id.String()
+		parentType := "AssessmentResult"
+		backMatter.ParentID = &parentID
+		backMatter.ParentType = &parentType
+		
+		// Update the assessment result with the new back matter
+		assessmentResult.BackMatter = backMatter
+		if err := h.db.Save(&assessmentResult).Error; err != nil {
+			h.sugar.Errorf("Failed to save assessment result with back matter: %v", err)
+			return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		}
+	}
+
+	// Create the resource
+	resource := &relational.BackMatterResource{}
+	resource.UnmarshalOscal(oscalResource)
+	resource.BackMatterID = *assessmentResult.BackMatter.ID
+
+	if err := h.db.Create(resource).Error; err != nil {
+		h.sugar.Errorf("Failed to create resource: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update metadata last-modified
+	now := time.Now()
+	h.db.Model(&relational.Metadata{}).Where("id = ?", assessmentResult.Metadata.ID).Update("last_modified", now)
+
+	return ctx.JSON(http.StatusCreated, handler.GenericDataResponse[oscalTypes_1_1_3.Resource]{Data: *resource.MarshalOscal()})
 }
 
+// UpdateBackMatterResource godoc
+//
+//	@Summary		Update back matter resource
+//	@Description	Updates a specific resource in the back matter for an Assessment Results.
+//	@Tags			Assessment Results
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string						true	"Assessment Results ID"
+//	@Param			resourceId	path		string						true	"Resource ID"
+//	@Param			resource	body		oscalTypes_1_1_3.Resource	true	"Resource"
+//	@Success		200			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Resource]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/back-matter/resources/{resourceId} [put]
 func (h *AssessmentResultsHandler) UpdateBackMatterResource(ctx echo.Context) error {
-	return ctx.JSON(http.StatusNotImplemented, api.NewError(fmt.Errorf("not implemented")))
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid assessment results id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	resourceIdParam := ctx.Param("resourceId")
+	resourceId, err := uuid.Parse(resourceIdParam)
+	if err != nil {
+		h.sugar.Errorw("invalid resource id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	var oscalResource oscalTypes_1_1_3.Resource
+	if err := ctx.Bind(&oscalResource); err != nil {
+		h.sugar.Errorw("invalid resource", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Validate resource
+	if err := h.validateResourceInput(&oscalResource); err != nil {
+		h.sugar.Warnw("Invalid resource input", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Check if assessment results exists and has back matter
+	var assessmentResult relational.AssessmentResult
+	if err := h.db.Preload("BackMatter").First(&assessmentResult, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Errorf("Failed to find assessment results: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	if assessmentResult.BackMatter == nil {
+		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("back matter not found")))
+	}
+
+	// Check if resource exists
+	var existingResource relational.BackMatterResource
+	if err := h.db.First(&existingResource, "id = ? AND back_matter_id = ?", resourceId, assessmentResult.BackMatter.ID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Errorf("Failed to find resource: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update the resource
+	resource := &relational.BackMatterResource{}
+	resource.UnmarshalOscal(oscalResource)
+	resource.ID = resourceId
+	resource.BackMatterID = *assessmentResult.BackMatter.ID
+
+	if err := h.db.Save(resource).Error; err != nil {
+		h.sugar.Errorf("Failed to update resource: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update metadata last-modified
+	now := time.Now()
+	h.db.Model(&relational.Metadata{}).Where("id = ?", assessmentResult.Metadata.ID).Update("last_modified", now)
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[oscalTypes_1_1_3.Resource]{Data: *resource.MarshalOscal()})
 }
 
+// DeleteBackMatterResource godoc
+//
+//	@Summary		Delete back matter resource
+//	@Description	Deletes a specific resource from the back matter for an Assessment Results.
+//	@Tags			Assessment Results
+//	@Param			id			path	string	true	"Assessment Results ID"
+//	@Param			resourceId	path	string	true	"Resource ID"
+//	@Success		204			"No Content"
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/back-matter/resources/{resourceId} [delete]
 func (h *AssessmentResultsHandler) DeleteBackMatterResource(ctx echo.Context) error {
-	return ctx.JSON(http.StatusNotImplemented, api.NewError(fmt.Errorf("not implemented")))
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid assessment results id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	resourceIdParam := ctx.Param("resourceId")
+	resourceId, err := uuid.Parse(resourceIdParam)
+	if err != nil {
+		h.sugar.Errorw("invalid resource id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Check if assessment results exists and has back matter
+	var assessmentResult relational.AssessmentResult
+	if err := h.db.Preload("BackMatter").First(&assessmentResult, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Errorf("Failed to find assessment results: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	if assessmentResult.BackMatter == nil {
+		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("back matter not found")))
+	}
+
+	// Check if resource exists
+	var resource relational.BackMatterResource
+	if err := h.db.First(&resource, "id = ? AND back_matter_id = ?", resourceId, assessmentResult.BackMatter.ID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		}
+		h.sugar.Errorf("Failed to find resource: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Delete the resource
+	if err := h.db.Delete(&resource).Error; err != nil {
+		h.sugar.Errorf("Failed to delete resource: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update metadata last-modified
+	now := time.Now()
+	h.db.Model(&relational.Metadata{}).Where("id = ?", assessmentResult.Metadata.ID).Update("last_modified", now)
+
+	return ctx.NoContent(http.StatusNoContent)
+}
+
+// validateResourceInput validates Resource input following OSCAL requirements
+func (h *AssessmentResultsHandler) validateResourceInput(r *oscalTypes_1_1_3.Resource) error {
+	if r.UUID == "" {
+		return fmt.Errorf("UUID is required")
+	}
+	if _, err := uuid.Parse(r.UUID); err != nil {
+		return fmt.Errorf("invalid UUID format: %v", err)
+	}
+	return nil
 }

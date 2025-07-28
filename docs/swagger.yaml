@@ -7147,6 +7147,302 @@ paths:
       summary: Update an Assessment Results
       tags:
       - Assessment Results
+  /oscal/assessment-results/{id}/back-matter:
+    delete:
+      description: Deletes the back matter for an Assessment Results.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Delete back matter
+      tags:
+      - Assessment Results
+    get:
+      description: Retrieves the back matter for an Assessment Results.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_BackMatter'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Get back matter
+      tags:
+      - Assessment Results
+    post:
+      consumes:
+      - application/json
+      description: Creates or replaces the back matter for an Assessment Results.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Back Matter
+        in: body
+        name: backMatter
+        required: true
+        schema:
+          $ref: '#/definitions/oscalTypes_1_1_3.BackMatter'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_BackMatter'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Create back matter
+      tags:
+      - Assessment Results
+    put:
+      consumes:
+      - application/json
+      description: Updates the back matter for an Assessment Results.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Back Matter
+        in: body
+        name: backMatter
+        required: true
+        schema:
+          $ref: '#/definitions/oscalTypes_1_1_3.BackMatter'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_BackMatter'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Update back matter
+      tags:
+      - Assessment Results
+  /oscal/assessment-results/{id}/back-matter/resources:
+    get:
+      description: Retrieves all resources from the back matter for an Assessment
+        Results.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_Resource'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Get back matter resources
+      tags:
+      - Assessment Results
+    post:
+      consumes:
+      - application/json
+      description: Creates a new resource in the back matter for an Assessment Results.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Resource
+        in: body
+        name: resource
+        required: true
+        schema:
+          $ref: '#/definitions/oscalTypes_1_1_3.Resource'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Resource'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Create back matter resource
+      tags:
+      - Assessment Results
+  /oscal/assessment-results/{id}/back-matter/resources/{resourceId}:
+    delete:
+      description: Deletes a specific resource from the back matter for an Assessment
+        Results.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Resource ID
+        in: path
+        name: resourceId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Delete back matter resource
+      tags:
+      - Assessment Results
+    put:
+      consumes:
+      - application/json
+      description: Updates a specific resource in the back matter for an Assessment
+        Results.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Resource ID
+        in: path
+        name: resourceId
+        required: true
+        type: string
+      - description: Resource
+        in: body
+        name: resource
+        required: true
+        schema:
+          $ref: '#/definitions/oscalTypes_1_1_3.Resource'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Resource'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Update back matter resource
+      tags:
+      - Assessment Results
   /oscal/assessment-results/{id}/full:
     get:
       description: Retrieves a complete Assessment Results by its ID, including all

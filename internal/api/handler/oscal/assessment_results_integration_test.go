@@ -515,3 +515,354 @@ func (suite *AssessmentResultsApiIntegrationSuite) TestUpdateNonExistentAssessme
 
 	suite.Equal(http.StatusNotFound, rec.Code)
 }
+
+// Test Back Matter endpoints
+
+// Test Get Back Matter endpoint
+func (suite *AssessmentResultsApiIntegrationSuite) TestGetBackMatter() {
+	arUUID := suite.createBasicAssessmentResults()
+
+	rec, req := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter", arUUID), nil)
+	suite.server.E().ServeHTTP(rec, req)
+
+	suite.Equal(http.StatusOK, rec.Code)
+	var response handler.GenericDataResponse[oscaltypes.BackMatter]
+	err := json.Unmarshal(rec.Body.Bytes(), &response)
+	suite.NoError(err)
+	suite.NotNil(response.Data.Resources)
+	suite.Len(*response.Data.Resources, 0) // Should be empty initially
+}
+
+// Test Create Back Matter endpoint
+func (suite *AssessmentResultsApiIntegrationSuite) TestCreateBackMatter() {
+	arUUID := suite.createBasicAssessmentResults()
+
+	backMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Test Resource",
+				Description: "Test resource description",
+			},
+		},
+	}
+
+	rec, req := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter", arUUID), backMatter)
+	suite.server.E().ServeHTTP(rec, req)
+
+	suite.Equal(http.StatusCreated, rec.Code)
+	var response handler.GenericDataResponse[oscaltypes.BackMatter]
+	err := json.Unmarshal(rec.Body.Bytes(), &response)
+	suite.NoError(err)
+	suite.NotNil(response.Data.Resources)
+	suite.Len(*response.Data.Resources, 1)
+}
+
+// Test Create Back Matter with invalid resource UUID
+func (suite *AssessmentResultsApiIntegrationSuite) TestCreateBackMatterWithInvalidResourceUUID() {
+	arUUID := suite.createBasicAssessmentResults()
+
+	// Test with missing UUID
+	backMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				Title:       "Test Resource",
+				Description: "Test resource description",
+				// UUID is missing
+			},
+		},
+	}
+
+	rec, req := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter", arUUID), backMatter)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusBadRequest, rec.Code)
+
+	// Test with invalid UUID format
+	backMatter = oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        "invalid-uuid",
+				Title:       "Test Resource",
+				Description: "Test resource description",
+			},
+		},
+	}
+
+	rec, req = suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter", arUUID), backMatter)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusBadRequest, rec.Code)
+}
+
+// Test Update Back Matter endpoint
+func (suite *AssessmentResultsApiIntegrationSuite) TestUpdateBackMatter() {
+	arUUID := suite.createBasicAssessmentResults()
+
+	// First create back matter
+	backMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Test Resource",
+				Description: "Test resource description",
+			},
+		},
+	}
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter", arUUID), backMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Update back matter
+	updatedBackMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Updated Resource",
+				Description: "Updated resource description",
+			},
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Second Resource",
+				Description: "Second resource description",
+			},
+		},
+	}
+
+	rec, req := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter", arUUID), updatedBackMatter)
+	suite.server.E().ServeHTTP(rec, req)
+
+	suite.Equal(http.StatusOK, rec.Code)
+	var response handler.GenericDataResponse[oscaltypes.BackMatter]
+	err := json.Unmarshal(rec.Body.Bytes(), &response)
+	suite.NoError(err)
+	suite.NotNil(response.Data.Resources)
+	suite.Len(*response.Data.Resources, 2)
+}
+
+// Test Delete Back Matter endpoint
+func (suite *AssessmentResultsApiIntegrationSuite) TestDeleteBackMatter() {
+	arUUID := suite.createBasicAssessmentResults()
+
+	// First create back matter
+	backMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Test Resource",
+				Description: "Test resource description",
+			},
+		},
+	}
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter", arUUID), backMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Delete back matter
+	rec, req := suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter", arUUID), nil)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusNoContent, rec.Code)
+
+	// Verify deletion
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter", arUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+	var getResponse handler.GenericDataResponse[oscaltypes.BackMatter]
+	err := json.Unmarshal(getRec.Body.Bytes(), &getResponse)
+	suite.NoError(err)
+	suite.NotNil(getResponse.Data.Resources)
+	suite.Len(*getResponse.Data.Resources, 0) // Should be empty after deletion
+}
+
+// Test Get Back Matter Resources endpoint
+func (suite *AssessmentResultsApiIntegrationSuite) TestGetBackMatterResources() {
+	arUUID := suite.createBasicAssessmentResults()
+
+	// First create back matter with resources
+	backMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Resource 1",
+				Description: "Resource 1 description",
+			},
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Resource 2",
+				Description: "Resource 2 description",
+			},
+		},
+	}
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter", arUUID), backMatter)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	suite.Equal(http.StatusCreated, createRec.Code)
+	
+	// Verify the back matter was created with resources
+	var createResponse handler.GenericDataResponse[oscaltypes.BackMatter]
+	err := json.Unmarshal(createRec.Body.Bytes(), &createResponse)
+	suite.NoError(err)
+	if err != nil || createResponse.Data.Resources == nil {
+		suite.T().Logf("Create back matter response body: %s", createRec.Body.String())
+	}
+	suite.NotNil(createResponse.Data.Resources)
+	if createResponse.Data.Resources != nil {
+		suite.T().Logf("Created back matter has %d resources", len(*createResponse.Data.Resources))
+	}
+	suite.Len(*createResponse.Data.Resources, 2)
+
+	// Get resources
+	rec, req := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter/resources", arUUID), nil)
+	suite.server.E().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		suite.T().Logf("Get resources response: %d, body: %s", rec.Code, rec.Body.String())
+	}
+	suite.Equal(http.StatusOK, rec.Code)
+	var response handler.GenericDataListResponse[oscaltypes.Resource]
+	err = json.Unmarshal(rec.Body.Bytes(), &response)
+	suite.NoError(err)
+	suite.T().Logf("Get resources returned %d items", len(response.Data))
+	suite.Len(response.Data, 2)
+}
+
+// Test Create Back Matter Resource endpoint
+func (suite *AssessmentResultsApiIntegrationSuite) TestCreateBackMatterResource() {
+	arUUID := suite.createBasicAssessmentResults()
+
+	resource := oscaltypes.Resource{
+		UUID:        uuid.New().String(),
+		Title:       "New Resource",
+		Description: "New resource description",
+	}
+
+	rec, req := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter/resources", arUUID), resource)
+	suite.server.E().ServeHTTP(rec, req)
+
+	suite.Equal(http.StatusCreated, rec.Code)
+	var response handler.GenericDataResponse[oscaltypes.Resource]
+	err := json.Unmarshal(rec.Body.Bytes(), &response)
+	suite.NoError(err)
+	suite.Equal(resource.UUID, response.Data.UUID)
+	suite.Equal(resource.Title, response.Data.Title)
+}
+
+// Test Update Back Matter Resource endpoint
+func (suite *AssessmentResultsApiIntegrationSuite) TestUpdateBackMatterResource() {
+	arUUID := suite.createBasicAssessmentResults()
+
+	// First create a resource
+	resource := oscaltypes.Resource{
+		UUID:        uuid.New().String(),
+		Title:       "Original Resource",
+		Description: "Original description",
+	}
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter/resources", arUUID), resource)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	if createRec.Code != http.StatusCreated {
+		suite.T().Logf("Create resource response: %d, body: %s", createRec.Code, createRec.Body.String())
+	}
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Parse the response to get the actual resource ID
+	var createResponse handler.GenericDataResponse[oscaltypes.Resource]
+	err := json.Unmarshal(createRec.Body.Bytes(), &createResponse)
+	suite.NoError(err)
+	resourceID := createResponse.Data.UUID
+	
+	// Update the resource
+	resource.Title = "Updated Resource"
+	resource.Description = "Updated description"
+	rec, req := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter/resources/%s", arUUID, resourceID), resource)
+	suite.server.E().ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		suite.T().Logf("Update resource response: %d, body: %s", rec.Code, rec.Body.String())
+	}
+	suite.Equal(http.StatusOK, rec.Code)
+	var response handler.GenericDataResponse[oscaltypes.Resource]
+	err = json.Unmarshal(rec.Body.Bytes(), &response)
+	suite.NoError(err)
+	suite.Equal("Updated Resource", response.Data.Title)
+	suite.Equal("Updated description", response.Data.Description)
+}
+
+// Test Delete Back Matter Resource endpoint
+func (suite *AssessmentResultsApiIntegrationSuite) TestDeleteBackMatterResource() {
+	arUUID := suite.createBasicAssessmentResults()
+
+	// First create a resource
+	resource := oscaltypes.Resource{
+		UUID:        uuid.New().String(),
+		Title:       "Resource to Delete",
+		Description: "This will be deleted",
+	}
+	createRec, createReq := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter/resources", arUUID), resource)
+	suite.server.E().ServeHTTP(createRec, createReq)
+	if createRec.Code != http.StatusCreated {
+		suite.T().Logf("Create resource response: %d, body: %s", createRec.Code, createRec.Body.String())
+	}
+	suite.Equal(http.StatusCreated, createRec.Code)
+
+	// Parse the response to get the actual resource ID
+	var createResponse handler.GenericDataResponse[oscaltypes.Resource]
+	err := json.Unmarshal(createRec.Body.Bytes(), &createResponse)
+	suite.NoError(err)
+	resourceID := createResponse.Data.UUID
+	
+	// Delete the resource
+	rec, req := suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter/resources/%s", arUUID, resourceID), nil)
+	suite.server.E().ServeHTTP(rec, req)
+	if rec.Code != http.StatusNoContent {
+		suite.T().Logf("Delete resource response: %d, body: %s", rec.Code, rec.Body.String())
+	}
+	suite.Equal(http.StatusNoContent, rec.Code)
+
+	// Verify deletion
+	getRec, getReq := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter/resources", arUUID), nil)
+	suite.server.E().ServeHTTP(getRec, getReq)
+	suite.Equal(http.StatusOK, getRec.Code)
+	var getResponse handler.GenericDataListResponse[oscaltypes.Resource]
+	err = json.Unmarshal(getRec.Body.Bytes(), &getResponse)
+	suite.NoError(err)
+	suite.Len(getResponse.Data, 0) // Should be empty after deletion
+}
+
+// Test Create Resource with invalid UUID
+func (suite *AssessmentResultsApiIntegrationSuite) TestCreateResourceWithInvalidUUID() {
+	arUUID := suite.createBasicAssessmentResults()
+
+	resource := oscaltypes.Resource{
+		UUID:        "invalid-uuid",
+		Title:       "Test Resource",
+		Description: "Test description",
+	}
+
+	rec, req := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter/resources", arUUID), resource)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusBadRequest, rec.Code)
+}
+
+// Test Update non-existent back matter
+func (suite *AssessmentResultsApiIntegrationSuite) TestUpdateNonExistentBackMatter() {
+	arUUID := suite.createBasicAssessmentResults()
+
+	backMatter := oscaltypes.BackMatter{
+		Resources: &[]oscaltypes.Resource{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Test Resource",
+				Description: "Test description",
+			},
+		},
+	}
+
+	rec, req := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter", arUUID), backMatter)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusNotFound, rec.Code)
+}
+
+// Test Delete non-existent back matter
+func (suite *AssessmentResultsApiIntegrationSuite) TestDeleteNonExistentBackMatter() {
+	arUUID := suite.createBasicAssessmentResults()
+
+	rec, req := suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter", arUUID), nil)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusNotFound, rec.Code)
+}
