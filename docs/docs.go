@@ -3197,14 +3197,14 @@ const docTemplate = `{
                         "OAuth2Password": []
                     }
                 ],
-                "description": "Retrieves all findings across all results in an assessment results document.",
+                "description": "Retrieves all findings in the system that can be associated with results.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Assessment Results"
                 ],
-                "summary": "List all findings in assessment results",
+                "summary": "List all findings available for association",
                 "parameters": [
                     {
                         "type": "string",
@@ -3643,14 +3643,14 @@ const docTemplate = `{
                         "OAuth2Password": []
                     }
                 ],
-                "description": "Retrieves all observations across all results in an assessment results document.",
+                "description": "Retrieves all observations in the system that can be associated with results.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Assessment Results"
                 ],
-                "summary": "List all observations in assessment results",
+                "summary": "List all observations available for association",
                 "parameters": [
                     {
                         "type": "string",
@@ -5584,14 +5584,14 @@ const docTemplate = `{
                         "OAuth2Password": []
                     }
                 ],
-                "description": "Retrieves all risks across all results in an assessment results document.",
+                "description": "Retrieves all risks in the system that can be associated with results.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Assessment Results"
                 ],
-                "summary": "List all risks in assessment results",
+                "summary": "List all risks available for association",
                 "parameters": [
                     {
                         "type": "string",

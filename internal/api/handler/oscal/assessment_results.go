@@ -2824,8 +2824,8 @@ func (h *AssessmentResultsHandler) DisassociateResultFinding(ctx echo.Context) e
 
 // GetAllObservations godoc
 //
-//	@Summary		List all observations in assessment results
-//	@Description	Retrieves all observations across all results in an assessment results document.
+//	@Summary		List all observations available for association
+//	@Description	Retrieves all observations in the system that can be associated with results.
 //	@Tags			Assessment Results
 //	@Produce		json
 //	@Param			id	path		string	true	"Assessment Results ID"
@@ -2848,14 +2848,9 @@ func (h *AssessmentResultsHandler) GetAllObservations(ctx echo.Context) error {
 		return err
 	}
 
-	// Get all observations from all results
+	// Get all observations in the system (not just those associated with this assessment result)
 	var observations []relational.Observation
-	if err := h.db.
-		Joins("JOIN result_observations ON observations.id = result_observations.observation_id").
-		Joins("JOIN results ON results.id = result_observations.result_id").
-		Where("results.assessment_result_id = ?", id).
-		Distinct("observations.id").
-		Find(&observations).Error; err != nil {
+	if err := h.db.Find(&observations).Error; err != nil {
 		h.sugar.Errorf("Failed to retrieve observations: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
@@ -2870,8 +2865,8 @@ func (h *AssessmentResultsHandler) GetAllObservations(ctx echo.Context) error {
 
 // GetAllRisks godoc
 //
-//	@Summary		List all risks in assessment results
-//	@Description	Retrieves all risks across all results in an assessment results document.
+//	@Summary		List all risks available for association
+//	@Description	Retrieves all risks in the system that can be associated with results.
 //	@Tags			Assessment Results
 //	@Produce		json
 //	@Param			id	path		string	true	"Assessment Results ID"
@@ -2894,14 +2889,9 @@ func (h *AssessmentResultsHandler) GetAllRisks(ctx echo.Context) error {
 		return err
 	}
 
-	// Get all risks from all results
+	// Get all risks in the system (not just those associated with this assessment result)
 	var risks []relational.Risk
-	if err := h.db.
-		Joins("JOIN result_risks ON risks.id = result_risks.risk_id").
-		Joins("JOIN results ON results.id = result_risks.result_id").
-		Where("results.assessment_result_id = ?", id).
-		Distinct("risks.id").
-		Find(&risks).Error; err != nil {
+	if err := h.db.Find(&risks).Error; err != nil {
 		h.sugar.Errorf("Failed to retrieve risks: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
@@ -2916,8 +2906,8 @@ func (h *AssessmentResultsHandler) GetAllRisks(ctx echo.Context) error {
 
 // GetAllFindings godoc
 //
-//	@Summary		List all findings in assessment results
-//	@Description	Retrieves all findings across all results in an assessment results document.
+//	@Summary		List all findings available for association
+//	@Description	Retrieves all findings in the system that can be associated with results.
 //	@Tags			Assessment Results
 //	@Produce		json
 //	@Param			id	path		string	true	"Assessment Results ID"
@@ -2940,14 +2930,9 @@ func (h *AssessmentResultsHandler) GetAllFindings(ctx echo.Context) error {
 		return err
 	}
 
-	// Get all findings from all results
+	// Get all findings in the system (not just those associated with this assessment result)
 	var findings []relational.Finding
-	if err := h.db.
-		Joins("JOIN result_findings ON findings.id = result_findings.finding_id").
-		Joins("JOIN results ON results.id = result_findings.result_id").
-		Where("results.assessment_result_id = ?", id).
-		Distinct("findings.id").
-		Find(&findings).Error; err != nil {
+	if err := h.db.Find(&findings).Error; err != nil {
 		h.sugar.Errorf("Failed to retrieve findings: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}

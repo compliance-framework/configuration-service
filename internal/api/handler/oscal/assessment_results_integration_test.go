@@ -1386,6 +1386,11 @@ func (suite *AssessmentResultsApiIntegrationSuite) createStandaloneFinding() *os
 
 // TestGetAllObservationsRisksFindings tests the endpoints that list all observations, risks, and findings
 func (suite *AssessmentResultsApiIntegrationSuite) TestGetAllObservationsRisksFindings() {
+	// First, create some standalone observations/risks/findings that aren't associated with any result
+	standaloneObs := suite.createStandaloneObservation()
+	standaloneRisk := suite.createStandaloneRisk()
+	standaloneFinding := suite.createStandaloneFinding()
+	
 	// Create an assessment result with multiple results
 	ar := oscaltypes.AssessmentResults{
 		UUID: uuid.New().String(),
@@ -1520,12 +1525,17 @@ func (suite *AssessmentResultsApiIntegrationSuite) TestGetAllObservationsRisksFi
 		var obsResp handler.GenericDataListResponse[*oscaltypes.Observation]
 		err := json.Unmarshal(rec.Body.Bytes(), &obsResp)
 		suite.NoError(err)
-		suite.Len(obsResp.Data, 2)
+		// Should have 3 observations: 2 created for results + 1 standalone
+		suite.Len(obsResp.Data, 3)
 		
-		// Verify we got both observations
-		obsUUIDs := []string{obsResp.Data[0].UUID, obsResp.Data[1].UUID}
+		// Verify we got all observations including the standalone one
+		obsUUIDs := []string{}
+		for _, obs := range obsResp.Data {
+			obsUUIDs = append(obsUUIDs, obs.UUID)
+		}
 		suite.Contains(obsUUIDs, obs1.UUID)
 		suite.Contains(obsUUIDs, obs2.UUID)
+		suite.Contains(obsUUIDs, standaloneObs.UUID)
 	})
 	
 	// Test GetAllRisks
@@ -1537,8 +1547,16 @@ func (suite *AssessmentResultsApiIntegrationSuite) TestGetAllObservationsRisksFi
 		var riskResp handler.GenericDataListResponse[*oscaltypes.Risk]
 		err := json.Unmarshal(rec.Body.Bytes(), &riskResp)
 		suite.NoError(err)
-		suite.Len(riskResp.Data, 1)
-		suite.Equal(risk1.UUID, riskResp.Data[0].UUID)
+		// Should have 2 risks: 1 created for results + 1 standalone
+		suite.Len(riskResp.Data, 2)
+		
+		// Verify we got both risks including the standalone one
+		riskUUIDs := []string{}
+		for _, risk := range riskResp.Data {
+			riskUUIDs = append(riskUUIDs, risk.UUID)
+		}
+		suite.Contains(riskUUIDs, risk1.UUID)
+		suite.Contains(riskUUIDs, standaloneRisk.UUID)
 	})
 	
 	// Test GetAllFindings
@@ -1550,11 +1568,16 @@ func (suite *AssessmentResultsApiIntegrationSuite) TestGetAllObservationsRisksFi
 		var findingResp handler.GenericDataListResponse[*oscaltypes.Finding]
 		err := json.Unmarshal(rec.Body.Bytes(), &findingResp)
 		suite.NoError(err)
-		suite.Len(findingResp.Data, 2)
+		// Should have 3 findings: 2 created for results + 1 standalone
+		suite.Len(findingResp.Data, 3)
 		
-		// Verify we got both findings
-		findingUUIDs := []string{findingResp.Data[0].UUID, findingResp.Data[1].UUID}
+		// Verify we got all findings including the standalone one
+		findingUUIDs := []string{}
+		for _, finding := range findingResp.Data {
+			findingUUIDs = append(findingUUIDs, finding.UUID)
+		}
 		suite.Contains(findingUUIDs, finding1.UUID)
 		suite.Contains(findingUUIDs, finding2.UUID)
+		suite.Contains(findingUUIDs, standaloneFinding.UUID)
 	})
 }
