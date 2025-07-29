@@ -24,7 +24,6 @@ import (
 )
 
 func TestAssessmentResultsApi(t *testing.T) {
-	fmt.Println("Starting Assessment Results API tests")
 	suite.Run(t, new(AssessmentResultsApiIntegrationSuite))
 }
 
@@ -35,7 +34,6 @@ type AssessmentResultsApiIntegrationSuite struct {
 }
 
 func (suite *AssessmentResultsApiIntegrationSuite) SetupSuite() {
-	fmt.Println("Setting up Assessment Results API test suite")
 	suite.IntegrationTestSuite.SetupSuite()
 
 	logConf := zap.NewDevelopmentConfig()
@@ -44,7 +42,6 @@ func (suite *AssessmentResultsApiIntegrationSuite) SetupSuite() {
 	suite.logger = logger.Sugar()
 	suite.server = api.NewServer(context.Background(), suite.logger, suite.Config)
 	RegisterHandlers(suite.server, suite.logger, suite.DB, suite.Config)
-	fmt.Println("Server initialized")
 }
 
 func (suite *AssessmentResultsApiIntegrationSuite) SetupTest() {
