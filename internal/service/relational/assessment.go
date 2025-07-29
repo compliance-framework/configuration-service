@@ -568,7 +568,13 @@ type Attestation struct {
 }
 
 func (i *Attestation) UnmarshalOscal(op oscalTypes_1_1_3.AttestationStatements) *Attestation {
+	// Preserve existing ID and ResultID if they exist
+	existingID := i.ID
+	existingResultID := i.ResultID
 	*i = Attestation{}
+	i.ID = existingID
+	i.ResultID = existingResultID
+	
 	if op.Parts != nil {
 		parts := ConvertList(&op.Parts, func(data oscalTypes_1_1_3.AssessmentPart) AssessmentPart {
 			output := AssessmentPart{}

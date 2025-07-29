@@ -14,6 +14,7 @@ import (
 
 	"github.com/compliance-framework/api/internal/api"
 	"github.com/compliance-framework/api/internal/api/handler"
+	"github.com/compliance-framework/api/internal/service/relational"
 	"github.com/compliance-framework/api/internal/tests"
 	oscaltypes "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
@@ -865,4 +866,299 @@ func (suite *AssessmentResultsApiIntegrationSuite) TestDeleteNonExistentBackMatt
 	rec, req := suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/assessment-results/%s/back-matter", arUUID), nil)
 	suite.server.E().ServeHTTP(rec, req)
 	suite.Equal(http.StatusNotFound, rec.Code)
+}
+
+// Result sub-endpoints tests
+
+// Helper function to create a result with sub-resources
+func (suite *AssessmentResultsApiIntegrationSuite) createResultWithSubResources(arUUID string) string {
+	// First create a result
+	result := oscaltypes.Result{
+		UUID:        uuid.New().String(),
+		Title:       "Test Result",
+		Description: "Test result description",
+		Start:       time.Now(),
+		ReviewedControls: oscaltypes.ReviewedControls{
+			ControlSelections: []oscaltypes.AssessedControls{
+				{
+					IncludeControls: &[]oscaltypes.AssessedControlsSelectControlById{
+						{ControlId: "ac-1"},
+					},
+				},
+			},
+		},
+	}
+
+	rec, req := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/results", arUUID), result)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusCreated, rec.Code)
+
+	var resp handler.GenericDataResponse[oscaltypes.Result]
+	suite.NoError(json.Unmarshal(rec.Body.Bytes(), &resp))
+	return resp.Data.UUID
+}
+
+// Test Observations CRUD
+func (suite *AssessmentResultsApiIntegrationSuite) TestResultObservationsCRUD() {
+	arUUID := suite.createBasicAssessmentResults()
+	resultUUID := suite.createResultWithSubResources(arUUID)
+
+	// Create observation
+	observation := oscaltypes.Observation{
+		UUID:        uuid.New().String(),
+		Description: "Test observation",
+		Methods:     []string{"TEST", "INTERVIEW"},
+		Types:       &[]string{"finding"},
+		Subjects: &[]oscaltypes.SubjectReference{
+			{
+				SubjectUuid: uuid.New().String(),
+				Type:        "component",
+			},
+		},
+		Collected: time.Now(),
+	}
+
+	rec, req := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/observations", arUUID, resultUUID), observation)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusCreated, rec.Code)
+
+	var createResp handler.GenericDataResponse[oscaltypes.Observation]
+	suite.NoError(json.Unmarshal(rec.Body.Bytes(), &createResp))
+	obsUUID := createResp.Data.UUID
+
+	// Get observations
+	rec, req = suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/observations", arUUID, resultUUID), nil)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusOK, rec.Code)
+
+	var listResp handler.GenericDataListResponse[oscaltypes.Observation]
+	suite.NoError(json.Unmarshal(rec.Body.Bytes(), &listResp))
+	suite.Len(listResp.Data, 1)
+
+	// Update observation
+	observation.Description = "Updated observation"
+	rec, req = suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/observations/%s", arUUID, resultUUID, obsUUID), observation)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusOK, rec.Code)
+
+	// Delete observation
+	rec, req = suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/observations/%s", arUUID, resultUUID, obsUUID), nil)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusNoContent, rec.Code)
+}
+
+// Test Risks CRUD
+func (suite *AssessmentResultsApiIntegrationSuite) TestResultRisksCRUD() {
+	arUUID := suite.createBasicAssessmentResults()
+	resultUUID := suite.createResultWithSubResources(arUUID)
+
+	// Create risk
+	risk := oscaltypes.Risk{
+		UUID:        uuid.New().String(),
+		Title:       "Test Risk",
+		Description: "Test risk description",
+		Statement:   "Risk statement",
+		Status:      "open",
+		RiskLog: &oscaltypes.RiskLog{
+			Entries: []oscaltypes.RiskLogEntry{
+				{
+					UUID:        uuid.New().String(),
+					Title:       "Initial Entry",
+					Start:       time.Now(),
+					Description: "Initial risk log entry",
+				},
+			},
+		},
+	}
+
+	rec, req := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/risks", arUUID, resultUUID), risk)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusCreated, rec.Code)
+
+	var createResp handler.GenericDataResponse[oscaltypes.Risk]
+	suite.NoError(json.Unmarshal(rec.Body.Bytes(), &createResp))
+	riskUUID := createResp.Data.UUID
+
+	// Get risks
+	rec, req = suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/risks", arUUID, resultUUID), nil)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusOK, rec.Code)
+
+	var listResp handler.GenericDataListResponse[oscaltypes.Risk]
+	suite.NoError(json.Unmarshal(rec.Body.Bytes(), &listResp))
+	suite.Len(listResp.Data, 1)
+
+	// Update risk
+	risk.Title = "Updated Risk"
+	rec, req = suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/risks/%s", arUUID, resultUUID, riskUUID), risk)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusOK, rec.Code)
+
+	// Delete risk
+	rec, req = suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/risks/%s", arUUID, resultUUID, riskUUID), nil)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusNoContent, rec.Code)
+}
+
+// Test Findings CRUD
+func (suite *AssessmentResultsApiIntegrationSuite) TestResultFindingsCRUD() {
+	arUUID := suite.createBasicAssessmentResults()
+	resultUUID := suite.createResultWithSubResources(arUUID)
+
+	// Create finding
+	finding := oscaltypes.Finding{
+		UUID:        uuid.New().String(),
+		Title:       "Test Finding",
+		Description: "Test finding description",
+		Target: oscaltypes.FindingTarget{
+			Type:               "objective-id",
+			TargetId:           "ac-1_obj.1",
+			Status: oscaltypes.ObjectiveStatus{
+				State:  "not-satisfied",
+				Reason: "Test reason",
+			},
+		},
+	}
+
+	rec, req := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/findings", arUUID, resultUUID), finding)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusCreated, rec.Code)
+
+	var createResp handler.GenericDataResponse[oscaltypes.Finding]
+	suite.NoError(json.Unmarshal(rec.Body.Bytes(), &createResp))
+	findingUUID := createResp.Data.UUID
+
+	// Get findings
+	rec, req = suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/findings", arUUID, resultUUID), nil)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusOK, rec.Code)
+
+	var listResp handler.GenericDataListResponse[oscaltypes.Finding]
+	suite.NoError(json.Unmarshal(rec.Body.Bytes(), &listResp))
+	suite.Len(listResp.Data, 1)
+
+	// Update finding
+	finding.Title = "Updated Finding"
+	rec, req = suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/findings/%s", arUUID, resultUUID, findingUUID), finding)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusOK, rec.Code)
+
+	// Delete finding
+	rec, req = suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/findings/%s", arUUID, resultUUID, findingUUID), nil)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusNoContent, rec.Code)
+}
+
+// Test Attestations CRUD
+func (suite *AssessmentResultsApiIntegrationSuite) TestResultAttestationsCRUD() {
+	arUUID := suite.createBasicAssessmentResults()
+	resultUUID := suite.createResultWithSubResources(arUUID)
+
+	// Create attestation
+	attestation := oscaltypes.AttestationStatements{
+		Parts: []oscaltypes.AssessmentPart{
+			{
+				UUID:  uuid.New().String(),
+				Name:  "attestation",
+				Ns:    "https://fedramp.gov/ns/oscal",
+				Class: "fedramp",
+				Title: "Attestation Statement",
+				Prose: "I attest to the accuracy of this assessment.",
+			},
+		},
+		ResponsibleParties: &[]oscaltypes.ResponsibleParty{
+			{
+				RoleId: "prepared-by",
+				PartyUuids: []string{
+					uuid.New().String(),
+				},
+			},
+		},
+	}
+
+	rec, req := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/attestations", arUUID, resultUUID), attestation)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusCreated, rec.Code)
+	
+	// Log the response
+	if rec.Code != http.StatusCreated {
+		suite.T().Logf("Create attestation response: %s", rec.Body.String())
+	}
+
+	// Get the created attestation ID from the database since AttestationStatements doesn't have a UUID field
+	var createdAttestation relational.Attestation
+	err := suite.DB.Where("result_id = ?", resultUUID).First(&createdAttestation).Error
+	suite.NoError(err)
+	suite.NotNil(createdAttestation.ID)
+	suite.T().Logf("Created attestation ID: %v", createdAttestation.ID)
+	
+	var attestationUUID string
+	if createdAttestation.ID != nil {
+		attestationUUID = (*createdAttestation.ID).String()
+	}
+	suite.NotEmpty(attestationUUID, "Attestation UUID should not be empty")
+	suite.T().Logf("Attestation UUID to use for update/delete: %s", attestationUUID)
+
+	// Get attestations
+	rec, req = suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/attestations", arUUID, resultUUID), nil)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusOK, rec.Code)
+
+	var listResp handler.GenericDataListResponse[oscaltypes.AttestationStatements]
+	suite.NoError(json.Unmarshal(rec.Body.Bytes(), &listResp))
+	suite.Len(listResp.Data, 1)
+
+	// Update attestation
+	attestation.Parts[0].Prose = "Updated attestation statement"
+	rec, req = suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/attestations/%s", arUUID, resultUUID, attestationUUID), attestation)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusOK, rec.Code)
+
+	// Delete attestation
+	rec, req = suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/attestations/%s", arUUID, resultUUID, attestationUUID), nil)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusNoContent, rec.Code)
+}
+
+// Test validation errors
+func (suite *AssessmentResultsApiIntegrationSuite) TestResultSubResourcesValidation() {
+	arUUID := suite.createBasicAssessmentResults()
+	resultUUID := suite.createResultWithSubResources(arUUID)
+
+	// Test invalid observation (missing required fields)
+	invalidObs := oscaltypes.Observation{
+		UUID: "invalid-uuid",
+		// Missing required description and methods
+	}
+	rec, req := suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/observations", arUUID, resultUUID), invalidObs)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusBadRequest, rec.Code)
+
+	// Test invalid risk (missing required fields)
+	invalidRisk := oscaltypes.Risk{
+		UUID: uuid.New().String(),
+		// Missing required title, description, statement, status
+	}
+	rec, req = suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/risks", arUUID, resultUUID), invalidRisk)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusBadRequest, rec.Code)
+
+	// Test invalid finding (missing required fields)
+	invalidFinding := oscaltypes.Finding{
+		UUID:  uuid.New().String(),
+		Title: "Test Finding",
+		// Missing required description and target
+		Target: oscaltypes.FindingTarget{},
+	}
+	rec, req = suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/findings", arUUID, resultUUID), invalidFinding)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusBadRequest, rec.Code)
+
+	// Test invalid attestation (missing required parts)
+	invalidAttestation := oscaltypes.AttestationStatements{
+		// Missing required parts
+	}
+	rec, req = suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/attestations", arUUID, resultUUID), invalidAttestation)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusBadRequest, rec.Code)
 }
