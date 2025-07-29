@@ -1135,13 +1135,13 @@ func (h *AssessmentResultsHandler) GetResultObservations(ctx echo.Context) error
 //	@Tags			Assessment Results
 //	@Accept			json
 //	@Produce		json
-//	@Param			id				path		string							true	"Assessment Results ID"
-//	@Param			resultId		path		string							true	"Result ID"
-//	@Param			observation		body		oscalTypes_1_1_3.Observation	true	"Observation data"
-//	@Success		201				{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Observation]
-//	@Failure		400				{object}	api.Error
-//	@Failure		404				{object}	api.Error
-//	@Failure		500				{object}	api.Error
+//	@Param			id			path		string							true	"Assessment Results ID"
+//	@Param			resultId	path		string							true	"Result ID"
+//	@Param			observation	body		oscalTypes_1_1_3.Observation	true	"Observation data"
+//	@Success		201			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Observation]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
 //	@Security		OAuth2Password
 //	@Router			/oscal/assessment-results/{id}/results/{resultId}/observations [post]
 func (h *AssessmentResultsHandler) CreateResultObservation(ctx echo.Context) error {
@@ -1207,14 +1207,14 @@ func (h *AssessmentResultsHandler) CreateResultObservation(ctx echo.Context) err
 //	@Tags			Assessment Results
 //	@Accept			json
 //	@Produce		json
-//	@Param			id				path		string							true	"Assessment Results ID"
-//	@Param			resultId		path		string							true	"Result ID"
-//	@Param			obsId			path		string							true	"Observation ID"
-//	@Param			observation		body		oscalTypes_1_1_3.Observation	true	"Observation data"
-//	@Success		200				{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Observation]
-//	@Failure		400				{object}	api.Error
-//	@Failure		404				{object}	api.Error
-//	@Failure		500				{object}	api.Error
+//	@Param			id			path		string							true	"Assessment Results ID"
+//	@Param			resultId	path		string							true	"Result ID"
+//	@Param			obsId		path		string							true	"Observation ID"
+//	@Param			observation	body		oscalTypes_1_1_3.Observation	true	"Observation data"
+//	@Success		200			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Observation]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
 //	@Security		OAuth2Password
 //	@Router			/oscal/assessment-results/{id}/results/{resultId}/observations/{obsId} [put]
 func (h *AssessmentResultsHandler) UpdateResultObservation(ctx echo.Context) error {
@@ -1966,13 +1966,13 @@ func (h *AssessmentResultsHandler) GetResultAttestations(ctx echo.Context) error
 //	@Tags			Assessment Results
 //	@Accept			json
 //	@Produce		json
-//	@Param			id				path		string										true	"Assessment Results ID"
-//	@Param			resultId		path		string										true	"Result ID"
-//	@Param			attestation		body		oscalTypes_1_1_3.AttestationStatements	true	"Attestation data"
-//	@Success		201				{object}	handler.GenericDataResponse[oscalTypes_1_1_3.AttestationStatements]
-//	@Failure		400				{object}	api.Error
-//	@Failure		404				{object}	api.Error
-//	@Failure		500				{object}	api.Error
+//	@Param			id			path		string									true	"Assessment Results ID"
+//	@Param			resultId	path		string									true	"Result ID"
+//	@Param			attestation	body		oscalTypes_1_1_3.AttestationStatements	true	"Attestation data"
+//	@Success		201			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.AttestationStatements]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
 //	@Security		OAuth2Password
 //	@Router			/oscal/assessment-results/{id}/results/{resultId}/attestations [post]
 func (h *AssessmentResultsHandler) CreateResultAttestation(ctx echo.Context) error {
@@ -2039,9 +2039,9 @@ func (h *AssessmentResultsHandler) CreateResultAttestation(ctx echo.Context) err
 //	@Tags			Assessment Results
 //	@Accept			json
 //	@Produce		json
-//	@Param			id				path		string										true	"Assessment Results ID"
-//	@Param			resultId		path		string										true	"Result ID"
-//	@Param			attestationId	path		string										true	"Attestation ID"
+//	@Param			id				path		string									true	"Assessment Results ID"
+//	@Param			resultId		path		string									true	"Result ID"
+//	@Param			attestationId	path		string									true	"Attestation ID"
 //	@Param			attestation		body		oscalTypes_1_1_3.AttestationStatements	true	"Attestation data"
 //	@Success		200				{object}	handler.GenericDataResponse[oscalTypes_1_1_3.AttestationStatements]
 //	@Failure		400				{object}	api.Error

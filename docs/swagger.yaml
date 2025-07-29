@@ -385,6 +385,14 @@ definitions:
           $ref: '#/definitions/oscalTypes_1_1_3.AssociatedActivity'
         type: array
     type: object
+  handler.GenericDataListResponse-oscalTypes_1_1_3_AttestationStatements:
+    properties:
+      data:
+        description: Items from the list response
+        items:
+          $ref: '#/definitions/oscalTypes_1_1_3.AttestationStatements'
+        type: array
+    type: object
   handler.GenericDataListResponse-oscalTypes_1_1_3_Capability:
     properties:
       data:
@@ -699,6 +707,13 @@ definitions:
       data:
         allOf:
         - $ref: '#/definitions/oscalTypes_1_1_3.AssessmentSubject'
+        description: Items from the list response
+    type: object
+  handler.GenericDataResponse-oscalTypes_1_1_3_AttestationStatements:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/oscalTypes_1_1_3.AttestationStatements'
         description: Items from the list response
     type: object
   handler.GenericDataResponse-oscalTypes_1_1_3_AuthorizationBoundary:
@@ -7885,6 +7900,350 @@ paths:
       summary: Update a result
       tags:
       - Assessment Results
+  /oscal/assessment-results/{id}/results/{resultId}/attestations:
+    get:
+      description: Retrieves all attestations for a given result.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_AttestationStatements'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Get attestations for a result
+      tags:
+      - Assessment Results
+    post:
+      consumes:
+      - application/json
+      description: Creates a new attestation for a given result.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      - description: Attestation data
+        in: body
+        name: attestation
+        required: true
+        schema:
+          $ref: '#/definitions/oscalTypes_1_1_3.AttestationStatements'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_AttestationStatements'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Create an attestation for a result
+      tags:
+      - Assessment Results
+  /oscal/assessment-results/{id}/results/{resultId}/attestations/{attestationId}:
+    delete:
+      description: Deletes a specific attestation from a result.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      - description: Attestation ID
+        in: path
+        name: attestationId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Delete an attestation
+      tags:
+      - Assessment Results
+    put:
+      consumes:
+      - application/json
+      description: Updates a specific attestation in a result.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      - description: Attestation ID
+        in: path
+        name: attestationId
+        required: true
+        type: string
+      - description: Attestation data
+        in: body
+        name: attestation
+        required: true
+        schema:
+          $ref: '#/definitions/oscalTypes_1_1_3.AttestationStatements'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_AttestationStatements'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Update an attestation
+      tags:
+      - Assessment Results
+  /oscal/assessment-results/{id}/results/{resultId}/findings:
+    get:
+      description: Retrieves all findings for a given result.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_Finding'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Get findings for a result
+      tags:
+      - Assessment Results
+    post:
+      consumes:
+      - application/json
+      description: Creates a new finding for a given result.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      - description: Finding data
+        in: body
+        name: finding
+        required: true
+        schema:
+          $ref: '#/definitions/oscalTypes_1_1_3.Finding'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Finding'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Create a finding for a result
+      tags:
+      - Assessment Results
+  /oscal/assessment-results/{id}/results/{resultId}/findings/{findingId}:
+    delete:
+      description: Deletes a specific finding from a result.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      - description: Finding ID
+        in: path
+        name: findingId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Delete a finding
+      tags:
+      - Assessment Results
+    put:
+      consumes:
+      - application/json
+      description: Updates a specific finding in a result.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      - description: Finding ID
+        in: path
+        name: findingId
+        required: true
+        type: string
+      - description: Finding data
+        in: body
+        name: finding
+        required: true
+        schema:
+          $ref: '#/definitions/oscalTypes_1_1_3.Finding'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Finding'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Update a finding
+      tags:
+      - Assessment Results
   /oscal/assessment-results/{id}/results/{resultId}/observations:
     get:
       description: Retrieves all observations for a given result.
@@ -7921,6 +8280,312 @@ paths:
       security:
       - OAuth2Password: []
       summary: Get observations for a result
+      tags:
+      - Assessment Results
+    post:
+      consumes:
+      - application/json
+      description: Creates a new observation for a given result.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      - description: Observation data
+        in: body
+        name: observation
+        required: true
+        schema:
+          $ref: '#/definitions/oscalTypes_1_1_3.Observation'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Observation'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Create an observation for a result
+      tags:
+      - Assessment Results
+  /oscal/assessment-results/{id}/results/{resultId}/observations/{obsId}:
+    delete:
+      description: Deletes a specific observation from a result.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      - description: Observation ID
+        in: path
+        name: obsId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Delete an observation
+      tags:
+      - Assessment Results
+    put:
+      consumes:
+      - application/json
+      description: Updates a specific observation in a result.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      - description: Observation ID
+        in: path
+        name: obsId
+        required: true
+        type: string
+      - description: Observation data
+        in: body
+        name: observation
+        required: true
+        schema:
+          $ref: '#/definitions/oscalTypes_1_1_3.Observation'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Observation'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Update an observation
+      tags:
+      - Assessment Results
+  /oscal/assessment-results/{id}/results/{resultId}/risks:
+    get:
+      description: Retrieves all risks for a given result.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_Risk'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Get risks for a result
+      tags:
+      - Assessment Results
+    post:
+      consumes:
+      - application/json
+      description: Creates a new risk for a given result.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      - description: Risk data
+        in: body
+        name: risk
+        required: true
+        schema:
+          $ref: '#/definitions/oscalTypes_1_1_3.Risk'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Risk'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Create a risk for a result
+      tags:
+      - Assessment Results
+  /oscal/assessment-results/{id}/results/{resultId}/risks/{riskId}:
+    delete:
+      description: Deletes a specific risk from a result.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      - description: Risk ID
+        in: path
+        name: riskId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Delete a risk
+      tags:
+      - Assessment Results
+    put:
+      consumes:
+      - application/json
+      description: Updates a specific risk in a result.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      - description: Risk ID
+        in: path
+        name: riskId
+        required: true
+        type: string
+      - description: Risk data
+        in: body
+        name: risk
+        required: true
+        schema:
+          $ref: '#/definitions/oscalTypes_1_1_3.Risk'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Risk'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Update a risk
       tags:
       - Assessment Results
   /oscal/catalogs:
