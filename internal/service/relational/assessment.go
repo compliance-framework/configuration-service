@@ -571,7 +571,11 @@ func (i *Attestation) UnmarshalOscal(op oscalTypes_1_1_3.AttestationStatements) 
 	// Preserve existing ID and ResultID if they exist
 	existingID := i.ID
 	existingResultID := i.ResultID
+	
+	// Zero the struct first
 	*i = Attestation{}
+	
+	// Now restore the preserved values
 	i.ID = existingID
 	i.ResultID = existingResultID
 	
