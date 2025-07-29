@@ -1162,3 +1162,224 @@ func (suite *AssessmentResultsApiIntegrationSuite) TestResultSubResourcesValidat
 	suite.server.E().ServeHTTP(rec, req)
 	suite.Equal(http.StatusBadRequest, rec.Code)
 }
+
+// TestResultAssociationEndpoints tests the association/dissociation endpoints for Result sub-resources
+func (suite *AssessmentResultsApiIntegrationSuite) TestResultAssociationEndpoints() {
+	// Create an assessment result with a result
+	ar := oscaltypes.AssessmentResults{
+		UUID: uuid.New().String(),
+		Metadata: oscaltypes.Metadata{
+			Title:        "Test AR for Association",
+			Version:      "1.0.0",
+			OscalVersion: "1.1.3",
+		},
+		ImportAp: oscaltypes.ImportAp{
+			Href: fmt.Sprintf("assessment-plans/%s", uuid.New().String()),
+		},
+		Results: []oscaltypes.Result{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Initial Result",
+				Description: "Initial result for testing",
+				Start:       time.Now().Add(-2 * time.Hour),
+				ReviewedControls: oscaltypes.ReviewedControls{
+					ControlSelections: []oscaltypes.AssessedControls{},
+				},
+			},
+		},
+	}
+	rec, req := suite.createRequest(http.MethodPost, "/api/oscal/assessment-results", ar)
+	suite.server.E().ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		suite.T().Logf("Failed to create assessment result: %s", rec.Body.String())
+	}
+	suite.Equal(http.StatusCreated, rec.Code)
+	var arResp handler.GenericDataResponse[oscaltypes.AssessmentResults]
+	err := json.Unmarshal(rec.Body.Bytes(), &arResp)
+	suite.NoError(err)
+	arUUID := arResp.Data.UUID
+	
+	// Get the UUID of the result that was created with the assessment result
+	// First, get the full assessment result to access the result UUID
+	rec, req = suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/full", arUUID), nil)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusOK, rec.Code)
+	var fullArResp handler.GenericDataResponse[oscaltypes.AssessmentResults]
+	err = json.Unmarshal(rec.Body.Bytes(), &fullArResp)
+	suite.NoError(err)
+	suite.NotEmpty(fullArResp.Data.Results)
+	resultUUID := fullArResp.Data.Results[0].UUID
+	
+	// Create standalone observations, risks, and findings
+	observation := suite.createStandaloneObservation()
+	risk := suite.createStandaloneRisk()
+	finding := suite.createStandaloneFinding()
+	
+	// Test observation association/dissociation
+	suite.Run("ObservationAssociation", func() {
+		// Get initial associated observations (should be empty)
+		rec, req := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/associated-observations", arUUID, resultUUID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code)
+		
+		var obsResp handler.GenericDataListResponse[*oscaltypes.Observation]
+		err := json.Unmarshal(rec.Body.Bytes(), &obsResp)
+		suite.NoError(err)
+		suite.Empty(obsResp.Data)
+		
+		// Associate observation
+		rec, req = suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/associated-observations/%s", arUUID, resultUUID, observation.UUID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code)
+		
+		// Get associated observations (should have one)
+		rec, req = suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/associated-observations", arUUID, resultUUID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code)
+		
+		err = json.Unmarshal(rec.Body.Bytes(), &obsResp)
+		suite.NoError(err)
+		suite.Len(obsResp.Data, 1)
+		suite.Equal(observation.UUID, obsResp.Data[0].UUID)
+		
+		// Disassociate observation
+		rec, req = suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/associated-observations/%s", arUUID, resultUUID, observation.UUID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusNoContent, rec.Code)
+		
+		// Get associated observations (should be empty again)
+		rec, req = suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/associated-observations", arUUID, resultUUID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code)
+		
+		err = json.Unmarshal(rec.Body.Bytes(), &obsResp)
+		suite.NoError(err)
+		suite.Empty(obsResp.Data)
+	})
+	
+	// Test risk association/dissociation
+	suite.Run("RiskAssociation", func() {
+		// Get initial associated risks (should be empty)
+		rec, req := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/associated-risks", arUUID, resultUUID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code)
+		
+		var riskResp handler.GenericDataListResponse[*oscaltypes.Risk]
+		err := json.Unmarshal(rec.Body.Bytes(), &riskResp)
+		suite.NoError(err)
+		suite.Empty(riskResp.Data)
+		
+		// Associate risk
+		rec, req = suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/associated-risks/%s", arUUID, resultUUID, risk.UUID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code)
+		
+		// Get associated risks (should have one)
+		rec, req = suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/associated-risks", arUUID, resultUUID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code)
+		
+		err = json.Unmarshal(rec.Body.Bytes(), &riskResp)
+		suite.NoError(err)
+		suite.Len(riskResp.Data, 1)
+		suite.Equal(risk.UUID, riskResp.Data[0].UUID)
+		
+		// Disassociate risk
+		rec, req = suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/associated-risks/%s", arUUID, resultUUID, risk.UUID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusNoContent, rec.Code)
+		
+		// Get associated risks (should be empty again)
+		rec, req = suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/associated-risks", arUUID, resultUUID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code)
+		
+		err = json.Unmarshal(rec.Body.Bytes(), &riskResp)
+		suite.NoError(err)
+		suite.Empty(riskResp.Data)
+	})
+	
+	// Test finding association/dissociation
+	suite.Run("FindingAssociation", func() {
+		// Get initial associated findings (should be empty)
+		rec, req := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/associated-findings", arUUID, resultUUID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code)
+		
+		var findingResp handler.GenericDataListResponse[*oscaltypes.Finding]
+		err := json.Unmarshal(rec.Body.Bytes(), &findingResp)
+		suite.NoError(err)
+		suite.Empty(findingResp.Data)
+		
+		// Associate finding
+		rec, req = suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/associated-findings/%s", arUUID, resultUUID, finding.UUID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code)
+		
+		// Get associated findings (should have one)
+		rec, req = suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/associated-findings", arUUID, resultUUID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code)
+		
+		err = json.Unmarshal(rec.Body.Bytes(), &findingResp)
+		suite.NoError(err)
+		suite.Len(findingResp.Data, 1)
+		suite.Equal(finding.UUID, findingResp.Data[0].UUID)
+		
+		// Disassociate finding
+		rec, req = suite.createRequest(http.MethodDelete, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/associated-findings/%s", arUUID, resultUUID, finding.UUID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusNoContent, rec.Code)
+		
+		// Get associated findings (should be empty again)
+		rec, req = suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/associated-findings", arUUID, resultUUID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code)
+		
+		err = json.Unmarshal(rec.Body.Bytes(), &findingResp)
+		suite.NoError(err)
+		suite.Empty(findingResp.Data)
+	})
+}
+
+// Helper functions for creating standalone resources
+func (suite *AssessmentResultsApiIntegrationSuite) createStandaloneObservation() *oscaltypes.Observation {
+	observation := &relational.Observation{}
+	observation.UnmarshalOscal(oscaltypes.Observation{
+		UUID:        uuid.New().String(),
+		Description: "Standalone observation for testing",
+		Methods:     []string{"TEST"},
+		Collected:   time.Now(),
+	})
+	err := suite.DB.Create(observation).Error
+	suite.NoError(err)
+	
+	return observation.MarshalOscal()
+}
+
+func (suite *AssessmentResultsApiIntegrationSuite) createStandaloneRisk() *oscaltypes.Risk {
+	risk := &relational.Risk{}
+	risk.UnmarshalOscal(oscaltypes.Risk{
+		UUID:      uuid.New().String(),
+		Title:     "Standalone risk for testing",
+		Statement: "Risk statement",
+		Status:    "open",
+	})
+	err := suite.DB.Create(risk).Error
+	suite.NoError(err)
+	
+	return risk.MarshalOscal()
+}
+
+func (suite *AssessmentResultsApiIntegrationSuite) createStandaloneFinding() *oscaltypes.Finding {
+	finding := &relational.Finding{}
+	finding.UnmarshalOscal(oscaltypes.Finding{
+		UUID:        uuid.New().String(),
+		Title:       "Standalone finding for testing",
+		Description: "Finding description",
+	})
+	err := suite.DB.Create(finding).Error
+	suite.NoError(err)
+	
+	return finding.MarshalOscal()
+}

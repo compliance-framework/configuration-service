@@ -85,6 +85,18 @@ func (h *AssessmentResultsHandler) Register(api *echo.Group) {
 	api.POST("/:id/results/:resultId/attestations", h.CreateResultAttestation)
 	api.PUT("/:id/results/:resultId/attestations/:attestationId", h.UpdateResultAttestation)
 	api.DELETE("/:id/results/:resultId/attestations/:attestationId", h.DeleteResultAttestation)
+	
+	// Association endpoints for existing observations, risks, and findings
+	api.GET("/:id/results/:resultId/associated-observations", h.GetResultAssociatedObservations)
+	api.POST("/:id/results/:resultId/associated-observations/:observationId", h.AssociateResultObservation)
+	api.DELETE("/:id/results/:resultId/associated-observations/:observationId", h.DisassociateResultObservation)
+	api.GET("/:id/results/:resultId/associated-risks", h.GetResultAssociatedRisks)
+	api.POST("/:id/results/:resultId/associated-risks/:riskId", h.AssociateResultRisk)
+	api.DELETE("/:id/results/:resultId/associated-risks/:riskId", h.DisassociateResultRisk)
+	api.GET("/:id/results/:resultId/associated-findings", h.GetResultAssociatedFindings)
+	api.POST("/:id/results/:resultId/associated-findings/:findingId", h.AssociateResultFinding)
+	api.DELETE("/:id/results/:resultId/associated-findings/:findingId", h.DisassociateResultFinding)
+	
 	api.GET("/:id/back-matter", h.GetBackMatter)
 	api.POST("/:id/back-matter", h.CreateBackMatter)
 	api.PUT("/:id/back-matter", h.UpdateBackMatter)
@@ -2183,6 +2195,615 @@ func (h *AssessmentResultsHandler) DeleteResultAttestation(ctx echo.Context) err
 	// Delete the attestation
 	if err := h.db.Delete(&existingAttestation).Error; err != nil {
 		h.sugar.Errorf("Failed to delete attestation: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update metadata last-modified
+	now := time.Now()
+	var ar relational.AssessmentResult
+	if err := h.db.First(&ar, "id = ?", id).Error; err == nil {
+		h.db.Model(&relational.Metadata{}).Where("id = ?", ar.Metadata.ID).Update("last_modified", now)
+	}
+
+	return ctx.NoContent(http.StatusNoContent)
+}
+
+// GetResultAssociatedObservations godoc
+//
+//	@Summary		List Associated Observations for a Result
+//	@Description	Retrieves all Observations associated with a specific Result in an Assessment Results.
+//	@Tags			Assessment Results
+//	@Produce		json
+//	@Param			id			path		string	true	"Assessment Results ID"
+//	@Param			resultId	path		string	true	"Result ID"
+//	@Success		200			{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.Observation]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/results/{resultId}/associated-observations [get]
+func (h *AssessmentResultsHandler) GetResultAssociatedObservations(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid assessment results id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	resultIdParam := ctx.Param("resultId")
+	resultId, err := uuid.Parse(resultIdParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid result id", "resultId", resultIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify assessment results exists
+	if err := h.verifyAssessmentResultsExists(ctx, id); err != nil {
+		return err
+	}
+
+	// Load result with observations
+	var result relational.Result
+	if err := h.db.
+		Preload("Observations").
+		First(&result, "id = ? AND assessment_result_id = ?", resultId, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.sugar.Warnw("Result not found", "resultId", resultId, "assessmentResultId", id)
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("result with id %s not found", resultId)))
+		}
+		h.sugar.Errorf("Failed to retrieve result: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	observations := make([]*oscalTypes_1_1_3.Observation, len(result.Observations))
+	for i, obs := range result.Observations {
+		observations[i] = obs.MarshalOscal()
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[*oscalTypes_1_1_3.Observation]{Data: observations})
+}
+
+// AssociateResultObservation godoc
+//
+//	@Summary		Associate an Observation with a Result
+//	@Description	Associates an existing Observation to a Result within an Assessment Results.
+//	@Tags			Assessment Results
+//	@Produce		json
+//	@Param			id				path	string	true	"Assessment Results ID"
+//	@Param			resultId		path	string	true	"Result ID"
+//	@Param			observationId	path	string	true	"Observation ID"
+//	@Success		200				"No Content"
+//	@Failure		400				{object}	api.Error
+//	@Failure		404				{object}	api.Error
+//	@Failure		500				{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/results/{resultId}/associated-observations/{observationId} [post]
+func (h *AssessmentResultsHandler) AssociateResultObservation(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid assessment results id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	resultIdParam := ctx.Param("resultId")
+	resultId, err := uuid.Parse(resultIdParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid result id", "resultId", resultIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	observationIdParam := ctx.Param("observationId")
+	observationId, err := uuid.Parse(observationIdParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid observation id", "observationId", observationIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify assessment results exists
+	if err := h.verifyAssessmentResultsExists(ctx, id); err != nil {
+		return err
+	}
+
+	// Verify result exists and belongs to the assessment results
+	var result relational.Result
+	if err := h.db.Where("id = ? AND assessment_result_id = ?", resultId, id).First(&result).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.sugar.Warnw("Result not found in assessment results", "resultId", resultId, "assessmentResultId", id)
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("result with id %s not found in assessment results %s", resultId, id)))
+		}
+		h.sugar.Errorf("Failed to retrieve result: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Verify observation exists
+	var observation relational.Observation
+	if err := h.db.First(&observation, "id = ?", observationId).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.sugar.Warnw("Observation not found", "observationId", observationId)
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("observation with id %s not found", observationId)))
+		}
+		h.sugar.Errorf("Failed to retrieve observation: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Associate the observation with the result
+	if err := h.db.Model(&result).Association("Observations").Append(&observation); err != nil {
+		h.sugar.Errorf("Failed to associate observation with result: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update metadata last-modified
+	now := time.Now()
+	var ar relational.AssessmentResult
+	if err := h.db.First(&ar, "id = ?", id).Error; err == nil {
+		h.db.Model(&relational.Metadata{}).Where("id = ?", ar.Metadata.ID).Update("last_modified", now)
+	}
+
+	return ctx.NoContent(http.StatusOK)
+}
+
+// DisassociateResultObservation godoc
+//
+//	@Summary		Disassociate an Observation from a Result
+//	@Description	Removes an association of an Observation from a Result within an Assessment Results.
+//	@Tags			Assessment Results
+//	@Param			id				path	string	true	"Assessment Results ID"
+//	@Param			resultId		path	string	true	"Result ID"
+//	@Param			observationId	path	string	true	"Observation ID"
+//	@Success		204				"No Content"
+//	@Failure		400				{object}	api.Error
+//	@Failure		404				{object}	api.Error
+//	@Failure		500				{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/results/{resultId}/associated-observations/{observationId} [delete]
+func (h *AssessmentResultsHandler) DisassociateResultObservation(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid assessment results id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	resultIdParam := ctx.Param("resultId")
+	resultId, err := uuid.Parse(resultIdParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid result id", "resultId", resultIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	observationIdParam := ctx.Param("observationId")
+	observationId, err := uuid.Parse(observationIdParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid observation id", "observationId", observationIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify assessment results exists
+	if err := h.verifyAssessmentResultsExists(ctx, id); err != nil {
+		return err
+	}
+
+	// Verify result exists and belongs to the assessment results
+	var result relational.Result
+	if err := h.db.Where("id = ? AND assessment_result_id = ?", resultId, id).First(&result).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.sugar.Warnw("Result not found in assessment results", "resultId", resultId, "assessmentResultId", id)
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("result with id %s not found in assessment results %s", resultId, id)))
+		}
+		h.sugar.Errorf("Failed to retrieve result: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Remove association
+	if err := h.db.Exec("DELETE FROM result_observations WHERE result_id = ? AND observation_id = ?", resultId, observationId).Error; err != nil {
+		h.sugar.Errorf("Failed to disassociate observation from result: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update metadata last-modified
+	now := time.Now()
+	var ar relational.AssessmentResult
+	if err := h.db.First(&ar, "id = ?", id).Error; err == nil {
+		h.db.Model(&relational.Metadata{}).Where("id = ?", ar.Metadata.ID).Update("last_modified", now)
+	}
+
+	return ctx.NoContent(http.StatusNoContent)
+}
+
+// GetResultAssociatedRisks godoc
+//
+//	@Summary		List Associated Risks for a Result
+//	@Description	Retrieves all Risks associated with a specific Result in an Assessment Results.
+//	@Tags			Assessment Results
+//	@Produce		json
+//	@Param			id			path		string	true	"Assessment Results ID"
+//	@Param			resultId	path		string	true	"Result ID"
+//	@Success		200			{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.Risk]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/results/{resultId}/associated-risks [get]
+func (h *AssessmentResultsHandler) GetResultAssociatedRisks(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid assessment results id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	resultIdParam := ctx.Param("resultId")
+	resultId, err := uuid.Parse(resultIdParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid result id", "resultId", resultIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify assessment results exists
+	if err := h.verifyAssessmentResultsExists(ctx, id); err != nil {
+		return err
+	}
+
+	// Load result with risks
+	var result relational.Result
+	if err := h.db.
+		Preload("Risks").
+		First(&result, "id = ? AND assessment_result_id = ?", resultId, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.sugar.Warnw("Result not found", "resultId", resultId, "assessmentResultId", id)
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("result with id %s not found", resultId)))
+		}
+		h.sugar.Errorf("Failed to retrieve result: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	risks := make([]*oscalTypes_1_1_3.Risk, len(result.Risks))
+	for i, risk := range result.Risks {
+		risks[i] = risk.MarshalOscal()
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[*oscalTypes_1_1_3.Risk]{Data: risks})
+}
+
+// AssociateResultRisk godoc
+//
+//	@Summary		Associate a Risk with a Result
+//	@Description	Associates an existing Risk to a Result within an Assessment Results.
+//	@Tags			Assessment Results
+//	@Produce		json
+//	@Param			id			path	string	true	"Assessment Results ID"
+//	@Param			resultId	path	string	true	"Result ID"
+//	@Param			riskId		path	string	true	"Risk ID"
+//	@Success		200			"No Content"
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/results/{resultId}/associated-risks/{riskId} [post]
+func (h *AssessmentResultsHandler) AssociateResultRisk(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid assessment results id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	resultIdParam := ctx.Param("resultId")
+	resultId, err := uuid.Parse(resultIdParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid result id", "resultId", resultIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	riskIdParam := ctx.Param("riskId")
+	riskId, err := uuid.Parse(riskIdParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid risk id", "riskId", riskIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify assessment results exists
+	if err := h.verifyAssessmentResultsExists(ctx, id); err != nil {
+		return err
+	}
+
+	// Verify result exists and belongs to the assessment results
+	var result relational.Result
+	if err := h.db.Where("id = ? AND assessment_result_id = ?", resultId, id).First(&result).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.sugar.Warnw("Result not found in assessment results", "resultId", resultId, "assessmentResultId", id)
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("result with id %s not found in assessment results %s", resultId, id)))
+		}
+		h.sugar.Errorf("Failed to retrieve result: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Verify risk exists
+	var risk relational.Risk
+	if err := h.db.First(&risk, "id = ?", riskId).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.sugar.Warnw("Risk not found", "riskId", riskId)
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("risk with id %s not found", riskId)))
+		}
+		h.sugar.Errorf("Failed to retrieve risk: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Associate the risk with the result
+	if err := h.db.Model(&result).Association("Risks").Append(&risk); err != nil {
+		h.sugar.Errorf("Failed to associate risk with result: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update metadata last-modified
+	now := time.Now()
+	var ar relational.AssessmentResult
+	if err := h.db.First(&ar, "id = ?", id).Error; err == nil {
+		h.db.Model(&relational.Metadata{}).Where("id = ?", ar.Metadata.ID).Update("last_modified", now)
+	}
+
+	return ctx.NoContent(http.StatusOK)
+}
+
+// DisassociateResultRisk godoc
+//
+//	@Summary		Disassociate a Risk from a Result
+//	@Description	Removes an association of a Risk from a Result within an Assessment Results.
+//	@Tags			Assessment Results
+//	@Param			id			path	string	true	"Assessment Results ID"
+//	@Param			resultId	path	string	true	"Result ID"
+//	@Param			riskId		path	string	true	"Risk ID"
+//	@Success		204			"No Content"
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/results/{resultId}/associated-risks/{riskId} [delete]
+func (h *AssessmentResultsHandler) DisassociateResultRisk(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid assessment results id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	resultIdParam := ctx.Param("resultId")
+	resultId, err := uuid.Parse(resultIdParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid result id", "resultId", resultIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	riskIdParam := ctx.Param("riskId")
+	riskId, err := uuid.Parse(riskIdParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid risk id", "riskId", riskIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify assessment results exists
+	if err := h.verifyAssessmentResultsExists(ctx, id); err != nil {
+		return err
+	}
+
+	// Verify result exists and belongs to the assessment results
+	var result relational.Result
+	if err := h.db.Where("id = ? AND assessment_result_id = ?", resultId, id).First(&result).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.sugar.Warnw("Result not found in assessment results", "resultId", resultId, "assessmentResultId", id)
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("result with id %s not found in assessment results %s", resultId, id)))
+		}
+		h.sugar.Errorf("Failed to retrieve result: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Remove association
+	if err := h.db.Exec("DELETE FROM result_risks WHERE result_id = ? AND risk_id = ?", resultId, riskId).Error; err != nil {
+		h.sugar.Errorf("Failed to disassociate risk from result: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update metadata last-modified
+	now := time.Now()
+	var ar relational.AssessmentResult
+	if err := h.db.First(&ar, "id = ?", id).Error; err == nil {
+		h.db.Model(&relational.Metadata{}).Where("id = ?", ar.Metadata.ID).Update("last_modified", now)
+	}
+
+	return ctx.NoContent(http.StatusNoContent)
+}
+
+// GetResultAssociatedFindings godoc
+//
+//	@Summary		List Associated Findings for a Result
+//	@Description	Retrieves all Findings associated with a specific Result in an Assessment Results.
+//	@Tags			Assessment Results
+//	@Produce		json
+//	@Param			id			path		string	true	"Assessment Results ID"
+//	@Param			resultId	path		string	true	"Result ID"
+//	@Success		200			{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.Finding]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/results/{resultId}/associated-findings [get]
+func (h *AssessmentResultsHandler) GetResultAssociatedFindings(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid assessment results id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	resultIdParam := ctx.Param("resultId")
+	resultId, err := uuid.Parse(resultIdParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid result id", "resultId", resultIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify assessment results exists
+	if err := h.verifyAssessmentResultsExists(ctx, id); err != nil {
+		return err
+	}
+
+	// Load result with findings
+	var result relational.Result
+	if err := h.db.
+		Preload("Findings").
+		First(&result, "id = ? AND assessment_result_id = ?", resultId, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.sugar.Warnw("Result not found", "resultId", resultId, "assessmentResultId", id)
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("result with id %s not found", resultId)))
+		}
+		h.sugar.Errorf("Failed to retrieve result: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	findings := make([]*oscalTypes_1_1_3.Finding, len(result.Findings))
+	for i, finding := range result.Findings {
+		findings[i] = finding.MarshalOscal()
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[*oscalTypes_1_1_3.Finding]{Data: findings})
+}
+
+// AssociateResultFinding godoc
+//
+//	@Summary		Associate a Finding with a Result
+//	@Description	Associates an existing Finding to a Result within an Assessment Results.
+//	@Tags			Assessment Results
+//	@Produce		json
+//	@Param			id			path	string	true	"Assessment Results ID"
+//	@Param			resultId	path	string	true	"Result ID"
+//	@Param			findingId	path	string	true	"Finding ID"
+//	@Success		200			"No Content"
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/results/{resultId}/associated-findings/{findingId} [post]
+func (h *AssessmentResultsHandler) AssociateResultFinding(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid assessment results id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	resultIdParam := ctx.Param("resultId")
+	resultId, err := uuid.Parse(resultIdParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid result id", "resultId", resultIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	findingIdParam := ctx.Param("findingId")
+	findingId, err := uuid.Parse(findingIdParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid finding id", "findingId", findingIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify assessment results exists
+	if err := h.verifyAssessmentResultsExists(ctx, id); err != nil {
+		return err
+	}
+
+	// Verify result exists and belongs to the assessment results
+	var result relational.Result
+	if err := h.db.Where("id = ? AND assessment_result_id = ?", resultId, id).First(&result).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.sugar.Warnw("Result not found in assessment results", "resultId", resultId, "assessmentResultId", id)
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("result with id %s not found in assessment results %s", resultId, id)))
+		}
+		h.sugar.Errorf("Failed to retrieve result: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Verify finding exists
+	var finding relational.Finding
+	if err := h.db.First(&finding, "id = ?", findingId).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.sugar.Warnw("Finding not found", "findingId", findingId)
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("finding with id %s not found", findingId)))
+		}
+		h.sugar.Errorf("Failed to retrieve finding: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Associate the finding with the result
+	if err := h.db.Model(&result).Association("Findings").Append(&finding); err != nil {
+		h.sugar.Errorf("Failed to associate finding with result: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Update metadata last-modified
+	now := time.Now()
+	var ar relational.AssessmentResult
+	if err := h.db.First(&ar, "id = ?", id).Error; err == nil {
+		h.db.Model(&relational.Metadata{}).Where("id = ?", ar.Metadata.ID).Update("last_modified", now)
+	}
+
+	return ctx.NoContent(http.StatusOK)
+}
+
+// DisassociateResultFinding godoc
+//
+//	@Summary		Disassociate a Finding from a Result
+//	@Description	Removes an association of a Finding from a Result within an Assessment Results.
+//	@Tags			Assessment Results
+//	@Param			id			path	string	true	"Assessment Results ID"
+//	@Param			resultId	path	string	true	"Result ID"
+//	@Param			findingId	path	string	true	"Finding ID"
+//	@Success		204			"No Content"
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/results/{resultId}/associated-findings/{findingId} [delete]
+func (h *AssessmentResultsHandler) DisassociateResultFinding(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid assessment results id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	resultIdParam := ctx.Param("resultId")
+	resultId, err := uuid.Parse(resultIdParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid result id", "resultId", resultIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	findingIdParam := ctx.Param("findingId")
+	findingId, err := uuid.Parse(findingIdParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid finding id", "findingId", findingIdParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify assessment results exists
+	if err := h.verifyAssessmentResultsExists(ctx, id); err != nil {
+		return err
+	}
+
+	// Verify result exists and belongs to the assessment results
+	var result relational.Result
+	if err := h.db.Where("id = ? AND assessment_result_id = ?", resultId, id).First(&result).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.sugar.Warnw("Result not found in assessment results", "resultId", resultId, "assessmentResultId", id)
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("result with id %s not found in assessment results %s", resultId, id)))
+		}
+		h.sugar.Errorf("Failed to retrieve result: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// Remove association
+	if err := h.db.Exec("DELETE FROM result_findings WHERE result_id = ? AND finding_id = ?", resultId, findingId).Error; err != nil {
+		h.sugar.Errorf("Failed to disassociate finding from result: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
