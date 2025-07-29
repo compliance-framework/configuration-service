@@ -1578,3 +1578,123 @@ func (suite *AssessmentResultsApiIntegrationSuite) TestGetAllObservationsRisksFi
 		suite.Contains(findingUUIDs, standaloneFinding.UUID)
 	})
 }
+
+// Test control endpoints
+func (suite *AssessmentResultsApiIntegrationSuite) TestControlEndpoints() {
+	// Create a catalog with controls
+	catalog := oscaltypes.Catalog{
+		UUID: uuid.New().String(),
+		Metadata: oscaltypes.Metadata{
+			Title:        "Test Catalog",
+			Version:      "1.0.0",
+			LastModified: time.Now(),
+		},
+		Groups: &[]oscaltypes.Group{
+			{
+				ID:    "test-group",
+				Title: "Test Group",
+				Controls: &[]oscaltypes.Control{
+					{
+						ID:    "test-control-1",
+						Title: "Test Control 1",
+						Parts: &[]oscaltypes.Part{
+							{
+								ID:    "test-control-1_smt",
+								Name:  "statement",
+								Prose: "This is the control statement",
+							},
+							{
+								ID:    "test-control-1_obj",
+								Name:  "objective",
+								Prose: "This is the control objective",
+							},
+						},
+					},
+					{
+						ID:    "test-control-2",
+						Title: "Test Control 2",
+						Parts: &[]oscaltypes.Part{
+							{
+								ID:    "test-control-2_smt",
+								Name:  "statement",
+								Prose: "This is another control statement",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Create the catalog in the database
+	relationalCatalog := &relational.Catalog{}
+	relationalCatalog.UnmarshalOscal(catalog)
+	err := suite.DB.Create(relationalCatalog).Error
+	suite.Require().NoError(err)
+
+	// Create assessment results
+	arID := suite.createBasicAssessmentResults()
+
+	suite.Run("GetAvailableControls", func() {
+		rec, req := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/available-controls", arID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		
+		suite.Equal(http.StatusOK, rec.Code)
+		
+		var controlsResp handler.GenericDataListResponse[*oscaltypes.Control]
+		err := json.Unmarshal(rec.Body.Bytes(), &controlsResp)
+		suite.Require().NoError(err)
+		
+		// Should have 2 controls
+		suite.Len(controlsResp.Data, 2)
+		
+		// Verify control IDs
+		controlIDs := []string{}
+		for _, control := range controlsResp.Data {
+			controlIDs = append(controlIDs, control.ID)
+			// Verify parts are included
+			suite.NotNil(control.Parts)
+		}
+		suite.Contains(controlIDs, "test-control-1")
+		suite.Contains(controlIDs, "test-control-2")
+	})
+
+	suite.Run("GetControlDetails", func() {
+		// First get a control ID
+		var control relational.Control
+		err := suite.DB.Where("id = ?", "test-control-1").First(&control).Error
+		suite.Require().NoError(err)
+		
+		rec, req := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/control/%s", arID, control.ID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		
+		suite.Equal(http.StatusOK, rec.Code)
+		
+		var controlResp handler.GenericDataResponse[*oscaltypes.Control]
+		err = json.Unmarshal(rec.Body.Bytes(), &controlResp)
+		suite.Require().NoError(err)
+		
+		// Verify control details
+		suite.Equal("test-control-1", controlResp.Data.ID)
+		suite.Equal("Test Control 1", controlResp.Data.Title)
+		suite.NotNil(controlResp.Data.Parts)
+		suite.Len(*controlResp.Data.Parts, 2)
+		
+		// Verify parts
+		parts := *controlResp.Data.Parts
+		partNames := []string{}
+		for _, part := range parts {
+			partNames = append(partNames, part.Name)
+		}
+		suite.Contains(partNames, "statement")
+		suite.Contains(partNames, "objective")
+	})
+
+	suite.Run("GetControlDetailsNotFound", func() {
+		nonExistentID := uuid.New().String()
+		rec, req := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/control/%s", arID, nonExistentID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		
+		suite.Equal(http.StatusNotFound, rec.Code)
+	})
+}

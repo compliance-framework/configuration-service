@@ -297,6 +297,16 @@ definitions:
       control:
         $ref: '#/definitions/oscalTypes_1_1_3.Control'
     type: object
+  handler.GenericDataListResponse-array_oscalTypes_1_1_3_Control:
+    properties:
+      data:
+        description: Items from the list response
+        items:
+          items:
+            $ref: '#/definitions/oscalTypes_1_1_3.Control'
+          type: array
+        type: array
+    type: object
   handler.GenericDataListResponse-handler_ComplianceByControl_StatusCount:
     properties:
       data:
@@ -7162,6 +7172,39 @@ paths:
       summary: Update an Assessment Results
       tags:
       - Assessment Results
+  /oscal/assessment-results/{id}/available-controls:
+    get:
+      description: Retrieves controls that can be referenced in findings
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-array_oscalTypes_1_1_3_Control'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Get available controls for findings
+      tags:
+      - Assessment Results
   /oscal/assessment-results/{id}/back-matter:
     delete:
       description: Deletes the back matter for an Assessment Results.
@@ -7456,6 +7499,44 @@ paths:
       security:
       - OAuth2Password: []
       summary: Update back matter resource
+      tags:
+      - Assessment Results
+  /oscal/assessment-results/{id}/control/{controlId}:
+    get:
+      description: Retrieves a control with all its parts for reference in findings
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Control ID
+        in: path
+        name: controlId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Control'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Get control details with statements and objectives
       tags:
       - Assessment Results
   /oscal/assessment-results/{id}/findings:

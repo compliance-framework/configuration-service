@@ -2728,6 +2728,58 @@
                 }
             }
         },
+        "/oscal/assessment-results/{id}/available-controls": {
+            "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
+                "description": "Retrieves controls that can be referenced in findings",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Assessment Results"
+                ],
+                "summary": "Get available controls for findings",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Assessment Results ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataListResponse-array_oscalTypes_1_1_3_Control"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/oscal/assessment-results/{id}/back-matter": {
             "get": {
                 "security": [
@@ -3162,6 +3214,65 @@
                 "responses": {
                     "204": {
                         "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/oscal/assessment-results/{id}/control/{controlId}": {
+            "get": {
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ],
+                "description": "Retrieves a control with all its parts for reference in findings",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Assessment Results"
+                ],
+                "summary": "Get control details with statements and objectives",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Assessment Results ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Control ID",
+                        "name": "controlId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-oscalTypes_1_1_3_Control"
+                        }
                     },
                     "400": {
                         "description": "Bad Request",
@@ -14871,6 +14982,21 @@
             "properties": {
                 "control": {
                     "$ref": "#/definitions/oscalTypes_1_1_3.Control"
+                }
+            }
+        },
+        "handler.GenericDataListResponse-array_oscalTypes_1_1_3_Control": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Items from the list response",
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/definitions/oscalTypes_1_1_3.Control"
+                        }
+                    }
                 }
             }
         },

@@ -91,6 +91,10 @@ func (h *AssessmentResultsHandler) Register(api *echo.Group) {
 	api.GET("/:id/risks", h.GetAllRisks) 
 	api.GET("/:id/findings", h.GetAllFindings)
 	
+	// Control endpoints for findings
+	api.GET("/:id/available-controls", h.GetAvailableControls)
+	api.GET("/:id/control/:controlId", h.GetControlDetails)
+	
 	// Association endpoints for existing observations, risks, and findings
 	api.GET("/:id/results/:resultId/associated-observations", h.GetResultAssociatedObservations)
 	api.POST("/:id/results/:resultId/associated-observations/:observationId", h.AssociateResultObservation)
@@ -3525,4 +3529,97 @@ func (h *AssessmentResultsHandler) validateResourceInput(r *oscalTypes_1_1_3.Res
 		return fmt.Errorf("invalid UUID format: %v", err)
 	}
 	return nil
+}
+
+// GetAvailableControls godoc
+//
+//	@Summary		Get available controls for findings
+//	@Description	Retrieves controls that can be referenced in findings
+//	@Tags			Assessment Results
+//	@Produce		json
+//	@Param			id	path		string	true	"Assessment Results ID"
+//	@Success		200	{object}	handler.GenericDataListResponse[[]oscalTypes_1_1_3.Control]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/available-controls [get]
+func (h *AssessmentResultsHandler) GetAvailableControls(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid assessment results id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify assessment results exists
+	if err := h.verifyAssessmentResultsExists(ctx, id); err != nil {
+		return err
+	}
+
+	// Get the assessment results to potentially find associated catalog
+	var ar relational.AssessmentResult
+	if err := h.db.First(&ar, "id = ?", id).Error; err != nil {
+		h.sugar.Errorf("Failed to get assessment results: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	// For now, we'll get all controls from all catalogs
+	// In the future, this could be filtered based on the assessment's system
+	var controls []relational.Control
+	if err := h.db.Find(&controls).Error; err != nil {
+		h.sugar.Errorf("Failed to get controls: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	oscalControls := make([]*oscalTypes_1_1_3.Control, len(controls))
+	for i, control := range controls {
+		oscalControls[i] = control.MarshalOscal()
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[*oscalTypes_1_1_3.Control]{Data: oscalControls})
+}
+
+// GetControlDetails godoc
+//
+//	@Summary		Get control details with statements and objectives
+//	@Description	Retrieves a control with all its parts for reference in findings
+//	@Tags			Assessment Results
+//	@Produce		json
+//	@Param			id			path		string	true	"Assessment Results ID"
+//	@Param			controlId	path		string	true	"Control ID"
+//	@Success		200			{object}	handler.GenericDataResponse[oscalTypes_1_1_3.Control]
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/control/{controlId} [get]
+func (h *AssessmentResultsHandler) GetControlDetails(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Errorw("invalid assessment results id", "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	controlId := ctx.Param("controlId")
+
+	// Verify assessment results exists
+	if err := h.verifyAssessmentResultsExists(ctx, id); err != nil {
+		return err
+	}
+
+	// Get the control with all its parts
+	var control relational.Control
+	if err := h.db.
+		Where("id = ?", controlId).
+		First(&control).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("control not found")))
+		}
+		h.sugar.Errorf("Failed to get control: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[*oscalTypes_1_1_3.Control]{Data: control.MarshalOscal()})
 }
