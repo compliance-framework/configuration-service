@@ -7900,6 +7900,365 @@ paths:
       summary: Update a result
       tags:
       - Assessment Results
+  /oscal/assessment-results/{id}/results/{resultId}/associated-findings:
+    get:
+      description: Retrieves all Findings associated with a specific Result in an
+        Assessment Results.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_Finding'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: List Associated Findings for a Result
+      tags:
+      - Assessment Results
+  /oscal/assessment-results/{id}/results/{resultId}/associated-findings/{findingId}:
+    delete:
+      description: Removes an association of a Finding from a Result within an Assessment
+        Results.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      - description: Finding ID
+        in: path
+        name: findingId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Disassociate a Finding from a Result
+      tags:
+      - Assessment Results
+    post:
+      description: Associates an existing Finding to a Result within an Assessment
+        Results.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      - description: Finding ID
+        in: path
+        name: findingId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Associate a Finding with a Result
+      tags:
+      - Assessment Results
+  /oscal/assessment-results/{id}/results/{resultId}/associated-observations:
+    get:
+      description: Retrieves all Observations associated with a specific Result in
+        an Assessment Results.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_Observation'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: List Associated Observations for a Result
+      tags:
+      - Assessment Results
+  /oscal/assessment-results/{id}/results/{resultId}/associated-observations/{observationId}:
+    delete:
+      description: Removes an association of an Observation from a Result within an
+        Assessment Results.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      - description: Observation ID
+        in: path
+        name: observationId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Disassociate an Observation from a Result
+      tags:
+      - Assessment Results
+    post:
+      description: Associates an existing Observation to a Result within an Assessment
+        Results.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      - description: Observation ID
+        in: path
+        name: observationId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Associate an Observation with a Result
+      tags:
+      - Assessment Results
+  /oscal/assessment-results/{id}/results/{resultId}/associated-risks:
+    get:
+      description: Retrieves all Risks associated with a specific Result in an Assessment
+        Results.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_Risk'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: List Associated Risks for a Result
+      tags:
+      - Assessment Results
+  /oscal/assessment-results/{id}/results/{resultId}/associated-risks/{riskId}:
+    delete:
+      description: Removes an association of a Risk from a Result within an Assessment
+        Results.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      - description: Risk ID
+        in: path
+        name: riskId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Disassociate a Risk from a Result
+      tags:
+      - Assessment Results
+    post:
+      description: Associates an existing Risk to a Result within an Assessment Results.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Result ID
+        in: path
+        name: resultId
+        required: true
+        type: string
+      - description: Risk ID
+        in: path
+        name: riskId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Associate a Risk with a Result
+      tags:
+      - Assessment Results
   /oscal/assessment-results/{id}/results/{resultId}/attestations:
     get:
       description: Retrieves all attestations for a given result.
