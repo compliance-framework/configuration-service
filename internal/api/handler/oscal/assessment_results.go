@@ -86,6 +86,11 @@ func (h *AssessmentResultsHandler) Register(api *echo.Group) {
 	api.PUT("/:id/results/:resultId/attestations/:attestationId", h.UpdateResultAttestation)
 	api.DELETE("/:id/results/:resultId/attestations/:attestationId", h.DeleteResultAttestation)
 	
+	// Endpoints to list all observations, risks, and findings across all results
+	api.GET("/:id/observations", h.GetAllObservations)
+	api.GET("/:id/risks", h.GetAllRisks) 
+	api.GET("/:id/findings", h.GetAllFindings)
+	
 	// Association endpoints for existing observations, risks, and findings
 	api.GET("/:id/results/:resultId/associated-observations", h.GetResultAssociatedObservations)
 	api.POST("/:id/results/:resultId/associated-observations/:observationId", h.AssociateResultObservation)
@@ -2815,6 +2820,144 @@ func (h *AssessmentResultsHandler) DisassociateResultFinding(ctx echo.Context) e
 	}
 
 	return ctx.NoContent(http.StatusNoContent)
+}
+
+// GetAllObservations godoc
+//
+//	@Summary		List all observations in assessment results
+//	@Description	Retrieves all observations across all results in an assessment results document.
+//	@Tags			Assessment Results
+//	@Produce		json
+//	@Param			id	path		string	true	"Assessment Results ID"
+//	@Success		200	{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.Observation]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/observations [get]
+func (h *AssessmentResultsHandler) GetAllObservations(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid assessment results id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify assessment results exists
+	if err := h.verifyAssessmentResultsExists(ctx, id); err != nil {
+		return err
+	}
+
+	// Get all observations from all results
+	var observations []relational.Observation
+	if err := h.db.
+		Joins("JOIN result_observations ON observations.id = result_observations.observation_id").
+		Joins("JOIN results ON results.id = result_observations.result_id").
+		Where("results.assessment_result_id = ?", id).
+		Distinct("observations.id").
+		Find(&observations).Error; err != nil {
+		h.sugar.Errorf("Failed to retrieve observations: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	oscalObservations := make([]*oscalTypes_1_1_3.Observation, len(observations))
+	for i, obs := range observations {
+		oscalObservations[i] = obs.MarshalOscal()
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[*oscalTypes_1_1_3.Observation]{Data: oscalObservations})
+}
+
+// GetAllRisks godoc
+//
+//	@Summary		List all risks in assessment results
+//	@Description	Retrieves all risks across all results in an assessment results document.
+//	@Tags			Assessment Results
+//	@Produce		json
+//	@Param			id	path		string	true	"Assessment Results ID"
+//	@Success		200	{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.Risk]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/risks [get]
+func (h *AssessmentResultsHandler) GetAllRisks(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid assessment results id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify assessment results exists
+	if err := h.verifyAssessmentResultsExists(ctx, id); err != nil {
+		return err
+	}
+
+	// Get all risks from all results
+	var risks []relational.Risk
+	if err := h.db.
+		Joins("JOIN result_risks ON risks.id = result_risks.risk_id").
+		Joins("JOIN results ON results.id = result_risks.result_id").
+		Where("results.assessment_result_id = ?", id).
+		Distinct("risks.id").
+		Find(&risks).Error; err != nil {
+		h.sugar.Errorf("Failed to retrieve risks: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	oscalRisks := make([]*oscalTypes_1_1_3.Risk, len(risks))
+	for i, risk := range risks {
+		oscalRisks[i] = risk.MarshalOscal()
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[*oscalTypes_1_1_3.Risk]{Data: oscalRisks})
+}
+
+// GetAllFindings godoc
+//
+//	@Summary		List all findings in assessment results
+//	@Description	Retrieves all findings across all results in an assessment results document.
+//	@Tags			Assessment Results
+//	@Produce		json
+//	@Param			id	path		string	true	"Assessment Results ID"
+//	@Success		200	{object}	handler.GenericDataListResponse[oscalTypes_1_1_3.Finding]
+//	@Failure		400	{object}	api.Error
+//	@Failure		404	{object}	api.Error
+//	@Failure		500	{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/assessment-results/{id}/findings [get]
+func (h *AssessmentResultsHandler) GetAllFindings(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		h.sugar.Warnw("Invalid assessment results id", "id", idParam, "error", err)
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	// Verify assessment results exists
+	if err := h.verifyAssessmentResultsExists(ctx, id); err != nil {
+		return err
+	}
+
+	// Get all findings from all results
+	var findings []relational.Finding
+	if err := h.db.
+		Joins("JOIN result_findings ON findings.id = result_findings.finding_id").
+		Joins("JOIN results ON results.id = result_findings.result_id").
+		Where("results.assessment_result_id = ?", id).
+		Distinct("findings.id").
+		Find(&findings).Error; err != nil {
+		h.sugar.Errorf("Failed to retrieve findings: %v", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	}
+
+	oscalFindings := make([]*oscalTypes_1_1_3.Finding, len(findings))
+	for i, finding := range findings {
+		oscalFindings[i] = finding.MarshalOscal()
+	}
+
+	return ctx.JSON(http.StatusOK, handler.GenericDataListResponse[*oscalTypes_1_1_3.Finding]{Data: oscalFindings})
 }
 
 // GetBackMatter godoc

@@ -1383,3 +1383,178 @@ func (suite *AssessmentResultsApiIntegrationSuite) createStandaloneFinding() *os
 	
 	return finding.MarshalOscal()
 }
+
+// TestGetAllObservationsRisksFindings tests the endpoints that list all observations, risks, and findings
+func (suite *AssessmentResultsApiIntegrationSuite) TestGetAllObservationsRisksFindings() {
+	// Create an assessment result with multiple results
+	ar := oscaltypes.AssessmentResults{
+		UUID: uuid.New().String(),
+		Metadata: oscaltypes.Metadata{
+			Title:        "Test AR for GetAll endpoints",
+			Version:      "1.0.0",
+			OscalVersion: "1.1.3",
+		},
+		ImportAp: oscaltypes.ImportAp{
+			Href: fmt.Sprintf("assessment-plans/%s", uuid.New().String()),
+		},
+		Results: []oscaltypes.Result{
+			{
+				UUID:        uuid.New().String(),
+				Title:       "First Result",
+				Description: "First result with observations",
+				Start:       time.Now().Add(-2 * time.Hour),
+				ReviewedControls: oscaltypes.ReviewedControls{
+					ControlSelections: []oscaltypes.AssessedControls{},
+				},
+			},
+			{
+				UUID:        uuid.New().String(),
+				Title:       "Second Result",
+				Description: "Second result with risks",
+				Start:       time.Now().Add(-1 * time.Hour),
+				ReviewedControls: oscaltypes.ReviewedControls{
+					ControlSelections: []oscaltypes.AssessedControls{},
+				},
+			},
+		},
+	}
+	rec, req := suite.createRequest(http.MethodPost, "/api/oscal/assessment-results", ar)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusCreated, rec.Code)
+	var arResp handler.GenericDataResponse[oscaltypes.AssessmentResults]
+	err := json.Unmarshal(rec.Body.Bytes(), &arResp)
+	suite.NoError(err)
+	arUUID := arResp.Data.UUID
+	
+	// Get the result UUIDs
+	rec, req = suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/full", arUUID), nil)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusOK, rec.Code)
+	var fullArResp handler.GenericDataResponse[oscaltypes.AssessmentResults]
+	err = json.Unmarshal(rec.Body.Bytes(), &fullArResp)
+	suite.NoError(err)
+	result1UUID := fullArResp.Data.Results[0].UUID
+	result2UUID := fullArResp.Data.Results[1].UUID
+	
+	// Create observations for first result
+	obs1 := oscaltypes.Observation{
+		UUID:        uuid.New().String(),
+		Description: "Observation 1 for Result 1",
+		Methods:     []string{"TEST"},
+		Collected:   time.Now(),
+	}
+	rec, req = suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/observations", arUUID, result1UUID), obs1)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusCreated, rec.Code)
+	
+	obs2 := oscaltypes.Observation{
+		UUID:        uuid.New().String(),
+		Description: "Observation 2 for Result 1",
+		Methods:     []string{"EXAMINE"},
+		Collected:   time.Now(),
+	}
+	rec, req = suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/observations", arUUID, result1UUID), obs2)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusCreated, rec.Code)
+	
+	// Create risks for second result
+	risk1 := oscaltypes.Risk{
+		UUID:        uuid.New().String(),
+		Title:       "Risk 1 for Result 2",
+		Description: "Risk description 1",
+		Statement:   "Risk statement 1",
+		Status:      "open",
+	}
+	rec, req = suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/risks", arUUID, result2UUID), risk1)
+	suite.server.E().ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		suite.T().Logf("Failed to create risk: %s", rec.Body.String())
+	}
+	suite.Equal(http.StatusCreated, rec.Code)
+	
+	// Create findings for both results
+	finding1 := oscaltypes.Finding{
+		UUID:        uuid.New().String(),
+		Title:       "Finding 1 for Result 1",
+		Description: "Finding description 1",
+		Target: oscaltypes.FindingTarget{
+			Type:     "statement-id",
+			TargetId: "ac-1_smt",
+			Status: oscaltypes.ObjectiveStatus{
+				State: "not-satisfied",
+			},
+			ImplementationStatus: &oscaltypes.ImplementationStatus{
+				State: "not-applicable",
+			},
+		},
+	}
+	rec, req = suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/findings", arUUID, result1UUID), finding1)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusCreated, rec.Code)
+	
+	finding2 := oscaltypes.Finding{
+		UUID:        uuid.New().String(),
+		Title:       "Finding 2 for Result 2",
+		Description: "Finding description 2",
+		Target: oscaltypes.FindingTarget{
+			Type:     "statement-id",
+			TargetId: "ac-2_smt",
+			Status: oscaltypes.ObjectiveStatus{
+				State: "satisfied",
+			},
+			ImplementationStatus: &oscaltypes.ImplementationStatus{
+				State: "implemented",
+			},
+		},
+	}
+	rec, req = suite.createRequest(http.MethodPost, fmt.Sprintf("/api/oscal/assessment-results/%s/results/%s/findings", arUUID, result2UUID), finding2)
+	suite.server.E().ServeHTTP(rec, req)
+	suite.Equal(http.StatusCreated, rec.Code)
+	
+	// Test GetAllObservations
+	suite.Run("GetAllObservations", func() {
+		rec, req := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/observations", arUUID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code)
+		
+		var obsResp handler.GenericDataListResponse[*oscaltypes.Observation]
+		err := json.Unmarshal(rec.Body.Bytes(), &obsResp)
+		suite.NoError(err)
+		suite.Len(obsResp.Data, 2)
+		
+		// Verify we got both observations
+		obsUUIDs := []string{obsResp.Data[0].UUID, obsResp.Data[1].UUID}
+		suite.Contains(obsUUIDs, obs1.UUID)
+		suite.Contains(obsUUIDs, obs2.UUID)
+	})
+	
+	// Test GetAllRisks
+	suite.Run("GetAllRisks", func() {
+		rec, req := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/risks", arUUID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code)
+		
+		var riskResp handler.GenericDataListResponse[*oscaltypes.Risk]
+		err := json.Unmarshal(rec.Body.Bytes(), &riskResp)
+		suite.NoError(err)
+		suite.Len(riskResp.Data, 1)
+		suite.Equal(risk1.UUID, riskResp.Data[0].UUID)
+	})
+	
+	// Test GetAllFindings
+	suite.Run("GetAllFindings", func() {
+		rec, req := suite.createRequest(http.MethodGet, fmt.Sprintf("/api/oscal/assessment-results/%s/findings", arUUID), nil)
+		suite.server.E().ServeHTTP(rec, req)
+		suite.Equal(http.StatusOK, rec.Code)
+		
+		var findingResp handler.GenericDataListResponse[*oscaltypes.Finding]
+		err := json.Unmarshal(rec.Body.Bytes(), &findingResp)
+		suite.NoError(err)
+		suite.Len(findingResp.Data, 2)
+		
+		// Verify we got both findings
+		findingUUIDs := []string{findingResp.Data[0].UUID, findingResp.Data[1].UUID}
+		suite.Contains(findingUUIDs, finding1.UUID)
+		suite.Contains(findingUUIDs, finding2.UUID)
+	})
+}

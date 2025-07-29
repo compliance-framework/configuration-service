@@ -7458,6 +7458,40 @@ paths:
       summary: Update back matter resource
       tags:
       - Assessment Results
+  /oscal/assessment-results/{id}/findings:
+    get:
+      description: Retrieves all findings across all results in an assessment results
+        document.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_Finding'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: List all findings in assessment results
+      tags:
+      - Assessment Results
   /oscal/assessment-results/{id}/full:
     get:
       description: Retrieves a complete Assessment Results by its ID, including all
@@ -7709,6 +7743,40 @@ paths:
       security:
       - OAuth2Password: []
       summary: Update Assessment Results metadata
+      tags:
+      - Assessment Results
+  /oscal/assessment-results/{id}/observations:
+    get:
+      description: Retrieves all observations across all results in an assessment
+        results document.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_Observation'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: List all observations in assessment results
       tags:
       - Assessment Results
   /oscal/assessment-results/{id}/results:
@@ -8945,6 +9013,40 @@ paths:
       security:
       - OAuth2Password: []
       summary: Update a risk
+      tags:
+      - Assessment Results
+  /oscal/assessment-results/{id}/risks:
+    get:
+      description: Retrieves all risks across all results in an assessment results
+        document.
+      parameters:
+      - description: Assessment Results ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-oscalTypes_1_1_3_Risk'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: List all risks in assessment results
       tags:
       - Assessment Results
   /oscal/catalogs:
