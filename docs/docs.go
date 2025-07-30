@@ -12522,7 +12522,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Oscal"
+                    "System Security Plans"
                 ],
                 "summary": "Create a new statement within an implemented requirement",
                 "parameters": [
