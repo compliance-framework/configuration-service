@@ -17,15 +17,30 @@ type ValidationError struct {
 }
 
 var _ Validatable = (*AssessmentPlanCreateRequest)(nil)
+var _ Validatable = (*AssessmentPlanUpdateRequest)(nil)
 
 type AssessmentPlanCreateRequest struct {
 	Data *oscalTypes.AssessmentPlan
 }
 
 func (ap *AssessmentPlanCreateRequest) Validate() []ValidationError {
+	errors := baseAssessmentPlanValidate(ap.Data)
+	return errors
+}
+
+type AssessmentPlanUpdateRequest struct {
+	Data *oscalTypes.AssessmentPlan
+}
+
+func (ap *AssessmentPlanUpdateRequest) Validate() []ValidationError {
+	errors := baseAssessmentPlanValidate(ap.Data)
+	return errors
+}
+
+func baseAssessmentPlanValidate(plan *oscalTypes.AssessmentPlan) []ValidationError {
 	errors := []ValidationError{}
 
-	if ap.Data == nil {
+	if plan == nil {
 		errors = append(errors, ValidationError{
 			Message: "assessment plan data is required",
 			Field:   "data",
@@ -33,33 +48,33 @@ func (ap *AssessmentPlanCreateRequest) Validate() []ValidationError {
 		return errors
 	}
 
-	if ap.Data.UUID == "" {
+	if plan.UUID == "" {
 		errors = append(errors, ValidationError{
 			Message: "UUID is required",
 			Field:   "uuid",
 		})
-	} else if _, err := uuid.Parse(ap.Data.UUID); err != nil {
+	} else if _, err := uuid.Parse(plan.UUID); err != nil {
 		errors = append(errors, ValidationError{
-			Message: fmt.Sprintf("invalid UUID format: %s", ap.Data.UUID),
+			Message: fmt.Sprintf("invalid UUID format: %s", plan.UUID),
 			Field:   "uuid",
 		})
 	}
 
-	if ap.Data.Metadata.Title == "" {
+	if plan.Metadata.Title == "" {
 		errors = append(errors, ValidationError{
 			Message: "metadata.title is required",
 			Field:   "metadata.title",
 		})
 	}
 
-	if ap.Data.Metadata.Version == "" {
+	if plan.Metadata.Version == "" {
 		errors = append(errors, ValidationError{
 			Message: "metadata.version is required",
 			Field:   "metadata.version",
 		})
 	}
 
-	if ap.Data.ImportSsp.Href == "" {
+	if plan.ImportSsp.Href == "" {
 		errors = append(errors, ValidationError{
 			Message: "import-ssp.href is required",
 			Field:   "import-ssp.href",
