@@ -326,7 +326,6 @@ func (suite *AssessmentPlanApiIntegrationSuite) TestAssessmentPlanNotFound() {
 		rec, req := suite.createRequest(http.MethodPut, fmt.Sprintf("/api/oscal/assessment-plans/%s", nonExistentID), testPlan)
 		suite.server.E().ServeHTTP(rec, req)
 		suite.Equal(http.StatusNotFound, rec.Code)
-		fmt.Println("UpdateNonExistent response:", rec.Body.String())
 	})
 
 	suite.Run("DeleteNonExistent", func() {
