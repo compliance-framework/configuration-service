@@ -192,24 +192,25 @@ func (h *AssessmentPlanHandler) Get(ctx echo.Context) error {
 //	@Security		OAuth2Password
 //	@Router			/oscal/assessment-plans [post]
 func (h *AssessmentPlanHandler) Create(ctx echo.Context) error {
-	var plan oscalTypes_1_1_3.AssessmentPlan
-	if err := ctx.Bind(&plan); err != nil {
+	var request AssessmentPlanCreateRequest
+	err := ctx.Bind(&request.Data)
+	if err != nil {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	// Validate input
-	if err := h.validateAssessmentPlanInput(&plan); err != nil {
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	errs := request.Validate()
+	if len(errs) > 0 {
+		return NewValidationErrorResponse(errs)
 	}
 
 	// Set metadata timestamps
 	now := time.Now()
-	plan.Metadata.LastModified = now
-	plan.Metadata.OscalVersion = versioning.GetLatestSupportedVersion()
+	request.Data.Metadata.LastModified = now
+	request.Data.Metadata.OscalVersion = versioning.GetLatestSupportedVersion()
 
 	// Convert to a relational model
 	relationalPlan := &relational.AssessmentPlan{}
-	relationalPlan.UnmarshalOscal(plan)
+	relationalPlan.UnmarshalOscal(*request.Data)
 
 	// Save to the database
 	if err := h.db.Create(relationalPlan).Error; err != nil {
