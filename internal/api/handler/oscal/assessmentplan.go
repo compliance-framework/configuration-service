@@ -272,7 +272,7 @@ func (h *AssessmentPlanHandler) Delete(ctx echo.Context) error {
 
 	// Delete from database
 	if err := h.db.Delete(&relational.AssessmentPlan{}, "id = ?", id).Error; err != nil {
-		h.sugar.Errorw("failed to delete assessment plan", "err", err)
+		h.sugar.Errorw("failed to delete assessment plan", "error", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
@@ -303,7 +303,7 @@ func (h *AssessmentPlanHandler) GetMetadata(ctx echo.Context) error {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return api.NotFoundError(fmt.Errorf("assessment plan not found: %w", err))
 		}
-		h.sugar.Errorw("failed to retrieve assessment plan metadata", "err", err)
+		h.sugar.Errorw("failed to retrieve assessment plan metadata", "error", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
@@ -332,9 +332,9 @@ func (h *AssessmentPlanHandler) GetImportSsp(ctx echo.Context) error {
 	var plan relational.AssessmentPlan
 	if err := h.db.Where("id = ?", id).First(&plan).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("assessment plan not found")))
+			return api.NotFoundError(fmt.Errorf("assessment plan not found: %w", err))
 		}
-		h.sugar.Errorf("Failed to retrieve assessment plan: %v", err)
+		h.sugar.Errorw("failed to retrieve assessment plan", "error", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
@@ -364,14 +364,14 @@ func (h *AssessmentPlanHandler) GetLocalDefinitions(ctx echo.Context) error {
 	var plan relational.AssessmentPlan
 	if err := h.db.Preload("LocalDefinitions").Where("id = ?", id).First(&plan).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("assessment plan not found")))
+			return api.NotFoundError(fmt.Errorf("assessment plan not found: %w", err))
 		}
-		h.sugar.Errorf("Failed to retrieve assessment plan: %v", err)
+		h.sugar.Errorw("failed to retrieve assessment plan", "error", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	if plan.LocalDefinitions.ID == nil {
-		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("local definitions not found")))
+		return api.NotFoundError(fmt.Errorf("local definitions not found for assessment plan: %s", id.String()))
 	}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[*oscalTypes_1_1_3.LocalDefinitions]{Data: plan.LocalDefinitions.MarshalOscal()})
@@ -399,14 +399,14 @@ func (h *AssessmentPlanHandler) GetTermsAndConditions(ctx echo.Context) error {
 	var plan relational.AssessmentPlan
 	if err := h.db.Preload("TermsAndConditions").Where("id = ?", id).First(&plan).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("assessment plan not found")))
+			return api.NotFoundError(fmt.Errorf("assessment plan not found: %w", err))
 		}
-		h.sugar.Errorf("Failed to retrieve assessment plan: %v", err)
+		h.sugar.Errorw("failed to retrieve assessment plan", "error", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	if plan.TermsAndConditions.ID == nil {
-		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("terms and conditions not found")))
+		return api.NotFoundError(fmt.Errorf("terms and conditions not found for assessment plan: %s", id.String()))
 	}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[*oscalTypes_1_1_3.AssessmentPlanTermsAndConditions]{Data: plan.TermsAndConditions.MarshalOscal()})
@@ -434,14 +434,14 @@ func (h *AssessmentPlanHandler) GetBackMatter(ctx echo.Context) error {
 	var plan relational.AssessmentPlan
 	if err := h.db.Preload("BackMatter").Where("id = ?", id).First(&plan).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("assessment plan not found")))
+			return api.NotFoundError(fmt.Errorf("assessment plan not found: %w", err))
 		}
-		h.sugar.Errorf("Failed to retrieve assessment plan: %v", err)
+		h.sugar.Errorw("failed to retrieve assessment plan", "error", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	if plan.BackMatter == nil {
-		return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("back matter not found")))
+		return api.NotFoundError(fmt.Errorf("back matter not found for assessment plan: %s", id.String()))
 	}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[*oscalTypes_1_1_3.BackMatter]{Data: plan.BackMatter.MarshalOscal()})
@@ -484,10 +484,10 @@ func (h *AssessmentPlanHandler) Full(ctx echo.Context) error {
 		Preload("BackMatter").
 		First(&plan, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+			return api.NotFoundError(fmt.Errorf("assessment plan not found: %w", err))
 		}
-		h.sugar.Warnw("Failed to load assessment plan", "id", id.String(), "error", err)
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+		h.sugar.Errorw("failed to load assessment plan", "id", id.String(), "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
 	return ctx.JSON(http.StatusOK, handler.GenericDataResponse[*oscalTypes_1_1_3.AssessmentPlan]{Data: plan.MarshalOscal()})
