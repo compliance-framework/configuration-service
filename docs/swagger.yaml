@@ -5358,6 +5358,10 @@ definitions:
         items:
           $ref: '#/definitions/relational.Link'
         type: array
+      parentID:
+        type: string
+      parentType:
+        type: string
       props:
         items:
           $ref: '#/definitions/relational.Prop'
@@ -5376,8 +5380,6 @@ definitions:
         type: array
       status:
         $ref: '#/definitions/datatypes.JSONType-relational_SystemComponentStatus'
-      systemImplementationId:
-        type: string
       title:
         type: string
       type:

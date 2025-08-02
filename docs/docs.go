@@ -22773,6 +22773,12 @@ const docTemplate = `{
                         "$ref": "#/definitions/relational.Link"
                     }
                 },
+                "parentID": {
+                    "type": "string"
+                },
+                "parentType": {
+                    "type": "string"
+                },
                 "props": {
                     "type": "array",
                     "items": {
@@ -22799,9 +22805,6 @@ const docTemplate = `{
                 },
                 "status": {
                     "$ref": "#/definitions/datatypes.JSONType-relational_SystemComponentStatus"
-                },
-                "systemImplementationId": {
-                    "type": "string"
                 },
                 "title": {
                     "type": "string"
