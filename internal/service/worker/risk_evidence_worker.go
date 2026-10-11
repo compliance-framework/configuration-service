@@ -1098,7 +1098,7 @@ func (w *RiskEvidenceWorker) handleEvidenceResolution(ctx context.Context, evide
 			continue
 		}
 
-		if err := w.resolveRiskEvidenceLink(ctx, risk, evidence.UUID); err != nil {
+		if err := w.resolveRiskEvidenceLink(ctx, *risk.ID, evidence.UUID); err != nil {
 			w.logger.Errorw("Failed to resolve risk evidence link",
 				"error", err, "risk_id", risk.ID, "evidence_id", evidence.UUID)
 			errs = append(errs, err)
@@ -1138,8 +1138,24 @@ func (w *RiskEvidenceWorker) shouldRemoveEvidenceLink(risk *risks.Risk, evidence
 
 // resolveRiskEvidenceLink removes a single evidence link from a risk and, if no links remain,
 // transitions the risk to "remediated" (or emits an audit event for "risk-accepted" risks).
-func (w *RiskEvidenceWorker) resolveRiskEvidenceLink(ctx context.Context, risk *risks.Risk, evidenceStreamID uuid.UUID) error {
+// It locks the risk first, so resolutions of the risk's other streams count its links only
+// after this one commits, and it acts on the status read under the lock.
+func (w *RiskEvidenceWorker) resolveRiskEvidenceLink(ctx context.Context, riskID uuid.UUID, evidenceStreamID uuid.UUID) error {
 	return w.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var risk risks.Risk
+		err := tx.Clauses(clause.Locking{Strength: clause.LockingStrengthUpdate}).
+			Select("id", "status").Where("id = ?", riskID).Take(&risk).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("failed to lock risk: %w", err)
+		}
+		// Closed or remediated since the caller read it: nothing to resolve.
+		if risk.Status == string(risks.RiskStatusClosed) || risk.Status == string(risks.RiskStatusRemediated) {
+			return nil
+		}
+
 		// Delete the evidence link.
 		result := tx.Delete(&risks.RiskEvidenceLink{}, "risk_id = ? AND evidence_id = ?", *risk.ID, evidenceStreamID)
 		if result.Error != nil {
@@ -1187,7 +1203,7 @@ func (w *RiskEvidenceWorker) resolveRiskEvidenceLink(ctx context.Context, risk *
 		// Transition to remediated.
 		oldStatus := risk.Status
 		occurredAt := time.Now().UTC()
-		if err := tx.Model(risk).Update("status", string(risks.RiskStatusRemediated)).Error; err != nil {
+		if err := tx.Model(&risk).Update("status", string(risks.RiskStatusRemediated)).Error; err != nil {
 			return fmt.Errorf("failed to transition risk to remediated: %w", err)
 		}
 		if err := w.emitRiskEventAt(ctx, tx, *risk.ID, string(risks.RiskEventTypeStatusChange), map[string]interface{}{
