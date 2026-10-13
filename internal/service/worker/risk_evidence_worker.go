@@ -1089,7 +1089,7 @@ func (w *RiskEvidenceWorker) handleEvidenceResolution(ctx context.Context, evide
 			continue
 		}
 		// Skip risks that are already closed or remediated — nothing to resolve.
-		if risk.Status == string(risks.RiskStatusClosed) || risk.Status == string(risks.RiskStatusRemediated) {
+		if risks.IsTerminalRiskStatus(risk.Status) {
 			continue
 		}
 
@@ -1143,8 +1143,7 @@ func (w *RiskEvidenceWorker) shouldRemoveEvidenceLink(risk *risks.Risk, evidence
 func (w *RiskEvidenceWorker) resolveRiskEvidenceLink(ctx context.Context, riskID uuid.UUID, evidenceStreamID uuid.UUID) error {
 	return w.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var risk risks.Risk
-		err := tx.Clauses(clause.Locking{Strength: clause.LockingStrengthUpdate}).
-			Select("id", "status").Where("id = ?", riskID).Take(&risk).Error
+		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id", "status").First(&risk, "id = ?", riskID).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil
 		}
@@ -1152,7 +1151,7 @@ func (w *RiskEvidenceWorker) resolveRiskEvidenceLink(ctx context.Context, riskID
 			return fmt.Errorf("failed to lock risk: %w", err)
 		}
 		// Closed or remediated since the caller read it: nothing to resolve.
-		if risk.Status == string(risks.RiskStatusClosed) || risk.Status == string(risks.RiskStatusRemediated) {
+		if risks.IsTerminalRiskStatus(risk.Status) {
 			return nil
 		}
 
