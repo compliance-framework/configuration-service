@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   release-please:
-    uses: compliance-framework/workflows/.github/workflows/release-please.yml@899dbe5d7dac02de5fd60a92d764b189259e03dd # v1.5.0
+    uses: compliance-framework/workflows/.github/workflows/release-please.yml@05d2c3233de6e302c4ff891dde1132d440c081e4 # v1.6.0
     permissions:
       contents: read
     secrets: inherit
