@@ -149,7 +149,7 @@ func (s *RiskService) RecordRiskScoreSnapshot(tx *gorm.DB, riskID uuid.UUID, sou
 		status = RiskScoreStatusDeleted
 		openBaselineScore = 0
 		openResidualScore = 0
-	} else if isTerminalRiskStatus(risk.Status) {
+	} else if IsTerminalRiskStatus(risk.Status) {
 		openBaselineScore = 0
 		openResidualScore = 0
 	}
@@ -180,7 +180,8 @@ func isScoreValueEvent(eventType RiskEventType) bool {
 	}
 }
 
-func isTerminalRiskStatus(status string) bool {
+// IsTerminalRiskStatus reports whether status is closed or remediated.
+func IsTerminalRiskStatus(status string) bool {
 	return status == string(RiskStatusClosed) || status == string(RiskStatusRemediated)
 }
 
