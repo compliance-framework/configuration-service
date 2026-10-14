@@ -34,7 +34,10 @@ func EvidenceStatusCountsForFilterSets[K comparable](db *gorm.DB, sets map[K][]l
 }
 
 // CountStatusesForFilterSets evaluates every filter set against the latest evidence
-// streams in memory, with the semantics of EvidenceStatusCountsForFilters:
+// streams in memory, with the semantics of EvidenceStatusCountsForFilters except one:
+// label names and values are trimmed as well as case-folded (LoadLatestEvidenceStreams
+// and labelfilter.MatchLabels both trim, as lineage does), so a label stored as " ec2"
+// matches ec2 here where the SQL path, which only case-folds, did not. Otherwise:
 //   - a set with no filters counts nothing;
 //   - filters without a scope are ignored, unless no filter in the set has one, in which
 //     case every stream matches;

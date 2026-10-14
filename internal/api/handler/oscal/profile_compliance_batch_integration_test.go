@@ -116,7 +116,7 @@ func labelScope(label, operator, value string) *labelfilter.Scope {
 func (suite *ProfileIntegrationSuite) TestComplianceProgressMatchesPerControlCounts() {
 	suite.Require().NoError(suite.Migrator.Refresh())
 
-	controlIDs := []string{"c-0", "c-1", "c-2", "c-3", "c-4", "c-5", "c-6", "c-7", "c-8"}
+	controlIDs := []string{"c-0", "c-1", "c-2", "c-3", "c-4", "c-5", "c-6", "c-7", "c-8", "c-9"}
 	profileID, catID := suite.seedComplianceProfile(controlIDs)
 
 	ec2 := labelfilter.Filter{Scope: labelScope("svc", "=", "ec2")}
@@ -138,6 +138,8 @@ func (suite *ProfileIntegrationSuite) TestComplianceProgressMatchesPerControlCou
 	}}}, "c-5")
 	suite.attachComplianceFilter(catID, labelfilter.Filter{Scope: labelScope("svc", "=", "rds")}, "c-7")
 	suite.attachComplianceFilter(catID, labelfilter.Filter{}, "c-8") // unscoped: matches every stream
+	// c-9 targets a label whose stored value is padded with whitespace.
+	suite.attachComplianceFilter(catID, labelfilter.Filter{Scope: labelScope("zone", "=", "a")}, "c-9")
 
 	suite.seedComplianceStreams([][]complianceStreamVersion{
 		{{"not-satisfied", map[string]string{"svc": "ec2"}}, {"satisfied", map[string]string{"svc": "ec2", "env": "prod"}}},
@@ -147,6 +149,7 @@ func (suite *ProfileIntegrationSuite) TestComplianceProgressMatchesPerControlCou
 		{{"satisfied", map[string]string{"Svc": "EC2", "team": "a"}}},
 		{{"satisfied", map[string]string{"team": "a", "env": "dev"}}},
 		{{"not-satisfied", nil}},
+		{{"satisfied", map[string]string{"zone": " a "}}},
 	})
 
 	data := suite.complianceProgress(profileID.String(), "")
@@ -159,6 +162,11 @@ func (suite *ProfileIntegrationSuite) TestComplianceProgressMatchesPerControlCou
 	for _, controlID := range controlIDs {
 		control, ok := byID[controlID]
 		suite.Require().True(ok, controlID)
+		if controlID == "c-9" {
+			// The one intended difference from the SQL path: labels are trimmed, so the
+			// padded " a " matches zone=a (the SQL path only case-folds). Checked below.
+			continue
+		}
 
 		expected, err := relational.EvidenceStatusCountsForFilters(suite.DB, suite.filtersForControl(catID, controlID))
 		suite.Require().NoError(err)
@@ -177,7 +185,11 @@ func (suite *ProfileIntegrationSuite) TestComplianceProgressMatchesPerControlCou
 	suite.Equal([]ProfileComplianceStatusCount{{Count: 1, Status: "satisfied"}}, byID["c-4"].StatusCounts)
 	suite.Equal([]ProfileComplianceStatusCount{{Count: 2, Status: "satisfied"}}, byID["c-5"].StatusCounts)
 	suite.Equal("unknown", byID["c-7"].ComputedStatus)
-	suite.Equal([]ProfileComplianceStatusCount{{Count: 2, Status: "not-satisfied"}, {Count: 4, Status: "satisfied"}}, byID["c-8"].StatusCounts)
+	suite.Equal([]ProfileComplianceStatusCount{{Count: 2, Status: "not-satisfied"}, {Count: 5, Status: "satisfied"}}, byID["c-8"].StatusCounts)
+	suite.Equal([]ProfileComplianceStatusCount{{Count: 1, Status: "satisfied"}}, byID["c-9"].StatusCounts)
+	padded, err := relational.EvidenceStatusCountsForFilters(suite.DB, suite.filtersForControl(catID, "c-9"))
+	suite.Require().NoError(err)
+	suite.Empty(padded, "the SQL path does not trim, so it misses the padded label")
 	// c-1, c-3 and c-6 see the failing ec2/dev stream; c-2 and c-8 the unlabelled one.
 	suite.Equal(5, data.Summary.NotSatisfied)
 }
