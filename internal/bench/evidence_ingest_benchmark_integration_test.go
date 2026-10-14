@@ -211,38 +211,45 @@ func (e *benchEnv) run(t *testing.T, mode string, send func(context.Context, *sd
 	return benchResult{stored: stored, elapsed: elapsed}
 }
 
+// sendOneByOne posts each evidence with concurrency senders, stopping at the first error.
 func sendOneByOne(ctx context.Context, t *testing.T, client *sdk.Client, evidence []types.Evidence, concurrency int) {
 	t.Helper()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	work := make(chan types.Evidence)
-	errs := make(chan error, concurrency)
-	var wg sync.WaitGroup
+	var (
+		mu   sync.Mutex
+		errs []error
+		wg   sync.WaitGroup
+	)
 	for i := 0; i < concurrency; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for item := range work {
 				if err := client.Evidence.Create(ctx, item); err != nil {
-					errs <- err
+					mu.Lock()
+					errs = append(errs, err)
+					mu.Unlock()
+					cancel()
 					return
 				}
 			}
 		}()
 	}
+
+produce:
 	for _, item := range evidence {
-		work <- item
+		select {
+		case <-ctx.Done():
+			break produce
+		case work <- item:
+		}
 	}
 	close(work)
 	wg.Wait()
-	close(errs)
-	require.NoError(t, errors.Join(drain(errs)...))
-}
-
-func drain(errs <-chan error) []error {
-	var out []error
-	for err := range errs {
-		out = append(out, err)
-	}
-	return out
+	require.NoError(t, errors.Join(errs...))
 }
 
 func sendInBatches(ctx context.Context, t *testing.T, client *sdk.Client, evidence []types.Evidence, size int) {
