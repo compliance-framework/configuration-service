@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -50,6 +51,10 @@ const (
 	DefaultEvidenceBatchMaxItems  = 1000
 	DefaultEvidenceBatchChunkSize = 100
 	DefaultEvidenceBatchWorkers   = 4
+	// DefaultEvidenceBatchRetention is how long batches are kept after they are accepted.
+	DefaultEvidenceBatchRetention = 7 * 24 * time.Hour
+	// DefaultEvidenceBatchPruneSchedule runs the batch prune job hourly (River 6-field cron).
+	DefaultEvidenceBatchPruneSchedule = "0 47 * * * *"
 )
 
 // EvidenceBatchConfig bounds asynchronous batch evidence ingest (POST /api/evidence/batches).
@@ -60,6 +65,12 @@ type EvidenceBatchConfig struct {
 	ChunkSize int
 	// Workers is how many chunks are processed at once (CCF_EVIDENCE_BATCH_WORKERS).
 	Workers int
+	// Retention is how long a batch and its item outcomes are kept after it was
+	// accepted (CCF_EVIDENCE_BATCH_RETENTION, a Go duration). The evidence itself stays.
+	Retention time.Duration
+	// PruneSchedule is the River cron of the job deleting batches older than Retention
+	// (CCF_EVIDENCE_BATCH_PRUNE_SCHEDULE).
+	PruneSchedule string
 }
 
 func LoadEvidenceBatchConfig() (*EvidenceBatchConfig, error) {
@@ -68,9 +79,11 @@ func LoadEvidenceBatchConfig() (*EvidenceBatchConfig, error) {
 
 func LoadEvidenceBatchConfigFromViper(v *viper.Viper) (*EvidenceBatchConfig, error) {
 	cfg := &EvidenceBatchConfig{
-		MaxItems:  DefaultEvidenceBatchMaxItems,
-		ChunkSize: DefaultEvidenceBatchChunkSize,
-		Workers:   DefaultEvidenceBatchWorkers,
+		MaxItems:      DefaultEvidenceBatchMaxItems,
+		ChunkSize:     DefaultEvidenceBatchChunkSize,
+		Workers:       DefaultEvidenceBatchWorkers,
+		Retention:     DefaultEvidenceBatchRetention,
+		PruneSchedule: DefaultEvidenceBatchPruneSchedule,
 	}
 	for _, setting := range []struct {
 		key, env string
@@ -88,6 +101,17 @@ func LoadEvidenceBatchConfigFromViper(v *viper.Viper) (*EvidenceBatchConfig, err
 			return nil, fmt.Errorf("%s must be a positive integer, got %q", setting.env, v.GetString(setting.key))
 		}
 		*setting.target = value
+	}
+	if v.IsSet("evidence_batch_retention") {
+		raw := strings.TrimSpace(v.GetString("evidence_batch_retention"))
+		retention, err := time.ParseDuration(raw)
+		if err != nil || retention <= 0 {
+			return nil, fmt.Errorf("CCF_EVIDENCE_BATCH_RETENTION must be a positive duration such as 168h, got %q", raw)
+		}
+		cfg.Retention = retention
+	}
+	if schedule := strings.TrimSpace(v.GetString("evidence_batch_prune_schedule")); schedule != "" {
+		cfg.PruneSchedule = schedule
 	}
 	return cfg, nil
 }

@@ -173,6 +173,9 @@ func (s *BatchService) Submit(ctx context.Context, payloads []json.RawMessage, s
 		return nil, fmt.Errorf("store evidence batch: %w", err)
 	}
 
+	// The jobs are queued after the batch commits, not in its transaction (as for risk
+	// jobs in EvidenceService.Create). A crash between the two leaves the batch pending
+	// until PruneBatches removes it; the submitter sees it never complete. Accepted.
 	chunks := (len(payloads) + s.chunkSize - 1) / s.chunkSize
 	if chunks > 0 {
 		if err := s.enqueuer.EnqueueEvidenceBatchChunks(ctx, *batch.ID, chunks); err != nil {
