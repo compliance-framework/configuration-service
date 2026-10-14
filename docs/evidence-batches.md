@@ -68,13 +68,17 @@ enqueued for every evidence in both modes, as in production.
 
 The `CCF_EVIDENCE_BATCH_*` variables set the batch size, chunk size and workers.
 
-Results on an Apple M-series laptop with the defaults (1000 evidence per batch, chunks of
-100, 4 workers):
+Results on an Apple M4 Pro with the defaults (1000 evidence per batch, chunks of 100,
+4 workers), after evidence creation went from 65 to 36 SQL statements per evidence:
 
 | Latency | `POST /api/evidence` | `POST /api/evidence/batches` | Speed-up |
 |---|---|---|---|
-| none (loopback) | 54.1 s (92/s) | 18.8 s (267/s) | 2.9x |
-| 20 ms per request | 3 m 0 s (28/s) | 19.5 s (256/s) | 9.3x |
+| none (loopback) | 35.3 s (142/s) | 12.8 s (392/s) | 2.8x |
+| 20 ms per request | 2 m 50 s (30/s) | 12.8 s (392/s) | 13.3x |
 
-Each evidence still costs the same database work in both modes. Batches save the
-request round trip and spread the work over several workers.
+Before that change: 54.1 s against 18.8 s on loopback, and 3 m 0 s against 19.5 s
+with 20 ms.
+
+Each evidence costs the same database work in both modes (a test pins it at no more
+than 36 statements). Batches save the request round trip and spread the work over
+several workers.
