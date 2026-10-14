@@ -23,6 +23,10 @@ const evidenceSignatureVersion = "v1"
 type SignerContext struct {
 	User  *UserSignerContext
 	Agent *AgentSignerContext
+	// AcceptedAt, when set, dates the signature instead of the signing time: evidence
+	// accepted in a batch is signed later, in the background, but is attested as of the
+	// moment the API accepted it, while the submitter's token was valid.
+	AcceptedAt time.Time
 }
 
 type UserSignerContext struct {
@@ -121,6 +125,13 @@ func (s *SignerContext) claimsSnapshot() relational.EvidenceSignatureClaims {
 	return relational.EvidenceSignatureClaims{}
 }
 
+func signedAt(signer *SignerContext, now func() time.Time) time.Time {
+	if !signer.AcceptedAt.IsZero() {
+		return signer.AcceptedAt.UTC()
+	}
+	return now().UTC()
+}
+
 type SigningService struct {
 	privateKey *rsa.PrivateKey
 	now        func() time.Time
@@ -148,7 +159,7 @@ func (s *SigningService) SignEvidence(params CreateEvidenceParams, signer *Signe
 	signature := relational.EvidenceSignature{
 		Version:            evidenceSignatureVersion,
 		SignatureAlgorithm: jwt.SigningMethodRS256.Alg(),
-		SignedAt:           s.now().UTC(),
+		SignedAt:           signedAt(signer, s.now),
 		ContentHash:        contentHash,
 		Signer:             signer.signerSnapshot(),
 		Claims:             signer.claimsSnapshot(),

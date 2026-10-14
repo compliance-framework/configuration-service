@@ -115,6 +115,9 @@ type CreateEvidenceParams struct {
 	// DeclaredSubjectUUIDs are subjects the submitter names explicitly: defined components,
 	// SSP system components, parties or users.
 	DeclaredSubjectUUIDs []uuid.UUID
+	// OnCreated, when set, runs last in the transaction that stores the evidence, so what
+	// it records commits or rolls back with the evidence. An error rolls both back.
+	OnCreated func(tx *gorm.DB, evidence *relational.Evidence) error
 }
 
 func (s *EvidenceService) Create(ctx context.Context, params CreateEvidenceParams) (*relational.Evidence, error) {
@@ -268,6 +271,9 @@ func (s *EvidenceService) Create(ctx context.Context, params CreateEvidenceParam
 			params.Evidence.Signature = signature
 		}
 
+		if params.OnCreated != nil {
+			return params.OnCreated(tx, &params.Evidence)
+		}
 		return nil
 	})
 
