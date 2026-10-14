@@ -175,10 +175,7 @@ func (s *BatchService) Submit(ctx context.Context, payloads []json.RawMessage, s
 	if chunks > 0 {
 		if err := s.enqueuer.EnqueueEvidenceBatchChunks(ctx, *batch.ID, chunks); err != nil {
 			// Nothing will process the batch: fail its items so it reads as completed.
-			message := "the evidence could not be queued for processing"
-			if failErr := s.db.WithContext(ctx).Model(&relational.EvidenceBatchItem{}).
-				Where("batch_id = ? AND status = ?", *batch.ID, relational.EvidenceBatchItemPending).
-				Updates(map[string]any{"status": relational.EvidenceBatchItemFailed, "error": message, "payload": nil}).Error; failErr != nil {
+			if failErr := s.failPendingItems(ctx, *batch.ID, 0, len(payloads), "the evidence could not be queued for processing"); failErr != nil {
 				s.logger.Errorw("Failed to fail the items of an evidence batch that could not be queued", "batch_id", *batch.ID, "error", failErr)
 			}
 			return nil, fmt.Errorf("enqueue evidence batch: %w", err)
@@ -268,21 +265,25 @@ func (s *BatchService) failChunkOnFinalAttempt(ctx context.Context, batchID uuid
 		return err
 	}
 	s.logger.Errorw("Failed to process evidence batch chunk", "batch_id", batchID, "first_index", first, "error", err)
-	if failErr := s.db.WithContext(ctx).Model(&relational.EvidenceBatchItem{}).
-		Where("batch_id = ? AND status = ? AND item_index >= ? AND item_index < ?", batchID, relational.EvidenceBatchItemPending, first, end).
-		Updates(map[string]any{"status": relational.EvidenceBatchItemFailed, "error": batchItemInternalError, "payload": nil}).Error; failErr != nil {
+	if failErr := s.failPendingItems(ctx, batchID, first, end, batchItemInternalError); failErr != nil {
 		return errors.Join(err, failErr)
 	}
 	return nil
 }
 
 func (s *BatchService) failItem(ctx context.Context, batchID uuid.UUID, index int, message string) error {
-	if err := s.db.WithContext(ctx).Model(&relational.EvidenceBatchItem{}).
-		Where("batch_id = ? AND item_index = ? AND status = ?", batchID, index, relational.EvidenceBatchItemPending).
-		Updates(map[string]any{"status": relational.EvidenceBatchItemFailed, "error": message, "payload": nil}).Error; err != nil {
+	if err := s.failPendingItems(ctx, batchID, index, index+1, message); err != nil {
 		return fmt.Errorf("fail evidence batch item %d: %w", index, err)
 	}
 	return nil
+}
+
+// failPendingItems fails the batch's still-pending items with index in [first, end),
+// recording message and dropping their payloads.
+func (s *BatchService) failPendingItems(ctx context.Context, batchID uuid.UUID, first, end int, message string) error {
+	return s.db.WithContext(ctx).Model(&relational.EvidenceBatchItem{}).
+		Where("batch_id = ? AND status = ? AND item_index >= ? AND item_index < ?", batchID, relational.EvidenceBatchItemPending, first, end).
+		Updates(map[string]any{"status": relational.EvidenceBatchItemFailed, "error": message, "payload": nil}).Error
 }
 
 // Get returns a batch submitted by submittedBy (see BatchSubmitter) with every item's
