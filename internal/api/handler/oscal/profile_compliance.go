@@ -240,6 +240,12 @@ func (h *ProfileHandler) ComplianceProgress(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
+	statusCountsByControl, err := getStatusCountsByControl(h.db, filtersByControl)
+	if err != nil {
+		h.sugar.Errorw("failed to compute status counts for profile controls", "profileID", id, "error", err)
+		return ctx.JSON(http.StatusInternalServerError, api.InternalServerError())
+	}
+
 	groups := map[string]*profileComplianceGroupAccumulator{}
 	controls := make([]ProfileComplianceControl, 0, len(scopeControls))
 
@@ -251,10 +257,9 @@ func (h *ProfileHandler) ComplianceProgress(ctx echo.Context) error {
 
 	for _, scopedControl := range scopeControls {
 		controlKey := profileControlKey{CatalogID: scopedControl.CatalogID, ControlID: scopedControl.ControlID}
-		statusCounts, statusErr := h.getStatusCountsForFilters(filtersByControl[controlKey])
-		if statusErr != nil {
-			h.sugar.Errorw("failed to compute status counts for control", "catalogID", scopedControl.CatalogID, "controlID", scopedControl.ControlID, "error", statusErr)
-			return ctx.JSON(http.StatusInternalServerError, api.NewError(statusErr))
+		statusCounts, ok := statusCountsByControl[controlKey]
+		if !ok {
+			statusCounts = []ProfileComplianceStatusCount{}
 		}
 
 		computedStatus := computeProfileControlStatus(statusCounts)
@@ -472,14 +477,11 @@ func (h *ProfileHandler) loadFiltersByControl(scopeControls []profileComplianceC
 	} else {
 		query = query.Preload("Filters")
 	}
-	for idx, scopeControl := range scopeControls {
-		condition := h.db.Where("catalog_id = ? AND id = ?", scopeControl.CatalogID, scopeControl.ControlID)
-		if idx == 0 {
-			query = query.Where(condition)
-		} else {
-			query = query.Or(condition)
-		}
+	keys := make([][]any, 0, len(scopeControls))
+	for _, scopeControl := range scopeControls {
+		keys = append(keys, []any{scopeControl.CatalogID, scopeControl.ControlID})
 	}
+	query = query.Where("(catalog_id, id) IN ?", keys)
 
 	controls := []relational.Control{}
 	if err := query.Find(&controls).Error; err != nil {
@@ -498,23 +500,24 @@ func (h *ProfileHandler) loadFiltersByControl(scopeControls []profileComplianceC
 	return filtersByControl, nil
 }
 
-func (h *ProfileHandler) getStatusCountsForFilters(filters []labelfilter.Filter) ([]ProfileComplianceStatusCount, error) {
-	return getStatusCountsForFilters(h.db, filters)
-}
-
-// getStatusCountsForFilters is the package-level form of the method above, taking db
-// explicitly. It delegates to relational.EvidenceStatusCountsForFilters (the extracted
-// shared definition) and maps the neutral relational.StatusCount rows onto this
+// getStatusCountsByControl computes every control's latest-evidence status counts from
+// one load of the latest evidence streams (relational.EvidenceStatusCountsForFilterSets),
+// rather than one evidence aggregate per control. Each control's rows are what
+// relational.EvidenceStatusCountsForFilters returns for its filters, mapped onto this
 // package's ProfileComplianceStatusCount wire type.
-func getStatusCountsForFilters(db *gorm.DB, filters []labelfilter.Filter) ([]ProfileComplianceStatusCount, error) {
-	rows, err := relational.EvidenceStatusCountsForFilters(db, filters)
+func getStatusCountsByControl(db *gorm.DB, filtersByControl map[profileControlKey][]labelfilter.Filter) (map[profileControlKey][]ProfileComplianceStatusCount, error) {
+	countsByControl, err := relational.EvidenceStatusCountsForFilterSets(db, filtersByControl)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]ProfileComplianceStatusCount, len(rows))
-	for i, r := range rows {
-		result[i] = ProfileComplianceStatusCount{Count: r.Count, Status: r.Status}
+	result := make(map[profileControlKey][]ProfileComplianceStatusCount, len(countsByControl))
+	for key, rows := range countsByControl {
+		mapped := make([]ProfileComplianceStatusCount, len(rows))
+		for i, r := range rows {
+			mapped[i] = ProfileComplianceStatusCount{Count: r.Count, Status: r.Status}
+		}
+		result[key] = mapped
 	}
 	return result, nil
 }

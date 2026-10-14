@@ -79,6 +79,10 @@ type StatusCount struct {
 // mirrors profile_compliance.go) so both the compliance endpoint and the leverage
 // package can share one definition without an import cycle. Empty filters yield an
 // empty (non-nil) slice, never a full-table scan.
+//
+// Each call re-derives the latest evidence per stream over the whole evidences table,
+// so callers evaluating many filter sets use EvidenceStatusCountsForFilterSets, which
+// keeps these semantics with one load of the latest streams.
 func EvidenceStatusCountsForFilters(db *gorm.DB, filters []labelfilter.Filter) ([]StatusCount, error) {
 	if len(filters) == 0 {
 		return []StatusCount{}, nil
@@ -236,7 +240,7 @@ func LoadLatestEvidenceStreams(db *gorm.DB, componentID *uuid.UUID) ([]LatestEvi
 // so the lineage rollups can resolve every in-scope control's compliance without
 // an N+1 of one query per control/filter.
 //
-// Semantics match profile_compliance.getStatusCountsForFilters: it counts DISTINCT
+// Semantics match EvidenceStatusCountsForFilters for a single filter: it counts DISTINCT
 // evidence streams grouped by status state over the latest evidence in each stream.
 // componentID, when set, restricts to evidence observed on that system component.
 //
