@@ -20,6 +20,7 @@ import (
 	oscalTypes_1_1_3 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -60,21 +61,31 @@ func (c *statementCounter) reset() []string {
 	return out
 }
 
-func (c *statementCounter) register(db *gorm.DB) {
+// register records db's statements until t ends. Sessions share their parent's
+// callbacks, so they are removed again rather than left on the suite's database.
+func (c *statementCounter) register(t testing.TB, db *gorm.DB) {
 	callbacks := db.Callback()
-	_ = callbacks.Create().After("gorm:create").Register("budget:create", c.record)
-	_ = callbacks.Query().After("gorm:query").Register("budget:query", c.record)
-	_ = callbacks.Update().After("gorm:update").Register("budget:update", c.record)
-	_ = callbacks.Delete().After("gorm:delete").Register("budget:delete", c.record)
-	_ = callbacks.Row().After("gorm:row").Register("budget:row", c.record)
-	_ = callbacks.Raw().After("gorm:raw").Register("budget:raw", c.record)
+	require.NoError(t, callbacks.Create().After("gorm:create").Register("budget:create", c.record))
+	require.NoError(t, callbacks.Query().After("gorm:query").Register("budget:query", c.record))
+	require.NoError(t, callbacks.Update().After("gorm:update").Register("budget:update", c.record))
+	require.NoError(t, callbacks.Delete().After("gorm:delete").Register("budget:delete", c.record))
+	require.NoError(t, callbacks.Row().After("gorm:row").Register("budget:row", c.record))
+	require.NoError(t, callbacks.Raw().After("gorm:raw").Register("budget:raw", c.record))
+	t.Cleanup(func() {
+		_ = callbacks.Create().Remove("budget:create")
+		_ = callbacks.Query().Remove("budget:query")
+		_ = callbacks.Update().Remove("budget:update")
+		_ = callbacks.Delete().Remove("budget:delete")
+		_ = callbacks.Row().Remove("budget:row")
+		_ = callbacks.Raw().Remove("budget:raw")
+	})
 }
 
 func (suite *EvidenceQueryBudgetSuite) TestCreateStaysWithinStatementBudget() {
 	suite.Require().NoError(suite.Migrator.Refresh())
 	db := suite.DB.Session(&gorm.Session{NewDB: true})
 	counter := &statementCounter{}
-	counter.register(db)
+	counter.register(suite.T(), db)
 
 	logger := zap.NewNop().Sugar()
 	server := api.NewServer(context.Background(), logger, suite.Config, api.NewMetricsHandler(context.Background(), logger))
