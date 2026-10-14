@@ -52,11 +52,11 @@ func TestBuildRiverConfigSuggestionQueueGated(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.DefaultWorkerConfig()
-	withoutAI := buildRiverConfig(cfg, river.NewWorkers(), nil, nil)
+	withoutAI := buildRiverConfig(cfg, river.NewWorkers(), nil, nil, nil)
 	_, ok := withoutAI.Queues[DashboardSuggestionQueue]
 	require.False(t, ok)
 
-	withAI := buildRiverConfig(cfg, river.NewWorkers(), nil, &config.AIConfig{Enabled: true, QueueWorkers: 9})
+	withAI := buildRiverConfig(cfg, river.NewWorkers(), nil, &config.AIConfig{Enabled: true, QueueWorkers: 9}, nil)
 	queue, ok := withAI.Queues[DashboardSuggestionQueue]
 	require.True(t, ok)
 	require.Equal(t, 9, queue.MaxWorkers)
