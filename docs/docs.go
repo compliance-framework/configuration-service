@@ -4333,6 +4333,133 @@ const docTemplate = `{
                 ]
             }
         },
+        "/evidence/batches": {
+            "post": {
+                "description": "Accepts up to CCF_EVIDENCE_BATCH_MAX_ITEMS evidence and stores them asynchronously, returning the batch to poll with GET /evidence/batches/{id}. Each evidence is the body POST /evidence accepts; its shape and times are checked on submit, everything else when it is processed, where a failure fails that evidence only. Needs an authenticated user or agent, and the worker service.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Evidence"
+                ],
+                "summary": "Submit a batch of Evidence",
+                "parameters": [
+                    {
+                        "description": "Evidence batch",
+                        "name": "batch",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.EvidenceBatchCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-handler_EvidenceBatchResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ]
+            }
+        },
+        "/evidence/batches/{id}": {
+            "get": {
+                "description": "Returns the progress of a batch submitted with POST /evidence/batches and the outcome of each of its evidence, by position in the request. Only the user or agent that submitted the batch can read it.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Evidence"
+                ],
+                "summary": "Get an Evidence batch",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Batch ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GenericDataResponse-handler_EvidenceBatchResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ]
+            }
+        },
         "/evidence/compliance-by-control/{id}": {
             "get": {
                 "description": "Retrieves the count of evidence statuses for filters associated with a specific Control ID.",
@@ -35736,6 +35863,69 @@ const docTemplate = `{
                 }
             }
         },
+        "handler.EvidenceBatchCreateRequest": {
+            "type": "object",
+            "properties": {
+                "evidence": {
+                    "description": "Evidence holds the evidence to store, each as accepted by POST /evidence.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.EvidenceCreateRequest"
+                    }
+                }
+            }
+        },
+        "handler.EvidenceBatchItemResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "evidence-id": {
+                    "type": "string"
+                },
+                "index": {
+                    "type": "integer"
+                },
+                "status": {
+                    "description": "Status is pending, succeeded or failed.",
+                    "type": "string"
+                }
+            }
+        },
+        "handler.EvidenceBatchResponse": {
+            "type": "object",
+            "properties": {
+                "accepted-at": {
+                    "type": "string"
+                },
+                "failed": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.EvidenceBatchItemResponse"
+                    }
+                },
+                "pending": {
+                    "type": "integer"
+                },
+                "status": {
+                    "description": "Status is pending (no item processed yet), processing or completed (every item\nsucceeded or failed).",
+                    "type": "string"
+                },
+                "succeeded": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "handler.EvidenceComponent": {
             "type": "object",
             "properties": {
@@ -37442,6 +37632,19 @@ const docTemplate = `{
                     "allOf": [
                         {
                             "$ref": "#/definitions/handler.CreatedEvidenceResponse"
+                        }
+                    ]
+                }
+            }
+        },
+        "handler.GenericDataResponse-handler_EvidenceBatchResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Wrapped response data",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/handler.EvidenceBatchResponse"
                         }
                     ]
                 }

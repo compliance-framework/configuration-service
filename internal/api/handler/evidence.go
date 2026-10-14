@@ -33,6 +33,8 @@ type EvidenceHandler struct {
 	artifactService *artifactsvc.Service
 	pagination      *svc.PaginationConfig
 	sugar           *zap.SugaredLogger
+	batchService    *evidencesvc.BatchService
+	batchMaxItems   int
 }
 
 // WithArtifactService lets evidence refer to stored policy artifacts. Without it, evidence
@@ -272,20 +274,63 @@ func (h *EvidenceHandler) Create(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, api.Validator(err))
 	}
 
-	if err := h.applyPolicyArtifacts(ctx.Request().Context(), input); err != nil {
-		var invalid *invalidPolicyArtifactsError
-		if errors.As(err, &invalid) {
-			return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	created, err := h.storeEvidence(ctx.Request().Context(), input, authcontext.SignerContextFromEcho(ctx), time.Now().UTC(), nil)
+	if err != nil {
+		var rejected *evidenceRejectedError
+		if errors.As(err, &rejected) {
+			return ctx.JSON(http.StatusBadRequest, rejected.response)
 		}
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
 
-	now := time.Now().UTC()
-	if input.Start.UTC().After(now) {
-		return ctx.JSON(http.StatusBadRequest, api.InvalidFutureTime(input.Start))
+	output, err := newCreatedEvidenceResponse(created)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
-	if input.End.UTC().After(now) {
-		return ctx.JSON(http.StatusBadRequest, api.InvalidFutureTime(input.End))
+
+	return ctx.JSON(http.StatusCreated, GenericDataResponse[*CreatedEvidenceResponse]{Data: output})
+}
+
+// evidenceRejectedError is evidence its submitter has to fix; response is the 400 body.
+type evidenceRejectedError struct {
+	err      error
+	response api.Error
+}
+
+func (e *evidenceRejectedError) Error() string { return e.err.Error() }
+
+func (e *evidenceRejectedError) Unwrap() error { return e.err }
+
+func rejectEvidence(err error) error {
+	return &evidenceRejectedError{err: err, response: api.NewError(err)}
+}
+
+// checkEvidenceTimes rejects evidence that starts or ends after now.
+func checkEvidenceTimes(input *EvidenceCreateRequest, now time.Time) error {
+	for _, t := range []time.Time{input.Start, input.End} {
+		if t.UTC().After(now) {
+			response := api.InvalidFutureTime(t)
+			return &evidenceRejectedError{err: fmt.Errorf("time %s must not be in the future", t.Format(time.RFC3339Nano)), response: response}
+		}
+	}
+	return nil
+}
+
+// storeEvidence records the policy artifacts, checks the times against now and stores
+// the evidence signed as signer. onCreated, when set, runs in the storing transaction
+// (evidencesvc.CreateEvidenceParams.OnCreated). Errors the submitter has to fix are
+// *evidenceRejectedError; any other error is internal.
+func (h *EvidenceHandler) storeEvidence(ctx context.Context, input *EvidenceCreateRequest, signer *evidencesvc.SignerContext, now time.Time, onCreated func(tx *gorm.DB, evidence *relational.Evidence) error) (*relational.Evidence, error) {
+	if err := h.applyPolicyArtifacts(ctx, input); err != nil {
+		var invalid *invalidPolicyArtifactsError
+		if errors.As(err, &invalid) {
+			return nil, rejectEvidence(err)
+		}
+		return nil, err
+	}
+
+	if err := checkEvidenceTimes(input, now); err != nil {
+		return nil, err
 	}
 
 	components := []relational.SystemComponent{}
@@ -294,7 +339,7 @@ func (h *EvidenceHandler) Create(ctx echo.Context) error {
 			"identifier": i.Identifier,
 		})
 		if err != nil {
-			return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+			return nil, err
 		}
 		model := relational.SystemComponent{
 			UUIDModel: relational.UUIDModel{
@@ -322,7 +367,7 @@ func (h *EvidenceHandler) Create(ctx echo.Context) error {
 			"identifier": i.Identifier,
 		})
 		if err != nil {
-			return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+			return nil, err
 		}
 		model := relational.InventoryItem{
 			UUIDModel: relational.UUIDModel{
@@ -338,11 +383,11 @@ func (h *EvidenceHandler) Create(ctx echo.Context) error {
 				"identifier": k.Identifier,
 			})
 			if err != nil {
-				return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+				return nil, err
 			}
 			linkID, err := implementedComponentLinkID(i.Identifier, k.Identifier)
 			if err != nil {
-				return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+				return nil, err
 			}
 			model.ImplementedComponents = append(model.ImplementedComponents, relational.ImplementedComponent{
 				UUIDModel:   relational.UUIDModel{ID: &linkID},
@@ -390,7 +435,7 @@ func (h *EvidenceHandler) Create(ctx echo.Context) error {
 			"identifier": i.Identifier,
 		})
 		if err != nil {
-			return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+			return nil, err
 		}
 		model := relational.AssessmentSubject{
 			Type: i.Type,
@@ -443,7 +488,7 @@ func (h *EvidenceHandler) Create(ctx echo.Context) error {
 		Status:     datatypes.NewJSONType(input.Status),
 	}
 
-	created, err := h.evidenceService.Create(ctx.Request().Context(), evidencesvc.CreateEvidenceParams{
+	created, err := h.evidenceService.Create(ctx, evidencesvc.CreateEvidenceParams{
 		Evidence:             evidence,
 		Components:           components,
 		InventoryItems:       inventoryItems,
@@ -451,21 +496,16 @@ func (h *EvidenceHandler) Create(ctx echo.Context) error {
 		Subjects:             subjects,
 		DeclaredSubjectUUIDs: declaredSubjectUUIDs,
 		Labels:               labels,
-		Signer:               authcontext.SignerContextFromEcho(ctx),
+		Signer:               signer,
+		OnCreated:            onCreated,
 	})
 	if errors.Is(err, evidencesvc.ErrSubjectRequired) || errors.Is(err, evidencesvc.ErrUnknownSubject) || errors.Is(err, evidencesvc.ErrTooManySubjects) {
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+		return nil, rejectEvidence(err)
 	}
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		return nil, err
 	}
-
-	output, err := newCreatedEvidenceResponse(created)
-	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-	}
-
-	return ctx.JSON(http.StatusCreated, GenericDataResponse[*CreatedEvidenceResponse]{Data: output})
+	return created, nil
 }
 
 type evidenceConfigResponse struct {
@@ -1320,10 +1360,8 @@ func invalidPolicyArtifacts(format string, args ...any) error {
 // artifacts are stored with the expected media types, and records their digests as props,
 // before the evidence is converted and signed.
 func (h *EvidenceHandler) applyPolicyArtifacts(ctx context.Context, input *EvidenceCreateRequest) error {
-	for _, prop := range input.Props {
-		if artifact.IsReservedProp(prop.Name) {
-			return invalidPolicyArtifacts("prop %q is set by the API from policy-artifacts and may not be supplied", prop.Name)
-		}
+	if err := checkReservedProps(input); err != nil {
+		return &invalidPolicyArtifactsError{msg: err.Error()}
 	}
 	refs := input.PolicyArtifacts
 	if refs == nil {
