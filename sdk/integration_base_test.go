@@ -17,6 +17,7 @@ import (
 	"github.com/compliance-framework/api/internal/config"
 	"github.com/compliance-framework/api/internal/service/relational"
 	evidencesvc "github.com/compliance-framework/api/internal/service/relational/evidence"
+	"github.com/compliance-framework/api/internal/service/worker"
 	"github.com/compliance-framework/api/internal/tests"
 
 	"github.com/compliance-framework/api/sdk"
@@ -151,6 +152,7 @@ func (suite *IntegrationBaseTestSuite) SetupSuite() {
 		WorkflowManager:      nil,
 		NotificationEnqueuer: nil,
 		DAGExecutor:          nil,
+		EvidenceBatchQueue:   &syncEvidenceBatchQueue{},
 	}
 
 	handler.RegisterHandlers(server, logger.Sugar(), suite.DB, suite.Config, services)
@@ -166,6 +168,27 @@ func (suite *IntegrationBaseTestSuite) SetupSuite() {
 		}
 	}()
 	err = waitForServerStart(suite.Server.E(), errChan, false)
+}
+
+// syncEvidenceBatchQueue processes each evidence batch chunk as soon as it is enqueued,
+// standing in for the worker service.
+type syncEvidenceBatchQueue struct {
+	processor worker.EvidenceBatchProcessor
+}
+
+func (q *syncEvidenceBatchQueue) EvidenceBatchesAvailable() error { return nil }
+
+func (q *syncEvidenceBatchQueue) SetEvidenceBatchProcessor(processor worker.EvidenceBatchProcessor) {
+	q.processor = processor
+}
+
+func (q *syncEvidenceBatchQueue) EnqueueEvidenceBatchChunks(ctx context.Context, batchID uuid.UUID, chunks int) error {
+	for chunk := 0; chunk < chunks; chunk++ {
+		if err := q.processor.ProcessChunk(ctx, batchID, chunk, true); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (suite *IntegrationBaseTestSuite) TearDownSuite() {

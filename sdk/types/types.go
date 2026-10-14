@@ -269,3 +269,38 @@ type PolicyArtifacts struct {
 	InputDigest      string `json:"input-digest"`
 	PolicyDataDigest string `json:"policy-data-digest,omitempty"`
 }
+
+// Evidence batch statuses (EvidenceBatch.Status).
+const (
+	EvidenceBatchPending    = "pending"
+	EvidenceBatchProcessing = "processing"
+	EvidenceBatchCompleted  = "completed"
+)
+
+// Evidence batch item statuses (EvidenceBatchItem.Status).
+const (
+	EvidenceBatchItemPending   = "pending"
+	EvidenceBatchItemSucceeded = "succeeded"
+	EvidenceBatchItemFailed    = "failed"
+)
+
+// EvidenceBatch is a batch of evidence stored asynchronously, as returned by
+// Client.Evidence.CreateBatch and GetBatch.
+type EvidenceBatch struct {
+	ID         uuid.UUID           `json:"id"`
+	Status     string              `json:"status"`
+	Total      int                 `json:"total"`
+	Pending    int                 `json:"pending"`
+	Succeeded  int                 `json:"succeeded"`
+	Failed     int                 `json:"failed"`
+	AcceptedAt time.Time           `json:"accepted-at"`
+	Items      []EvidenceBatchItem `json:"items"`
+}
+
+// EvidenceBatchItem is the outcome of the evidence at Index in the batch request.
+type EvidenceBatchItem struct {
+	Index      int        `json:"index"`
+	Status     string     `json:"status"`
+	EvidenceID *uuid.UUID `json:"evidence-id,omitempty"`
+	Error      string     `json:"error,omitempty"`
+}
