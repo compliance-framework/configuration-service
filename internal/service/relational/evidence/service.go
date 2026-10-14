@@ -402,7 +402,7 @@ func (s *EvidenceService) evidenceQuery(db *gorm.DB) *gorm.DB {
 
 func (s *EvidenceService) Search(filter labelfilter.Filter) ([]relational.Evidence, error) {
 	var results []relational.Evidence
-	query, err := relational.GetEvidenceSearchByFilterQuery(relational.GetLatestEvidenceStreamsQuery(s.db), s.db, filter)
+	query, err := relational.GetEvidenceSearchByFilterQuery(relational.LatestEvidenceQuery(s.db, relational.LatestEvidenceOptions{}), s.db, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -415,7 +415,7 @@ func (s *EvidenceService) Search(filter labelfilter.Filter) ([]relational.Eviden
 func (s *EvidenceService) SearchPaginated(filter labelfilter.Filter, opts SearchOptions) ([]relational.Evidence, int64, error) {
 	opts = normalizeEvidenceSearchOptions(opts)
 
-	query, err := relational.GetEvidenceSearchByFilterQuery(relational.GetLatestEvidenceStreamsQuery(s.db), s.db, filter)
+	query, err := relational.GetEvidenceSearchByFilterQuery(relational.LatestEvidenceQuery(s.db, relational.LatestEvidenceOptions{}), s.db, filter)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -498,8 +498,7 @@ func applyEvidenceSearchOrder(sortBy SearchSortBy, direction SearchSortDirection
 }
 
 func (s *EvidenceService) GetLatestForFilters(filters ...labelfilter.Filter) ([]relational.Evidence, error) {
-	latestQuery := s.db.Session(&gorm.Session{})
-	latestQuery = relational.GetLatestEvidenceStreamsQuery(latestQuery)
+	latestQuery := relational.LatestEvidenceQuery(s.db, relational.LatestEvidenceOptions{})
 	q, err := relational.GetEvidenceSearchByFilterQuery(latestQuery, s.db, filters...)
 	if err != nil {
 		return nil, err
@@ -512,11 +511,7 @@ func (s *EvidenceService) GetLatestForFilters(filters ...labelfilter.Filter) ([]
 }
 
 func (s *EvidenceService) GetStatusCountsAtPoint(filter labelfilter.Filter, endBefore *time.Time) ([]StatusCount, error) {
-	latestQuery := s.db.Session(&gorm.Session{})
-	latestQuery = relational.GetLatestEvidenceStreamsQuery(latestQuery)
-	if endBefore != nil {
-		latestQuery = latestQuery.Where("evidences.end < ?", endBefore.UTC())
-	}
+	latestQuery := relational.LatestEvidenceQuery(s.db, relational.LatestEvidenceOptions{EndBefore: endBefore})
 	q, err := relational.GetEvidenceSearchByFilterQuery(latestQuery, s.db, filter)
 	if err != nil {
 		return nil, err
@@ -532,12 +527,7 @@ func (s *EvidenceService) GetStatusCountsAtPoint(filter labelfilter.Filter, endB
 }
 
 func (s *EvidenceService) GetStatusCountsByUUIDAtPoint(streamUUID uuid.UUID, endBefore *time.Time) ([]StatusCount, error) {
-	latestQuery := s.db.Session(&gorm.Session{})
-	latestQuery = relational.GetLatestEvidenceStreamsQuery(latestQuery)
-	latestQuery = latestQuery.Where("uuid = ?", streamUUID.String())
-	if endBefore != nil {
-		latestQuery = latestQuery.Where("evidences.end < ?", endBefore.UTC())
-	}
+	latestQuery := relational.LatestEvidenceQuery(s.db, relational.LatestEvidenceOptions{StreamUUID: &streamUUID, EndBefore: endBefore})
 	q, err := relational.GetEvidenceSearchByFilterQuery(latestQuery, s.db, labelfilter.Filter{})
 	if err != nil {
 		return nil, err
@@ -553,8 +543,7 @@ func (s *EvidenceService) GetStatusCountsByUUIDAtPoint(streamUUID uuid.UUID, end
 }
 
 func (s *EvidenceService) GetStatusCountsByFilters(filters ...labelfilter.Filter) ([]StatusCount, error) {
-	latestQuery := s.db.Session(&gorm.Session{})
-	latestQuery = relational.GetLatestEvidenceStreamsQuery(latestQuery)
+	latestQuery := relational.LatestEvidenceQuery(s.db, relational.LatestEvidenceOptions{})
 	q, err := relational.GetEvidenceSearchByFilterQuery(latestQuery, s.db, filters...)
 	if err != nil {
 		return nil, err

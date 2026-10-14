@@ -137,9 +137,22 @@ func CollapseEvidenceStatus(rows []StatusCount) string {
 	return "unknown"
 }
 
+// latestStreamUUIDsCTE lists every stream uuid with a recursive skip scan of the uuid
+// index: one index probe per stream. SELECT DISTINCT uuid reads every evidence row's
+// index entry instead (Postgres before 18 has no skip scan), so its cost grows with the
+// whole evidence history rather than with the number of streams. Use it after
+// WITH RECURSIVE; it yields one NULL row at the end, which callers filter out.
+const latestStreamUUIDsCTE = `streams(uuid) AS (
+		(SELECT uuid FROM evidences ORDER BY uuid LIMIT 1)
+		UNION ALL
+		SELECT (SELECT e.uuid FROM evidences e WHERE e.uuid > s.uuid ORDER BY e.uuid LIMIT 1)
+		FROM streams s
+		WHERE s.uuid IS NOT NULL
+	)`
+
 // latestEvidenceStreamsCTE builds the "latest evidence per stream" set as a
-// MATERIALIZED CTE named `latest(id, uuid, state)` using a loose index scan:
-// distinct stream uuids + a lateral pick of the most-recent row per uuid over the
+// MATERIALIZED CTE named `latest(id, uuid, state)`: the stream uuids from a skip scan
+// (latestStreamUUIDsCTE) and a lateral pick of the most-recent row per uuid over the
 // (uuid, "end" DESC) index. This avoids sorting the entire evidences table (a
 // DISTINCT ON * over hundreds of thousands of rows spills to disk and costs ~1s+).
 // componentID, when set, restricts to streams observed on that system component.
@@ -147,19 +160,55 @@ func latestEvidenceStreamsCTE(componentID *uuid.UUID) (string, []any) {
 	componentFilter := ""
 	var args []any
 	if componentID != nil {
-		componentFilter = "WHERE EXISTS (SELECT 1 FROM evidence_components ec WHERE ec.evidence_id = l.id AND ec.system_component_id = ?)"
+		componentFilter = "AND EXISTS (SELECT 1 FROM evidence_components ec WHERE ec.evidence_id = l.id AND ec.system_component_id = ?)"
 		args = append(args, *componentID)
 	}
-	cte := `WITH latest AS MATERIALIZED (
+	cte := `WITH RECURSIVE ` + latestStreamUUIDsCTE + `,
+	latest AS MATERIALIZED (
 		SELECT l.id, u.uuid, l.title, l.status, l.collected, l.expires
-		FROM (SELECT DISTINCT uuid FROM evidences) u
+		FROM streams u
 		CROSS JOIN LATERAL (
 			SELECT e.id, e.title, e.status, e."end" AS collected, e.expires
 			FROM evidences e WHERE e.uuid = u.uuid ORDER BY e."end" DESC LIMIT 1
 		) l
+		WHERE u.uuid IS NOT NULL
 		` + componentFilter + `
 	)`
 	return cte, args
+}
+
+// LatestEvidenceOptions narrows LatestEvidenceQuery.
+type LatestEvidenceOptions struct {
+	// EndBefore picks, in each stream, the latest evidence that ended before it; streams
+	// with none are left out.
+	EndBefore *time.Time
+	// StreamUUID limits the query to one stream.
+	StreamUUID *uuid.UUID
+}
+
+// LatestEvidenceQuery is a subquery of the latest evidence (every evidences column) of
+// each stream, for use as `(?) as l`. It replaces GetLatestEvidenceStreamsQuery on hot
+// paths: the streams come from a skip scan and each stream's latest row from a
+// lateral index lookup, so the cost grows with the number of streams, not with the
+// evidence history, and nothing sorts full rows. Postgres-only.
+func LatestEvidenceQuery(db *gorm.DB, opts LatestEvidenceOptions) *gorm.DB {
+	db = db.Session(&gorm.Session{NewDB: true})
+	endFilter := ""
+	var args []any
+	if opts.EndBefore != nil {
+		endFilter = ` AND e."end" < ?`
+		args = append(args, opts.EndBefore.UTC())
+	}
+	if opts.StreamUUID != nil {
+		return db.Raw(`SELECT e.* FROM evidences e WHERE e.uuid = ?`+endFilter+` ORDER BY e."end" DESC LIMIT 1`,
+			append([]any{*opts.StreamUUID}, args...)...)
+	}
+	return db.Raw(`WITH RECURSIVE `+latestStreamUUIDsCTE+`
+		SELECT l.* FROM streams s
+		CROSS JOIN LATERAL (
+			SELECT e.* FROM evidences e WHERE e.uuid = s.uuid`+endFilter+` ORDER BY e."end" DESC LIMIT 1
+		) l
+		WHERE s.uuid IS NOT NULL`, args...)
 }
 
 // LatestEvidenceStream is the most-recent evidence in one stream plus its
@@ -287,6 +336,10 @@ func GetEvidenceStatusCountsByFilters(db *gorm.DB, filters map[uuid.UUID]labelfi
 	return result, nil
 }
 
+// GetLatestEvidenceStreamsQuery is the latest evidence of each stream as
+// DISTINCT ON (uuid) over the whole evidences table. Conditions chained onto it apply
+// before the latest row is picked (the digest relies on that). It sorts every evidence
+// row, so hot paths use LatestEvidenceQuery.
 func GetLatestEvidenceStreamsQuery(db *gorm.DB) *gorm.DB {
 	query := db.
 		Model(&Evidence{}).
