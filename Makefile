@@ -119,6 +119,10 @@ endif
 	fi ; \
 	$(OK) Tests passed
 
+.PHONY: bench-evidence-ingest
+bench-evidence-ingest: ## Time POST /evidence against POST /evidence/batches on a resource-limited Postgres (CCF_BENCH_* knobs, see docs/evidence-batches.md)
+	CCF_BENCH_EVIDENCE_INGEST=1 go test -tags integration -count=1 -timeout 60m -run TestEvidenceIngestBenchmark -v ./internal/bench/
+
 .PHONY: lint.check
 lint.check: ## Check install of golanci-lint
 	@if ! golangci-lint --version 2>&1 >> /dev/null; then \
