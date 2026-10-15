@@ -22,8 +22,7 @@ func init() {
 // Builtin is the default, in-process PDP. It reproduces CCF's pre-authz access rules with
 // zero behavior change: admin resources require SSO admin-group membership (password
 // users are treated as super admins), the agent resource requires the same admin check for
-// users (agent service accounts may register, ingest and sync; anonymous is denied; R39),
-// evidence:inspect requires it too (users only), and every other
+// users (agent service accounts may register, ingest and sync; anonymous is denied; R39), and every other
 // resource is allowed once the request is authenticated — the authn middleware having already enforced authentication
 // and any public-endpoint policy before the PEP runs.
 //
@@ -68,17 +67,6 @@ func (b *Builtin) Evaluate(ctx context.Context, s Subject, action string, r Reso
 		default:
 			return Decision{Allow: false, Reason: "builtin: anonymous access to agent resource"}, nil
 		}
-	case ResourceEvidence:
-		// evidence:inspect opens every submitter's evidence batches, so under builtin it is
-		// an admin capability: users go through the admin check, agents and anonymous
-		// subjects are denied. Every other evidence action keeps the default below.
-		if action == ActionInspect {
-			if s.Type != "user" {
-				return Decision{Allow: false, Reason: "builtin: evidence:inspect is for admin users"}, nil
-			}
-			return b.evaluateAdmin(ctx, s)
-		}
-		return Decision{Allow: true, Reason: "builtin: authenticated request allowed"}, nil
 	default:
 		// Phase 1: authenticated = allowed. The authn middleware already enforced
 		// authentication (and any public-endpoint policy) before the PEP runs, so any

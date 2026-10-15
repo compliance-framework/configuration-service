@@ -139,7 +139,7 @@ const (
 
 	// ActionInspect (resource evidence) reads any submitter's evidence batches, for
 	// troubleshooting automation; without it a batch is readable only by its submitter.
-	// The builtin driver grants it to admins only.
+	// Cedar grants it to admin only, unless an operator grants it to another role.
 	ActionInspect = "inspect"
 
 	// Agent remote configuration (resource agent). ActionConfigure writes an agent's

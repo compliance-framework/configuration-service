@@ -15,6 +15,9 @@ import (
 	"time"
 
 	"github.com/compliance-framework/api/internal/api"
+	"github.com/compliance-framework/api/internal/api/middleware"
+	"github.com/compliance-framework/api/internal/authn"
+	"github.com/compliance-framework/api/internal/authz"
 	"github.com/compliance-framework/api/internal/config"
 	"github.com/compliance-framework/api/internal/service/relational"
 	evidencesvc "github.com/compliance-framework/api/internal/service/relational/evidence"
@@ -85,6 +88,36 @@ func (suite *EvidenceBatchApiIntegrationSuite) setupServer(queue EvidenceBatchQu
 	}
 	RegisterHandlers(server, logger, suite.DB, suite.Config, services)
 	return server
+}
+
+// setupCedarServer is setupServer with the embedded Cedar PDP enforcing roles from
+// ccf_role_assignments, so evidence:inspect is held by admin only.
+func (suite *EvidenceBatchApiIntegrationSuite) setupCedarServer(queue EvidenceBatchQueue) *api.Server {
+	logger := zap.NewNop().Sugar()
+	pdp, err := authz.Open(authz.Options{Driver: authz.DriverCedar}, authz.Deps{DB: suite.DB, Config: suite.Config, Logger: logger})
+	suite.Require().NoError(err)
+	metrics := api.NewMetricsHandler(context.Background(), logger)
+	server := api.NewServer(context.Background(), logger, suite.Config, metrics)
+	RegisterHandlers(server, logger, suite.DB, suite.Config, &APIServices{
+		EvidenceService:    evidencesvc.NewEvidenceService(suite.DB, logger, suite.Config, nil),
+		EvidenceBatchQueue: queue,
+		PEP:                middleware.NewPEP(pdp, authz.FailClosed, logger),
+	})
+	return server
+}
+
+// roledUserToken creates a user holding roleName and returns a token for it.
+func (suite *EvidenceBatchApiIntegrationSuite) roledUserToken(email, roleName string) string {
+	user := relational.User{Email: email, FirstName: "Batch", LastName: "Reader"}
+	suite.Require().NoError(suite.DB.Create(&user).Error)
+	suite.Require().NoError(suite.DB.Create(&relational.CCFRoleAssignment{
+		RoleName:     roleName,
+		AssigneeType: relational.RoleAssigneeTypeUser,
+		AssigneeID:   relational.NormalizeAssigneeID(email),
+	}).Error)
+	token, err := authn.GenerateJWTToken(&user, suite.Config.JWTPrivateKey)
+	suite.Require().NoError(err)
+	return *token
 }
 
 func (suite *EvidenceBatchApiIntegrationSuite) agentToken(name string) string {
@@ -197,19 +230,6 @@ func (suite *EvidenceBatchApiIntegrationSuite) TestBatchStoresEvidenceAsItsSubmi
 	suite.Equal(batch.SubmittedBy, accepted.SubmittedBy)
 	suite.True(strings.HasPrefix(batch.SubmittedBy, "agent:"), batch.SubmittedBy)
 
-	// Another agent holds no evidence:inspect, so the batch doesn't exist for it.
-	rec = suite.do(server, http.MethodGet, "/api/evidence/batches/"+accepted.ID.String(), suite.agentToken("other-agent"), nil)
-	suite.Equal(http.StatusNotFound, rec.Code)
-	// An admin (the test user, under the builtin driver without SSO) holds evidence:inspect
-	// and can troubleshoot the agent's batch.
-	rec = suite.do(server, http.MethodGet, "/api/evidence/batches/"+accepted.ID.String(), suite.userToken(), nil)
-	suite.Require().Equal(http.StatusOK, rec.Code, rec.Body.String())
-	inspected := decodeBatchResponse(suite, rec)
-	suite.Equal(batch.SubmittedBy, inspected.SubmittedBy)
-	suite.Equal(batch.Items, inspected.Items)
-	// Inspecting a batch that doesn't exist is still a 404.
-	rec = suite.do(server, http.MethodGet, "/api/evidence/batches/"+uuid.NewString(), suite.userToken(), nil)
-	suite.Equal(http.StatusNotFound, rec.Code)
 	rec = suite.do(server, http.MethodGet, "/api/evidence/batches/not-a-uuid", token, nil)
 	suite.Equal(http.StatusBadRequest, rec.Code)
 }
@@ -281,4 +301,48 @@ func (suite *EvidenceBatchApiIntegrationSuite) TestBatchUnavailableWithoutWorker
 	suite.Equal(http.StatusServiceUnavailable, rec.Code)
 	rec = suite.do(server, http.MethodGet, "/api/evidence/batches/"+uuid.NewString(), token, nil)
 	suite.Equal(http.StatusServiceUnavailable, rec.Code)
+}
+
+// TestBatchReadableByInspectors: besides its submitter, only evidence:inspect holders (the
+// Cedar admin role) can read a batch; other agents and users get 404, and callers without
+// evidence:create are refused by the route guard.
+func (suite *EvidenceBatchApiIntegrationSuite) TestBatchReadableByInspectors() {
+	suite.Require().NoError(suite.Migrator.Refresh())
+	queue := &inlineBatchQueue{}
+	server := suite.setupCedarServer(queue)
+	submitter := suite.agentToken("submitting-agent")
+
+	rec := suite.do(server, http.MethodPost, "/api/evidence/batches", submitter, EvidenceBatchCreateRequest{Evidence: []EvidenceCreateRequest{validBatchEvidence("e")}})
+	suite.Require().Equal(http.StatusAccepted, rec.Code, rec.Body.String())
+	accepted := decodeBatchResponse(suite, rec)
+	suite.Require().NoError(queue.runAll(context.Background()))
+	path := "/api/evidence/batches/" + accepted.ID.String()
+
+	rec = suite.do(server, http.MethodGet, path, submitter, nil)
+	suite.Require().Equal(http.StatusOK, rec.Code, rec.Body.String())
+	own := decodeBatchResponse(suite, rec)
+	suite.True(strings.HasPrefix(own.SubmittedBy, "agent:"), own.SubmittedBy)
+
+	// Callers who may submit batches (evidence:create) but not inspect them see only their own.
+	for name, token := range map[string]string{
+		"another agent": suite.agentToken("other-agent"),
+		"auditor":       suite.roledUserToken("auditor@example.com", "auditor"),
+		"contributor":   suite.roledUserToken("contributor@example.com", "contributor"),
+	} {
+		rec = suite.do(server, http.MethodGet, path, token, nil)
+		suite.Equal(http.StatusNotFound, rec.Code, "%s must not see another submitter's batch", name)
+	}
+	// The batch routes require evidence:create, which a viewer lacks.
+	rec = suite.do(server, http.MethodGet, path, suite.roledUserToken("viewer@example.com", "viewer"), nil)
+	suite.Equal(http.StatusForbidden, rec.Code)
+
+	admin := suite.roledUserToken("admin@example.com", "admin")
+	rec = suite.do(server, http.MethodGet, path, admin, nil)
+	suite.Require().Equal(http.StatusOK, rec.Code, rec.Body.String())
+	inspected := decodeBatchResponse(suite, rec)
+	suite.Equal(own.SubmittedBy, inspected.SubmittedBy)
+	suite.Equal(own.Items, inspected.Items)
+
+	rec = suite.do(server, http.MethodGet, "/api/evidence/batches/"+uuid.NewString(), admin, nil)
+	suite.Equal(http.StatusNotFound, rec.Code, "inspecting a batch that doesn't exist is still a 404")
 }

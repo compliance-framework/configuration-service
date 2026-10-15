@@ -242,7 +242,7 @@ func (h *EvidenceHandler) storeBatchItem(ctx context.Context, payload json.RawMe
 // GetBatch godoc
 //
 //	@Summary		Get an Evidence batch
-//	@Description	Returns the progress of a batch submitted with POST /evidence/batches and the outcome of each of its evidence, by position in the request. The user or agent that submitted the batch can read it, and so can callers holding evidence:inspect (admins under the builtin authorization driver); anyone else gets 404.
+//	@Description	Returns the progress of a batch submitted with POST /evidence/batches and the outcome of each of its evidence, by position in the request. The user or agent that submitted the batch can read it, and so can callers holding evidence:inspect (the admin role under Cedar); anyone else gets 404.
 //	@Tags			Evidence
 //	@Produce		json
 //	@Param			id	path		string	true	"Batch ID"
