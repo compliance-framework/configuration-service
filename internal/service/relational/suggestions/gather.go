@@ -105,7 +105,7 @@ func (s *SuggestionService) GatherLabelKeys(maxValuesPerKey int) ([]LabelKeyInpu
 		Value string `gorm:"column:labels_value"`
 	}
 	var rows []row
-	latest := relational.GetLatestEvidenceStreamsQuery(s.db)
+	latest := relational.LatestEvidenceQuery(s.db, relational.LatestEvidenceOptions{})
 	if err := s.db.
 		Table("(?) as l", latest).
 		Select("DISTINCT el.labels_name, el.labels_value").
@@ -151,7 +151,7 @@ func (s *SuggestionService) SearchLabelValues(key, query string, limit int) ([]s
 	if limit <= 0 || limit > 200 {
 		limit = 50
 	}
-	latest := relational.GetLatestEvidenceStreamsQuery(s.db)
+	latest := relational.LatestEvidenceQuery(s.db, relational.LatestEvidenceOptions{})
 	q := s.db.
 		Table("(?) as l", latest).
 		Joins("JOIN evidence_labels el ON el.evidence_id = l.id").
@@ -307,7 +307,7 @@ func (s *SuggestionService) gatherAllLabelSets(filter *labelfilter.Filter) ([]La
 		LabelValue   string    `gorm:"column:labels_value"`
 	}
 
-	latest := relational.GetLatestEvidenceStreamsQuery(s.db)
+	latest := relational.LatestEvidenceQuery(s.db, relational.LatestEvidenceOptions{})
 	var filters []labelfilter.Filter
 	if filter != nil && filter.Scope != nil {
 		filters = append(filters, *filter)
