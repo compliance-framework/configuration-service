@@ -160,35 +160,22 @@ func (s *EvidenceService) Create(ctx context.Context, params CreateEvidenceParam
 
 	// Use a complete database transaction
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Create all related entities first
-		for i := range params.Components {
-			if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&params.Components[i]).Error; err != nil {
-				return err
-			}
+		// Create all related entities first, one multi-row statement per kind. Rows that
+		// already exist are kept as they are (ON CONFLICT DO NOTHING).
+		if err := createAllDoNothing(tx, params.Components); err != nil {
+			return err
 		}
-
-		for i := range params.InventoryItems {
-			if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&params.InventoryItems[i]).Error; err != nil {
-				return err
-			}
+		if err := createAllDoNothing(tx, params.InventoryItems); err != nil {
+			return err
 		}
-
-		for i := range params.Activities {
-			if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&params.Activities[i]).Error; err != nil {
-				return err
-			}
+		if err := createAllDoNothing(tx, params.Activities); err != nil {
+			return err
 		}
-
-		for i := range params.Subjects {
-			if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&params.Subjects[i]).Error; err != nil {
-				return err
-			}
+		if err := createAllDoNothing(tx, params.Subjects); err != nil {
+			return err
 		}
-
-		for i := range params.Labels {
-			if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&params.Labels[i]).Error; err != nil {
-				return err
-			}
+		if err := createAllDoNothing(tx, params.Labels); err != nil {
+			return err
 		}
 
 		if params.Evidence.Expires != nil && params.Evidence.Expires.UTC().Equal(unixEpochUTC) {
@@ -221,36 +208,15 @@ func (s *EvidenceService) Create(ctx context.Context, params CreateEvidenceParam
 		riskJobArgs.evidenceEnd = params.Evidence.End.Format(time.RFC3339)
 		riskJobArgs.status = statusData.State
 
-		// Create associations
-		if len(params.Activities) > 0 {
-			if err := tx.Model(&params.Evidence).Association("Activities").Append(params.Activities); err != nil {
-				return err
-			}
+		// Link the related entities, which exist by now: one join-table insert per kind.
+		if err := linkEvidence(tx, *params.Evidence.ID, params); err != nil {
+			return err
 		}
-
-		if len(params.InventoryItems) > 0 {
-			if err := tx.Model(&params.Evidence).Association("InventoryItems").Append(params.InventoryItems); err != nil {
-				return err
-			}
-		}
-
-		if len(params.Components) > 0 {
-			if err := tx.Model(&params.Evidence).Association("Components").Append(params.Components); err != nil {
-				return err
-			}
-		}
-
-		if len(params.Subjects) > 0 {
-			if err := tx.Model(&params.Evidence).Association("Subjects").Append(params.Subjects); err != nil {
-				return err
-			}
-		}
-
-		if len(params.Labels) > 0 {
-			if err := tx.Model(&params.Evidence).Association("Labels").Append(params.Labels); err != nil {
-				return err
-			}
-		}
+		params.Evidence.Activities = params.Activities
+		params.Evidence.InventoryItems = params.InventoryItems
+		params.Evidence.Components = params.Components
+		params.Evidence.Subjects = params.Subjects
+		params.Evidence.Labels = params.Labels
 
 		if s.signingSvc != nil && params.Signer != nil && !params.Signer.IsEmpty() {
 			var persisted relational.Evidence
@@ -264,7 +230,10 @@ func (s *EvidenceService) Create(ctx context.Context, params CreateEvidenceParam
 				return err
 			}
 
-			if err := tx.Model(&params.Evidence).
+			// Update the column only: updating through params.Evidence would save every
+			// association it carries again.
+			if err := tx.Model(&relational.Evidence{}).
+				Where("id = ?", *params.Evidence.ID).
 				Update("signature", signature).Error; err != nil {
 				return err
 			}
@@ -297,6 +266,67 @@ func (s *EvidenceService) Create(ctx context.Context, params CreateEvidenceParam
 	}
 
 	return evidence, nil
+}
+
+// createAllDoNothing inserts rows in one statement, keeping any that already exist.
+func createAllDoNothing[T any](tx *gorm.DB, rows []T) error {
+	if len(rows) == 0 {
+		return nil
+	}
+	return tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&rows).Error
+}
+
+// linkEvidence inserts the evidence's join-table rows for its activities, inventory
+// items, components, subjects and labels, one statement per table.
+func linkEvidence(tx *gorm.DB, evidenceID uuid.UUID, params CreateEvidenceParams) error {
+	link := func(table, column string, ids []uuid.UUID) error {
+		if len(ids) == 0 {
+			return nil
+		}
+		rows := make([]map[string]any, 0, len(ids))
+		for _, id := range ids {
+			rows = append(rows, map[string]any{"evidence_id": evidenceID, column: id})
+		}
+		return tx.Table(table).Clauses(clause.OnConflict{DoNothing: true}).Create(&rows).Error
+	}
+
+	activityIDs := make([]uuid.UUID, 0, len(params.Activities))
+	for _, activity := range params.Activities {
+		activityIDs = append(activityIDs, *activity.ID)
+	}
+	if err := link("evidence_activities", "activity_id", activityIDs); err != nil {
+		return err
+	}
+	itemIDs := make([]uuid.UUID, 0, len(params.InventoryItems))
+	for _, item := range params.InventoryItems {
+		itemIDs = append(itemIDs, *item.ID)
+	}
+	if err := link("evidence_inventory_items", "inventory_item_id", itemIDs); err != nil {
+		return err
+	}
+	componentIDs := make([]uuid.UUID, 0, len(params.Components))
+	for _, component := range params.Components {
+		componentIDs = append(componentIDs, *component.ID)
+	}
+	if err := link("evidence_components", "system_component_id", componentIDs); err != nil {
+		return err
+	}
+	subjectIDs := make([]uuid.UUID, 0, len(params.Subjects))
+	for _, subject := range params.Subjects {
+		subjectIDs = append(subjectIDs, *subject.ID)
+	}
+	if err := link("evidence_subjects", "assessment_subject_id", subjectIDs); err != nil {
+		return err
+	}
+
+	if len(params.Labels) == 0 {
+		return nil
+	}
+	labelRows := make([]map[string]any, 0, len(params.Labels))
+	for _, label := range params.Labels {
+		labelRows = append(labelRows, map[string]any{"evidence_id": evidenceID, "labels_name": label.Name, "labels_value": label.Value})
+	}
+	return tx.Table("evidence_labels").Clauses(clause.OnConflict{DoNothing: true}).Create(&labelRows).Error
 }
 
 // ManualEvidenceRequiresSubject reports whether user-submitted evidence must name a subject
