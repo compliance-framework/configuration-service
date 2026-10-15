@@ -16,6 +16,9 @@ background. `POST /api/evidence` is unchanged and remains what agents use.
 4. The client polls `GET /api/evidence/batches/{id}` until `status` is `completed`. Each
    item reports `succeeded` with its `evidence-id`, or `failed` with an `error`.
 
+The Go SDK wraps this as `Evidence.CreateBatch`, `Evidence.GetBatch` and
+`Evidence.WaitForBatch`. `Evidence.Create` still sends one request per evidence.
+
 ## Rules
 
 - **Callers.** Both routes need a user or agent token, even where `POST /api/evidence` is

@@ -180,3 +180,43 @@ func (suite *EvidenceSDKIntegrationSuite) TestCreateWithDeclaredSubject() {
 	suite.Equal("Network Team", ref.Title)
 	suite.Equal(relational.EvidenceSubjectSourceDeclared, ref.Source)
 }
+
+func (suite *EvidenceSDKIntegrationSuite) TestCreateBatch() {
+	suite.Require().NoError(suite.Migrator.Refresh())
+	client, err := suite.GetAuthenticatedSDKTestClient()
+	suite.Require().NoError(err)
+	ctx := context.Background()
+
+	evidence := make([]types.Evidence, 0, 3)
+	for _, title := range []string{"batch one", "batch two", "batch three"} {
+		evidence = append(evidence, types.Evidence{
+			UUID:   uuid.New(),
+			Title:  title,
+			Start:  time.Now().Add(-time.Hour),
+			End:    time.Now().Add(-time.Minute),
+			Labels: map[string]string{"source": "sdk-batch"},
+			Status: types.ObjectiveStatus{State: "satisfied"},
+		})
+	}
+
+	accepted, err := client.Evidence.CreateBatch(ctx, evidence)
+	suite.Require().NoError(err)
+	suite.Equal(3, accepted.Total)
+
+	waitCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	batch, err := client.Evidence.WaitForBatch(waitCtx, accepted.ID, 10*time.Millisecond)
+	suite.Require().NoError(err)
+	suite.Equal(types.EvidenceBatchCompleted, batch.Status)
+	suite.Equal(3, batch.Succeeded)
+	suite.Require().Len(batch.Items, 3)
+
+	for i, item := range batch.Items {
+		suite.Equal(types.EvidenceBatchItemSucceeded, item.Status)
+		suite.Require().NotNil(item.EvidenceID)
+		var stored relational.Evidence
+		suite.Require().NoError(suite.DB.First(&stored, "id = ?", *item.EvidenceID).Error)
+		suite.Equal(evidence[i].Title, stored.Title)
+		suite.Equal(evidence[i].UUID, stored.UUID)
+	}
+}
