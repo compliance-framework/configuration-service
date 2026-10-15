@@ -59,7 +59,9 @@ resources:
 
   # ── Archetype C: telemetry / ingest ──
   evidence:
-    actions: [read, create, update, delete]
+    # inspect reads any submitter's evidence batches (POST /evidence/batches); without it a
+    # batch is readable only by the user or agent that submitted it. Only admin ("*") holds it.
+    actions: [read, create, update, delete, inspect]
     attributes:
       stream_uuid: uuid          # observation-stream id, stable across re-runs
       labels: map<string,string> # C2 — first-class searchable labels (the primary ABAC case)

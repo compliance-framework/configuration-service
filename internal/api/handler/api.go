@@ -33,6 +33,9 @@ type APIServices struct {
 	NotificationEnqueuer       workflow.NotificationEnqueuer
 	NotificationWorkerEnqueuer notification.WorkerEnqueuer
 	DAGExecutor                *workflow.DAGExecutor
+	// EvidenceBatchQueue processes POST /evidence/batches in the background (the worker
+	// service). When nil, batch requests answer 503.
+	EvidenceBatchQueue EvidenceBatchQueue
 	// PEP is the shared, config-selected Policy Enforcement Point used by every guarded
 	// route. cmd/run.go builds it once (around the configured PDP) and passes it in; when
 	// nil (e.g. test suites) RegisterHandlers falls back to a builtin-backed PEP, which
@@ -112,6 +115,20 @@ func RegisterHandlers(server *api.Server, logger *zap.SugaredLogger, db *gorm.DB
 	artifactService := artifactsvc.NewService(db)
 	evidenceHandler := NewEvidenceHandler(logger, services.EvidenceService, riskService).WithArtifactService(artifactService)
 	evidenceGuard := pep.For(authz.ResourceEvidence)
+
+	// Batches are stored in the background, signed as their submitter, and read back only
+	// by them, so unlike single evidence ingest they always need a user or agent token.
+	if services.EvidenceBatchQueue != nil {
+		batchCfg := evidenceBatchConfig(config)
+		batchService := evidencesvc.NewBatchService(db, logger, services.EvidenceBatchQueue, evidenceHandler.storeBatchItem, batchCfg.ChunkSize)
+		services.EvidenceBatchQueue.SetEvidenceBatchProcessor(batchService)
+		evidenceHandler.WithBatchService(batchService, batchCfg.MaxItems, pep.PDP())
+	}
+	evidenceHandler.RegisterBatchRoutes(
+		server.API().Group("/evidence/batches"),
+		middleware.OptionalUserOrAgentJWTMiddleware(db, config.JWTPublicKey, false),
+		evidenceGuard.Create(),
+	)
 	evidenceGroup := server.API().Group("/evidence")
 	evidenceHandler.RegisterCreate(
 		evidenceGroup,

@@ -137,6 +137,11 @@ const (
 	ActionExport    = "export"
 	ActionSubscribe = "subscribe"
 
+	// ActionInspect (resource evidence) reads any submitter's evidence batches, for
+	// troubleshooting automation; without it a batch is readable only by its submitter.
+	// Cedar grants it to admin only, unless an operator grants it to another role.
+	ActionInspect = "inspect"
+
 	// Agent remote configuration (resource agent). ActionConfigure writes an agent's
 	// configuration overlay; ActionSync is the agent fetching its overlay and reporting.
 	ActionRegister  = "register"

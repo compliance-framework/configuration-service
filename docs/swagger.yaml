@@ -428,6 +428,55 @@ definitions:
       uuid:
         type: string
     type: object
+  handler.EvidenceBatchCreateRequest:
+    properties:
+      evidence:
+        description: Evidence holds the evidence to store, each as accepted by POST
+          /evidence.
+        items:
+          $ref: '#/definitions/handler.EvidenceCreateRequest'
+        type: array
+    type: object
+  handler.EvidenceBatchItemResponse:
+    properties:
+      error:
+        type: string
+      evidence-id:
+        type: string
+      index:
+        type: integer
+      status:
+        description: Status is pending, succeeded or failed.
+        type: string
+    type: object
+  handler.EvidenceBatchResponse:
+    properties:
+      accepted-at:
+        type: string
+      failed:
+        type: integer
+      id:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/handler.EvidenceBatchItemResponse'
+        type: array
+      pending:
+        type: integer
+      status:
+        description: |-
+          Status is pending (no item processed yet), processing or completed (every item
+          succeeded or failed).
+        type: string
+      submitted-by:
+        description: 'SubmittedBy is who submitted the batch: "user:<email>" or "agent:<agent
+          id>".'
+        type: string
+      succeeded:
+        type: integer
+      total:
+        type: integer
+    type: object
   handler.EvidenceComponent:
     properties:
       description:
@@ -1634,6 +1683,13 @@ definitions:
       data:
         allOf:
         - $ref: '#/definitions/handler.CreatedEvidenceResponse'
+        description: Wrapped response data
+    type: object
+  handler.GenericDataResponse-handler_EvidenceBatchResponse:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/handler.EvidenceBatchResponse'
         description: Wrapped response data
     type: object
   handler.GenericDataResponse-handler_EvidencePlaybackResponse:
@@ -15969,6 +16025,94 @@ paths:
       security:
       - OAuth2Password: []
       summary: Verify Evidence signature by ID
+      tags:
+      - Evidence
+  /evidence/batches:
+    post:
+      consumes:
+      - application/json
+      description: Accepts up to CCF_EVIDENCE_BATCH_MAX_ITEMS evidence and stores
+        them asynchronously, returning the batch to poll with GET /evidence/batches/{id}.
+        Each evidence is the body POST /evidence accepts; its shape and times are
+        checked on submit, everything else when it is processed, where a failure fails
+        that evidence only. Needs an authenticated user or agent, and the worker service.
+      parameters:
+      - description: Evidence batch
+        in: body
+        name: batch
+        required: true
+        schema:
+          $ref: '#/definitions/handler.EvidenceBatchCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-handler_EvidenceBatchResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Submit a batch of Evidence
+      tags:
+      - Evidence
+  /evidence/batches/{id}:
+    get:
+      description: Returns the progress of a batch submitted with POST /evidence/batches
+        and the outcome of each of its evidence, by position in the request. The user
+        or agent that submitted the batch can read it, and so can callers holding
+        evidence:inspect (the admin role under Cedar); anyone else gets 404.
+      parameters:
+      - description: Batch ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-handler_EvidenceBatchResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Get an Evidence batch
       tags:
       - Evidence
   /evidence/compliance-by-control/{id}:

@@ -156,6 +156,15 @@ func (suite *EvidenceBatchIntegrationSuite) TestSubmitStoresPendingBatchAndEnque
 
 	_, err = svc.Get(context.Background(), summary.ID, BatchSubmitter(userSigner("someone-else@example.com")))
 	suite.ErrorIs(err, ErrBatchNotFound)
+
+	// GetAny (for evidence:inspect holders) reads it whoever asks, and still reports a
+	// missing batch as not found.
+	inspected, err := svc.GetAny(context.Background(), summary.ID)
+	suite.Require().NoError(err)
+	suite.Equal("user:submitter@example.com", inspected.SubmittedBy)
+	suite.Equal(got.Items, inspected.Items)
+	_, err = svc.GetAny(context.Background(), uuid.New())
+	suite.ErrorIs(err, ErrBatchNotFound)
 }
 
 func (suite *EvidenceBatchIntegrationSuite) TestSubmitRejectsWhatCannotBeProcessed() {

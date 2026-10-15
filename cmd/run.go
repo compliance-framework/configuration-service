@@ -192,6 +192,7 @@ func RunServer(cmd *cobra.Command, args []string) {
 		NotificationEnqueuer:       workerService,
 		NotificationWorkerEnqueuer: workerService,
 		DAGExecutor:                workerService.GetDAGExecutor(),
+		EvidenceBatchQueue:         workerService,
 		PEP:                        authzPEP,
 	}
 
