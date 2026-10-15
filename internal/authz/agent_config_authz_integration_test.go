@@ -78,3 +78,28 @@ func TestBuiltinAgentResourceRequiresAdminForUsers(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, dec.Allow, "SSO admin-group member must be allowed")
 }
+
+// Under builtin, evidence:inspect follows the admin check: an SSO user without the required
+// admin group is denied, an admin-group member and a password user are allowed, and the
+// same SSO user keeps evidence:create.
+func TestBuiltinEvidenceInspectRequiresAdmin(t *testing.T) {
+	db := setupAuthzDB(t)
+	cfg := ssoEnabledConfig([]string{"ccf-admins"})
+	ssoUser := createUser(t, db, "inspect-sso@x.example", "sso")
+	createSSOLink(t, db, ssoUser, "test", []string{"engineering"})
+	adminUser := createUser(t, db, "inspect-admin@x.example", "sso")
+	createSSOLink(t, db, adminUser, "test", []string{"ccf-admins"})
+	createUser(t, db, "inspect-pw@x.example", "password")
+
+	b := NewBuiltin(db, cfg, zap.NewNop().Sugar())
+	evaluate := func(email, action string) bool {
+		t.Helper()
+		dec, err := b.Evaluate(context.Background(), Subject{Type: "user", ID: email}, action, Resource{Type: ResourceEvidence}, nil)
+		require.NoError(t, err)
+		return dec.Allow
+	}
+	require.False(t, evaluate(ssoUser.Email, ActionInspect), "SSO non-admin must not inspect batches")
+	require.True(t, evaluate(ssoUser.Email, ActionCreate), "SSO non-admin keeps evidence:create")
+	require.True(t, evaluate(adminUser.Email, ActionInspect), "SSO admin-group member may inspect")
+	require.True(t, evaluate("inspect-pw@x.example", ActionInspect), "password user (super admin) may inspect")
+}

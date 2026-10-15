@@ -84,14 +84,16 @@ type BatchItemResult struct {
 
 // BatchSummary is a batch's progress and the outcome of each item.
 type BatchSummary struct {
-	ID         uuid.UUID
-	Status     BatchStatus
-	Total      int
-	Pending    int
-	Succeeded  int
-	Failed     int
-	AcceptedAt time.Time
-	Items      []BatchItemResult
+	ID uuid.UUID
+	// SubmittedBy is the submitter's identity (see BatchSubmitter).
+	SubmittedBy string
+	Status      BatchStatus
+	Total       int
+	Pending     int
+	Succeeded   int
+	Failed      int
+	AcceptedAt  time.Time
+	Items       []BatchItemResult
 }
 
 // BatchService accepts evidence batches and stores their evidence in the background.
@@ -183,12 +185,13 @@ func (s *BatchService) Submit(ctx context.Context, payloads []json.RawMessage, s
 	}
 
 	return &BatchSummary{
-		ID:         *batch.ID,
-		Status:     batchStatus(batch.Total, batch.Total),
-		Total:      batch.Total,
-		Pending:    batch.Total,
-		AcceptedAt: batch.AcceptedAt,
-		Items:      []BatchItemResult{},
+		ID:          *batch.ID,
+		SubmittedBy: batch.SubmittedBy,
+		Status:      batchStatus(batch.Total, batch.Total),
+		Total:       batch.Total,
+		Pending:     batch.Total,
+		AcceptedAt:  batch.AcceptedAt,
+		Items:       []BatchItemResult{},
 	}, nil
 }
 
@@ -292,10 +295,19 @@ func (s *BatchService) Get(ctx context.Context, batchID uuid.UUID, submittedBy s
 	if submittedBy == "" {
 		return nil, ErrBatchNotFound
 	}
+	return s.get(ctx, s.db.WithContext(ctx).Where("id = ? AND submitted_by = ?", batchID, submittedBy))
+}
+
+// GetAny returns any batch with every item's outcome, whoever submitted it, or
+// ErrBatchNotFound. Callers check the reader may inspect other submitters' batches
+// (evidence:inspect).
+func (s *BatchService) GetAny(ctx context.Context, batchID uuid.UUID) (*BatchSummary, error) {
+	return s.get(ctx, s.db.WithContext(ctx).Where("id = ?", batchID))
+}
+
+func (s *BatchService) get(ctx context.Context, query *gorm.DB) (*BatchSummary, error) {
 	var batch relational.EvidenceBatch
-	if err := s.db.WithContext(ctx).
-		Where("id = ? AND submitted_by = ?", batchID, submittedBy).
-		First(&batch).Error; err != nil {
+	if err := query.First(&batch).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrBatchNotFound
 		}
@@ -305,17 +317,18 @@ func (s *BatchService) Get(ctx context.Context, batchID uuid.UUID, submittedBy s
 	var items []relational.EvidenceBatchItem
 	if err := s.db.WithContext(ctx).
 		Select("item_index", "status", "evidence_id", "error").
-		Where("batch_id = ?", batchID).
+		Where("batch_id = ?", *batch.ID).
 		Order("item_index").
 		Find(&items).Error; err != nil {
 		return nil, fmt.Errorf("load evidence batch items: %w", err)
 	}
 
 	summary := &BatchSummary{
-		ID:         *batch.ID,
-		Total:      batch.Total,
-		AcceptedAt: batch.AcceptedAt.UTC(),
-		Items:      make([]BatchItemResult, 0, len(items)),
+		ID:          *batch.ID,
+		SubmittedBy: batch.SubmittedBy,
+		Total:       batch.Total,
+		AcceptedAt:  batch.AcceptedAt.UTC(),
+		Items:       make([]BatchItemResult, 0, len(items)),
 	}
 	for _, item := range items {
 		result := BatchItemResult{Index: item.Index, Status: item.Status, EvidenceID: item.EvidenceID}

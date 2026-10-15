@@ -13,6 +13,7 @@ import (
 	"github.com/compliance-framework/api/internal/api"
 	"github.com/compliance-framework/api/internal/api/authcontext"
 	"github.com/compliance-framework/api/internal/artifact"
+	"github.com/compliance-framework/api/internal/authz"
 	"github.com/compliance-framework/api/internal/converters/labelfilter"
 	svc "github.com/compliance-framework/api/internal/service"
 	"github.com/compliance-framework/api/internal/service/relational"
@@ -35,6 +36,7 @@ type EvidenceHandler struct {
 	sugar           *zap.SugaredLogger
 	batchService    *evidencesvc.BatchService
 	batchMaxItems   int
+	batchPDP        authz.PDP
 }
 
 // WithArtifactService lets evidence refer to stored policy artifacts. Without it, evidence

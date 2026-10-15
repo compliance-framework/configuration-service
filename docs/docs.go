@@ -4404,7 +4404,7 @@ const docTemplate = `{
         },
         "/evidence/batches/{id}": {
             "get": {
-                "description": "Returns the progress of a batch submitted with POST /evidence/batches and the outcome of each of its evidence, by position in the request. Only the user or agent that submitted the batch can read it.",
+                "description": "Returns the progress of a batch submitted with POST /evidence/batches and the outcome of each of its evidence, by position in the request. The user or agent that submitted the batch can read it, and so can callers holding evidence:inspect (admins under the builtin authorization driver); anyone else gets 404.",
                 "produces": [
                     "application/json"
                 ],
@@ -35916,6 +35916,10 @@ const docTemplate = `{
                 },
                 "status": {
                     "description": "Status is pending (no item processed yet), processing or completed (every item\nsucceeded or failed).",
+                    "type": "string"
+                },
+                "submitted-by": {
+                    "description": "SubmittedBy is who submitted the batch: \"user:\u003cemail\u003e\" or \"agent:\u003cagent id\u003e\".",
                     "type": "string"
                 },
                 "succeeded": {

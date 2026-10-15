@@ -11,7 +11,9 @@ import (
 
 	"github.com/compliance-framework/api/internal/api"
 	"github.com/compliance-framework/api/internal/api/authcontext"
+	"github.com/compliance-framework/api/internal/api/middleware"
 	"github.com/compliance-framework/api/internal/artifact"
+	"github.com/compliance-framework/api/internal/authz"
 	"github.com/compliance-framework/api/internal/config"
 	"github.com/compliance-framework/api/internal/service/relational"
 	evidencesvc "github.com/compliance-framework/api/internal/service/relational/evidence"
@@ -50,6 +52,8 @@ type evidenceBatchCreateBody struct {
 // EvidenceBatchResponse is a batch's progress and, once read back, each item's outcome.
 type EvidenceBatchResponse struct {
 	ID uuid.UUID `json:"id"`
+	// SubmittedBy is who submitted the batch: "user:<email>" or "agent:<agent id>".
+	SubmittedBy string `json:"submitted-by"`
 	// Status is pending (no item processed yet), processing or completed (every item
 	// succeeded or failed).
 	Status     string                      `json:"status"`
@@ -82,11 +86,32 @@ func evidenceBatchConfig(cfg *config.Config) *config.EvidenceBatchConfig {
 	}
 }
 
-// WithBatchService enables POST /evidence/batches and GET /evidence/batches/{id}.
-func (h *EvidenceHandler) WithBatchService(service *evidencesvc.BatchService, maxItems int) *EvidenceHandler {
+// WithBatchService enables POST /evidence/batches and GET /evidence/batches/{id}. pdp
+// decides evidence:inspect, which lets a caller read batches others submitted; with a nil
+// pdp batches are readable only by their submitter.
+func (h *EvidenceHandler) WithBatchService(service *evidencesvc.BatchService, maxItems int, pdp authz.PDP) *EvidenceHandler {
 	h.batchService = service
 	h.batchMaxItems = maxItems
+	h.batchPDP = pdp
 	return h
+}
+
+// canInspectBatches reports whether the caller holds evidence:inspect, evaluated against
+// the PDP like a route guard. It fails closed: no PDP, an unavailable PDP or an evaluation
+// error all count as no.
+func (h *EvidenceHandler) canInspectBatches(ctx echo.Context) bool {
+	if h.batchPDP == nil {
+		return false
+	}
+	subject := middleware.SubjectFromContext(ctx)
+	resource := authz.Resource{Type: authz.ResourceEvidence, ID: ctx.Param("id")}
+	reqCtx := map[string]any{"method": ctx.Request().Method, "path": ctx.Path()}
+	decision, err := h.batchPDP.Evaluate(ctx.Request().Context(), subject, authz.ActionInspect, resource, reqCtx)
+	if err != nil {
+		h.sugar.Warnw("evidence:inspect check failed; showing only the caller's own batches", "path", ctx.Path(), "error", err)
+		return false
+	}
+	return decision.Allow
 }
 
 // RegisterBatchRoutes registers the batch routes with their auth middleware and guard.
@@ -217,7 +242,7 @@ func (h *EvidenceHandler) storeBatchItem(ctx context.Context, payload json.RawMe
 // GetBatch godoc
 //
 //	@Summary		Get an Evidence batch
-//	@Description	Returns the progress of a batch submitted with POST /evidence/batches and the outcome of each of its evidence, by position in the request. Only the user or agent that submitted the batch can read it.
+//	@Description	Returns the progress of a batch submitted with POST /evidence/batches and the outcome of each of its evidence, by position in the request. The user or agent that submitted the batch can read it, and so can callers holding evidence:inspect (admins under the builtin authorization driver); anyone else gets 404.
 //	@Tags			Evidence
 //	@Produce		json
 //	@Param			id	path		string	true	"Batch ID"
@@ -239,6 +264,9 @@ func (h *EvidenceHandler) GetBatch(ctx echo.Context) error {
 
 	submittedBy := evidencesvc.BatchSubmitter(authcontext.SignerContextFromEcho(ctx))
 	summary, err := h.batchService.Get(ctx.Request().Context(), id, submittedBy)
+	if errors.Is(err, evidencesvc.ErrBatchNotFound) && h.canInspectBatches(ctx) {
+		summary, err = h.batchService.GetAny(ctx.Request().Context(), id)
+	}
 	if errors.Is(err, evidencesvc.ErrBatchNotFound) {
 		return ctx.JSON(http.StatusNotFound, api.NotFound())
 	}
@@ -260,13 +288,14 @@ func newEvidenceBatchResponse(summary *evidencesvc.BatchSummary) EvidenceBatchRe
 		})
 	}
 	return EvidenceBatchResponse{
-		ID:         summary.ID,
-		Status:     string(summary.Status),
-		Total:      summary.Total,
-		Pending:    summary.Pending,
-		Succeeded:  summary.Succeeded,
-		Failed:     summary.Failed,
-		AcceptedAt: summary.AcceptedAt,
-		Items:      items,
+		ID:          summary.ID,
+		SubmittedBy: summary.SubmittedBy,
+		Status:      string(summary.Status),
+		Total:       summary.Total,
+		Pending:     summary.Pending,
+		Succeeded:   summary.Succeeded,
+		Failed:      summary.Failed,
+		AcceptedAt:  summary.AcceptedAt,
+		Items:       items,
 	}
 }

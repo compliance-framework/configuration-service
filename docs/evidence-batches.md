@@ -19,7 +19,10 @@ background. `POST /api/evidence` is unchanged and remains what agents use.
 ## Rules
 
 - **Callers.** Batches need a user or agent token, even where `POST /api/evidence` is
-  public, and the evidence create permission. Only the submitter can read a batch back.
+  public, and the evidence create permission. A batch is readable by its submitter and by
+  callers holding `evidence:inspect` (admins under the builtin driver; grant it to other
+  Cedar roles to let them troubleshoot automation). Everyone else gets `404`. The batch
+  reports who submitted it (`submitted-by`).
 - **Signing.** Each evidence is signed as the submitter, dated when the batch was
   accepted, so its signature verifies however long processing takes.
 - **Failures.** An item the submitter has to fix (unknown subject, unknown policy

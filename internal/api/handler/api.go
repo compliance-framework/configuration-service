@@ -122,7 +122,7 @@ func RegisterHandlers(server *api.Server, logger *zap.SugaredLogger, db *gorm.DB
 		batchCfg := evidenceBatchConfig(config)
 		batchService := evidencesvc.NewBatchService(db, logger, services.EvidenceBatchQueue, evidenceHandler.storeBatchItem, batchCfg.ChunkSize)
 		services.EvidenceBatchQueue.SetEvidenceBatchProcessor(batchService)
-		evidenceHandler.WithBatchService(batchService, batchCfg.MaxItems)
+		evidenceHandler.WithBatchService(batchService, batchCfg.MaxItems, pep.PDP())
 	}
 	evidenceHandler.RegisterBatchRoutes(
 		server.API().Group("/evidence/batches"),

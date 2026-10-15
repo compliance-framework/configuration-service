@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -193,10 +194,21 @@ func (suite *EvidenceBatchApiIntegrationSuite) TestBatchStoresEvidenceAsItsSubmi
 	rec = suite.do(server, http.MethodGet, "/api/evidence/"+batch.Items[0].EvidenceID.String(), token, nil)
 	suite.Equal(http.StatusOK, rec.Code, rec.Body.String())
 
-	// Nobody else can read the batch.
+	suite.Equal(batch.SubmittedBy, accepted.SubmittedBy)
+	suite.True(strings.HasPrefix(batch.SubmittedBy, "agent:"), batch.SubmittedBy)
+
+	// Another agent holds no evidence:inspect, so the batch doesn't exist for it.
 	rec = suite.do(server, http.MethodGet, "/api/evidence/batches/"+accepted.ID.String(), suite.agentToken("other-agent"), nil)
 	suite.Equal(http.StatusNotFound, rec.Code)
+	// An admin (the test user, under the builtin driver without SSO) holds evidence:inspect
+	// and can troubleshoot the agent's batch.
 	rec = suite.do(server, http.MethodGet, "/api/evidence/batches/"+accepted.ID.String(), suite.userToken(), nil)
+	suite.Require().Equal(http.StatusOK, rec.Code, rec.Body.String())
+	inspected := decodeBatchResponse(suite, rec)
+	suite.Equal(batch.SubmittedBy, inspected.SubmittedBy)
+	suite.Equal(batch.Items, inspected.Items)
+	// Inspecting a batch that doesn't exist is still a 404.
+	rec = suite.do(server, http.MethodGet, "/api/evidence/batches/"+uuid.NewString(), suite.userToken(), nil)
 	suite.Equal(http.StatusNotFound, rec.Code)
 	rec = suite.do(server, http.MethodGet, "/api/evidence/batches/not-a-uuid", token, nil)
 	suite.Equal(http.StatusBadRequest, rec.Code)
