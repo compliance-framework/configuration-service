@@ -79,6 +79,5 @@ Results on an Apple M4 Pro with the defaults (1000 evidence per batch, chunks of
 Before that change: 54.1 s against 18.8 s on loopback, and 3 m 0 s against 19.5 s
 with 20 ms.
 
-Each evidence costs the same database work in both modes (a test pins it at no more
-than 36 statements). Batches save the request round trip and spread the work over
-several workers.
+Each evidence costs the same database work in both modes. Batches save the request
+round trip and spread the work over several workers.
