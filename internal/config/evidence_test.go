@@ -2,6 +2,7 @@ package config
 
 import (
 	"testing"
+	"time"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
@@ -43,9 +44,11 @@ func TestLoadEvidenceBatchConfigDefaults(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, &EvidenceBatchConfig{
-		MaxItems:  DefaultEvidenceBatchMaxItems,
-		ChunkSize: DefaultEvidenceBatchChunkSize,
-		Workers:   DefaultEvidenceBatchWorkers,
+		MaxItems:      DefaultEvidenceBatchMaxItems,
+		ChunkSize:     DefaultEvidenceBatchChunkSize,
+		Workers:       DefaultEvidenceBatchWorkers,
+		Retention:     DefaultEvidenceBatchRetention,
+		PruneSchedule: DefaultEvidenceBatchPruneSchedule,
 	}, cfg)
 }
 
@@ -54,11 +57,13 @@ func TestLoadEvidenceBatchConfigReadsSettings(t *testing.T) {
 	v.Set("evidence_batch_max_items", "5000")
 	v.Set("evidence_batch_chunk_size", "250")
 	v.Set("evidence_batch_workers", "8")
+	v.Set("evidence_batch_retention", "72h")
+	v.Set("evidence_batch_prune_schedule", "0 0 * * * *")
 
 	cfg, err := LoadEvidenceBatchConfigFromViper(v)
 
 	require.NoError(t, err)
-	require.Equal(t, &EvidenceBatchConfig{MaxItems: 5000, ChunkSize: 250, Workers: 8}, cfg)
+	require.Equal(t, &EvidenceBatchConfig{MaxItems: 5000, ChunkSize: 250, Workers: 8, Retention: 72 * time.Hour, PruneSchedule: "0 0 * * * *"}, cfg)
 }
 
 func TestLoadEvidenceBatchConfigRejectsNonPositive(t *testing.T) {
@@ -72,6 +77,20 @@ func TestLoadEvidenceBatchConfigRejectsNonPositive(t *testing.T) {
 			require.Nil(t, cfg)
 			require.Error(t, err)
 			require.Contains(t, err.Error(), "CCF_EVIDENCE_BATCH_")
+		})
+	}
+}
+
+func TestLoadEvidenceBatchConfigRejectsBadRetention(t *testing.T) {
+	for _, value := range []string{"0s", "-1h", "a week"} {
+		t.Run(value, func(t *testing.T) {
+			v := viper.New()
+			v.Set("evidence_batch_retention", value)
+
+			cfg, err := LoadEvidenceBatchConfigFromViper(v)
+
+			require.Nil(t, cfg)
+			require.ErrorContains(t, err, "CCF_EVIDENCE_BATCH_RETENTION")
 		})
 	}
 }

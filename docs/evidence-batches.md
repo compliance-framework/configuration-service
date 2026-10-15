@@ -35,7 +35,13 @@ The Go SDK wraps this as `Evidence.CreateBatch`, `Evidence.GetBatch` and
 - **Exactly once.** An item is marked done in the transaction that stores its evidence,
   so a retried or duplicated job never stores it twice.
 - **Worker service.** Without it (`CCF_WORKER_ENABLED=false`) both routes answer `503`.
-- **Retention.** Payloads are dropped once processed. Batch and item rows are kept.
+- **Retention.** Payloads are dropped once processed. Batches and their item outcomes
+  are deleted `CCF_EVIDENCE_BATCH_RETENTION` (default `168h`) after they were accepted,
+  by a job on `CCF_EVIDENCE_BATCH_PRUNE_SCHEDULE` (default hourly). The evidence they
+  stored is kept.
+- **Queueing.** The jobs are queued just after the batch is stored, not in the same
+  transaction. If the API crashes in between, the batch stays `pending` until it is
+  pruned, and the client should resubmit it. This is accepted, as for risk jobs.
 
 ## Benchmark
 

@@ -347,3 +347,49 @@ func (suite *EvidenceBatchIntegrationSuite) TestUnreadableSignerFailsChunkOnFina
 	suite.Equal(batchItemInternalError, got.Items[0].Error)
 	suite.Zero(suite.evidenceCount())
 }
+
+func (suite *EvidenceBatchIntegrationSuite) TestPruneBatchesDeletesBatchesOlderThanTheCutoff() {
+	suite.Require().NoError(suite.Migrator.Refresh())
+	enqueuer := &fakeBatchEnqueuer{}
+	svc := suite.newBatchService(enqueuer, 2, nil)
+	signer := userSigner("submitter@example.com")
+	ctx := context.Background()
+
+	submit := func(acceptedAt time.Time, process bool) uuid.UUID {
+		svc.now = func() time.Time { return acceptedAt }
+		summary, err := svc.Submit(ctx, batchPayloads(testBatchPayload{Title: "a"}, testBatchPayload{Title: "b"}), signer)
+		suite.Require().NoError(err)
+		if process {
+			suite.Require().NoError(svc.ProcessChunk(ctx, summary.ID, 0, false))
+		}
+		return summary.ID
+	}
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	oldCompleted := submit(now.Add(-10*24*time.Hour), true)
+	oldPending := submit(now.Add(-9*24*time.Hour), false) // e.g. its jobs were never queued
+	recent := submit(now.Add(-time.Hour), true)
+
+	deleted, err := PruneBatches(ctx, suite.DB, now.Add(-7*24*time.Hour))
+	suite.Require().NoError(err)
+	suite.EqualValues(2, deleted)
+
+	for _, id := range []uuid.UUID{oldCompleted, oldPending} {
+		_, err := svc.Get(ctx, id, BatchSubmitter(signer))
+		suite.ErrorIs(err, ErrBatchNotFound)
+		var items int64
+		suite.Require().NoError(suite.DB.Model(&relational.EvidenceBatchItem{}).Where("batch_id = ?", id).Count(&items).Error)
+		suite.Zero(items, "items go with their batch")
+	}
+	kept, err := svc.Get(ctx, recent, BatchSubmitter(signer))
+	suite.Require().NoError(err)
+	suite.Equal(2, kept.Succeeded)
+	suite.EqualValues(4, suite.evidenceCount(), "the evidence batches stored is kept")
+
+	// A chunk job of a pruned batch does nothing.
+	suite.NoError(svc.ProcessChunk(ctx, oldPending, 0, false))
+	suite.EqualValues(4, suite.evidenceCount())
+
+	deleted, err = PruneBatches(ctx, suite.DB, now.Add(-7*24*time.Hour))
+	suite.Require().NoError(err)
+	suite.Zero(deleted)
+}
