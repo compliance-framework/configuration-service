@@ -191,6 +191,8 @@ func MigrateUpWithConfig(db *gorm.DB, cfg *config.Config) error {
 		&Heartbeat{},
 		&relational.Evidence{},
 		&relational.Artifact{},
+		&relational.EvidenceBatch{},
+		&relational.EvidenceBatchItem{},
 		&relational.EvidenceSubjectReference{},
 		&relational.Labels{},
 		&relational.SelectSubjectById{},
@@ -1178,6 +1180,8 @@ func MigrateDown(db *gorm.DB) error {
 
 		&Heartbeat{},
 		&relational.EvidenceSubjectReference{},
+		&relational.EvidenceBatchItem{},
+		&relational.EvidenceBatch{},
 		&relational.Evidence{},
 		&relational.Artifact{},
 		"evidence_activities",
