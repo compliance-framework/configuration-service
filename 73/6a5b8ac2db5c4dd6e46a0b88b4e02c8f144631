@@ -10,3 +10,6 @@ Reviewer decision: a ceiling of 36 statements fails as soon as Create legitimate
 **Severity basis:** no rule matched; decision tree: likely to cause a future bug.
 
 <sub>ccf-review · c5bade385f1b · rules@992d25d050e9</sub>
+
+lisa-design:
+- Reviewer decision (2026-10-15): no SQL statement-count pin; Create's performance is tracked by make bench-evidence-ingest, its behaviour by TestEvidenceCreateLinks.
