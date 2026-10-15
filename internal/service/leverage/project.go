@@ -17,14 +17,10 @@ import (
 // allResponsibilityUUIDs) call below must stay a single call for every uuid, never
 // one per link.
 //
-// The end-to-end cost is ~6 + N, not six: ResponsibilityPosture finishes with a
-// per-responsibility loop (relational.EvidenceStatusCountsForFilters) that issues one
-// evidence aggregate — count(DISTINCT uuid) grouped by status->>state, over the
-// latest-evidence-stream subquery and the label-filter joins — for every
-// responsibility carrying at least one FilterResponsibility link. Those N queries are
-// the expensive ones, and both /leveraged-controls and GET /:id/shared-responsibility
-// pay them. Hoisting that loop rewrites evidence aggregation and belongs in its own
-// change.
+// The end-to-end cost is seven: ResponsibilityPosture adds one load of the latest
+// evidence streams (relational.EvidenceStatusCountsForFilterSets) and evaluates every
+// responsibility's filters against it in memory, however many responsibilities carry
+// FilterResponsibility links.
 func Project(db *gorm.DB, sspID uuid.UUID) ([]Projection, error) {
 	var links []relational.SSPLeverageLink
 	if err := db.Where("downstream_ssp_id = ?", sspID).Order("id ASC").Find(&links).Error; err != nil {

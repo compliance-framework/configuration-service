@@ -63,11 +63,11 @@ func ResponsibilityPosture(db *gorm.DB, downstreamSSPID uuid.UUID, responsibilit
 		filtersByResponsibility[link.ResponsibilityUUID] = append(filtersByResponsibility[link.ResponsibilityUUID], f.Filter.Data())
 	}
 
-	for respID, filterList := range filtersByResponsibility {
-		statusCounts, err := relational.EvidenceStatusCountsForFilters(db, filterList)
-		if err != nil {
-			return nil, err
-		}
+	countsByResponsibility, err := relational.EvidenceStatusCountsForFilterSets(db, filtersByResponsibility)
+	if err != nil {
+		return nil, err
+	}
+	for respID, statusCounts := range countsByResponsibility {
 		posture[respID] = relational.CollapseEvidenceStatus(statusCounts)
 	}
 

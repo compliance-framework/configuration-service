@@ -22,10 +22,10 @@ func newResponsibilityPostureTestDB(t *testing.T) *gorm.DB {
 }
 
 // TestResponsibilityPostureEmptyInput covers the case that doesn't reach the
-// Postgres-only status-count query (GetLatestEvidenceStreamsQuery uses "DISTINCT ON",
-// unsupported by sqlite) — the satisfied/not-satisfied cases that do reach it are
-// covered by the integration suite instead, matching the existing test split for
-// getStatusCountsForFilters/ComplianceProgress.
+// Postgres-only latest-evidence-streams query (LoadLatestEvidenceStreams uses a
+// MATERIALIZED CTE and LATERAL join, unsupported by sqlite) — the satisfied/not-satisfied
+// cases that do reach it are covered by the integration suite instead, matching the
+// existing test split for ComplianceProgress.
 func TestResponsibilityPostureEmptyInput(t *testing.T) {
 	db := newResponsibilityPostureTestDB(t)
 
