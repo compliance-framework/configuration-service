@@ -1,0 +1,4 @@
+lisa-design:
+- Reviewer decision (2026-10-15): batches are readable by their submitter and by evidence:inspect holders; submitter-only reads blocked human troubleshooting without protecting anything the evidence read routes don't already expose.
+- evidence:inspect is a new verb, not admin:manage, so Cedar operators can grant batch troubleshooting to a role without making it admin; builtin special-cases it to the admin check because builtin otherwise allows every authenticated caller every non-admin verb.
+- The handler tries the submitter read first and only then asks the PDP (fail closed), so normal polling costs no extra decision.
