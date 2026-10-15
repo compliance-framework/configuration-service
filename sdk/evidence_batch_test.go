@@ -30,14 +30,14 @@ func TestEvidenceCreateBatchSendsEvidenceList(t *testing.T) {
 		if len(body.Evidence) != 2 || body.Evidence[1].Title != "second" {
 			t.Fatalf("unexpected evidence: %s", raw)
 		}
-		return response(http.StatusAccepted, "application/json", `{"data":{"id":"`+batchID.String()+`","status":"pending","total":2,"pending":2,"items":[]}}`)
+		return response(http.StatusAccepted, "application/json", `{"data":{"id":"`+batchID.String()+`","submitted-by":"agent:a-1","status":"pending","total":2,"pending":2,"items":[]}}`)
 	})
 
 	batch, err := client.Evidence.CreateBatch(context.Background(), []types.Evidence{{Title: "first"}, {Title: "second"}})
 	if err != nil {
 		t.Fatalf("create batch: %v", err)
 	}
-	if batch.ID != batchID || batch.Status != types.EvidenceBatchPending || batch.Total != 2 {
+	if batch.ID != batchID || batch.SubmittedBy != "agent:a-1" || batch.Status != types.EvidenceBatchPending || batch.Total != 2 {
 		t.Fatalf("unexpected batch: %+v", batch)
 	}
 }
