@@ -54,6 +54,10 @@ type Service struct {
 
 	// Workflow services
 	workflowExecutor *workflow.DAGExecutor
+
+	// evidenceBatchWorker processes evidence batch chunks once the API registers its
+	// processor (SetEvidenceBatchProcessor). Nil when the worker service is disabled.
+	evidenceBatchWorker *EvidenceBatchWorker
 }
 
 type riverClientProxy struct {
@@ -337,11 +341,14 @@ func NewServiceWithDigest(
 		river.AddWorker(workers, dashboardSuggestionWorker)
 	}
 
+	evidenceBatchWorker := NewEvidenceBatchWorker()
+	river.AddWorker(workers, evidenceBatchWorker)
+
 	// Configure periodic jobs
 	periodicJobs := periodicJobsFromConfig(digestCfg, logger)
 
 	// Create River client with pgxv5 driver
-	riverConfig := buildRiverConfig(cfg, workers, periodicJobs, aiConfigFromConfig(digestCfg))
+	riverConfig := buildRiverConfig(cfg, workers, periodicJobs, aiConfigFromConfig(digestCfg), evidenceBatchConfigFromConfig(digestCfg))
 
 	// Create the client
 	client, err := river.NewClient(riverpgxv5.New(pgxPool), &riverConfig)
@@ -367,7 +374,8 @@ func NewServiceWithDigest(
 		started:    false,
 		pgxPool:    pgxPool,
 
-		workflowExecutor: executor,
+		workflowExecutor:    executor,
+		evidenceBatchWorker: evidenceBatchWorker,
 	}
 
 	// Wire the service itself into the notification enqueuer proxy now that it is fully constructed.
@@ -726,7 +734,11 @@ func periodicJobsFromConfig(cfg *config.Config, logger *zap.SugaredLogger) []*ri
 	return periodicJobs
 }
 
-func buildRiverConfig(cfg *config.WorkerConfig, workers *river.Workers, periodicJobs []*river.PeriodicJob, aiCfg *config.AIConfig) river.Config {
+func buildRiverConfig(cfg *config.WorkerConfig, workers *river.Workers, periodicJobs []*river.PeriodicJob, aiCfg *config.AIConfig, evidenceBatchCfg *config.EvidenceBatchConfig) river.Config {
+	evidenceBatchWorkers := config.DefaultEvidenceBatchWorkers
+	if evidenceBatchCfg != nil && evidenceBatchCfg.Workers > 0 {
+		evidenceBatchWorkers = evidenceBatchCfg.Workers
+	}
 	riverConfig := river.Config{
 		PollOnly: cfg.UsePolling,
 		Queues: map[string]river.QueueConfig{
@@ -754,6 +766,9 @@ func buildRiverConfig(cfg *config.WorkerConfig, workers *river.Workers, periodic
 			"poam": {
 				MaxWorkers: 10,
 			},
+			EvidenceBatchQueue: {
+				MaxWorkers: evidenceBatchWorkers,
+			},
 		},
 		Workers:      workers,
 		PeriodicJobs: periodicJobs,
@@ -768,6 +783,13 @@ func buildRiverConfig(cfg *config.WorkerConfig, workers *river.Workers, periodic
 		}
 	}
 	return riverConfig
+}
+
+func evidenceBatchConfigFromConfig(cfg *config.Config) *config.EvidenceBatchConfig {
+	if cfg == nil {
+		return nil
+	}
+	return cfg.EvidenceBatch
 }
 
 func aiConfigFromConfig(cfg *config.Config) *config.AIConfig {
