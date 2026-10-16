@@ -122,7 +122,6 @@ func BenchmarkCountStatusesForFilterSets(b *testing.B) {
 	}
 
 	b.ReportAllocs()
-	b.ResetTimer()
 	for b.Loop() {
 		if _, err := CountStatusesForFilterSets(streams, sets); err != nil {
 			b.Fatal(err)
