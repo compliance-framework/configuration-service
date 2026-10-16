@@ -284,41 +284,6 @@ func LoadLatestEvidenceStreams(db *gorm.DB, componentID *uuid.UUID) ([]LatestEvi
 	return streams, nil
 }
 
-// GetEvidenceStatusCountsByFilters computes latest-evidence status counts for a
-// batch of label filters keyed by an opaque id (typically the Filter row UUID),
-// so the lineage rollups can resolve every in-scope control's compliance without
-// an N+1 of one query per control/filter.
-//
-// Semantics match EvidenceStatusCountsForFilters for a single filter: it counts DISTINCT
-// evidence streams grouped by status state over the latest evidence in each stream.
-// componentID, when set, restricts to evidence observed on that system component.
-//
-// Performance: rather than run one label-scoped SQL aggregation per filter (which
-// re-derives the latest-per-stream set every time — O(filters) full scans, tens of
-// seconds on real data), this loads the latest streams and their labels ONCE and
-// evaluates every filter in memory through CountStatusesForFilterSets (a label index
-// whose semantics mirror the SQL evaluator), one single-filter set per id. That
-// collapses the DB work to a single query and keeps the per-filter cost to set
-// operations over the matches. Postgres-first (loose index scan + MATERIALIZED CTE).
-func GetEvidenceStatusCountsByFilters(db *gorm.DB, filters map[uuid.UUID]labelfilter.Filter, componentID *uuid.UUID) (map[uuid.UUID][]StatusCount, error) {
-	if len(filters) == 0 {
-		return map[uuid.UUID][]StatusCount{}, nil
-	}
-
-	streams, err := LoadLatestEvidenceStreams(db, componentID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Each stream is one distinct uuid, so a matching stream is one distinct-stream
-	// count. A filter without a scope matches every stream, as MatchLabels(nil) does.
-	sets := make(map[uuid.UUID][]labelfilter.Filter, len(filters))
-	for id, filter := range filters {
-		sets[id] = []labelfilter.Filter{filter}
-	}
-	return CountStatusesForFilterSets(streams, sets)
-}
-
 // GetLatestEvidenceStreamsQuery is the latest evidence of each stream as
 // DISTINCT ON (uuid) over the whole evidences table. Conditions chained onto it apply
 // before the latest row is picked (the digest relies on that). It sorts every evidence
