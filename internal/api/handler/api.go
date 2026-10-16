@@ -93,7 +93,7 @@ func RegisterHandlers(server *api.Server, logger *zap.SugaredLogger, db *gorm.DB
 	controlLinkGroup.Use(middleware.JWTMiddleware(config.JWTPublicKey))
 	controlLinkHandler.Register(controlLinkGroup, pep.For(authz.ResourceControlLink))
 
-	lineageHandler := NewLineageHandler(logger, db)
+	lineageHandler := NewLineageHandler(logger, db).WithEngineCache(lineageConfigOrDefault(config.Lineage))
 	lineageGroup := server.API().Group("/lineage")
 	lineageGroup.Use(middleware.JWTMiddleware(config.JWTPublicKey))
 	lineageHandler.Register(lineageGroup, pep.For(authz.ResourceLineage))

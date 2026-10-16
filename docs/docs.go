@@ -5624,6 +5624,12 @@ const docTemplate = `{
                         "description": "Page size (default 100)",
                         "name": "limit",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Rebuild the shared cached lineage data instead of reusing it",
+                        "name": "refresh",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -5631,6 +5637,12 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/service.ListResponse-handler_LineageNode"
+                        },
+                        "headers": {
+                            "X-Lineage-Generated-At": {
+                                "type": "string",
+                                "description": "When the data behind this response was loaded (RFC 3339)"
+                            }
                         }
                     },
                     "400": {
@@ -5740,6 +5752,12 @@ const docTemplate = `{
                         "description": "Scope evidence to a system component",
                         "name": "componentId",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Rebuild the shared cached lineage data instead of reusing it",
+                        "name": "refresh",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -5747,6 +5765,12 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/service.ListResponse-handler_LineageSSPRow"
+                        },
+                        "headers": {
+                            "X-Lineage-Generated-At": {
+                                "type": "string",
+                                "description": "When the data behind this response was loaded (RFC 3339)"
+                            }
                         }
                     },
                     "400": {
@@ -5803,6 +5827,12 @@ const docTemplate = `{
                         "description": "Comma-separated catalog types to include (standard,policy,procedure,internal,other)",
                         "name": "types",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Rebuild the shared cached lineage data instead of reusing it",
+                        "name": "refresh",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -5810,6 +5840,12 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/service.ListResponse-handler_LineageNode"
+                        },
+                        "headers": {
+                            "X-Lineage-Generated-At": {
+                                "type": "string",
+                                "description": "When the data behind this response was loaded (RFC 3339)"
+                            }
                         }
                     },
                     "400": {

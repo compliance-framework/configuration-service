@@ -107,6 +107,8 @@ func bindEnvironmentVariables() {
 	viper.MustBindEnv("agent_max_instances")
 	viper.MustBindEnv("artifact_max_bytes")
 	viper.MustBindEnv("artifact_max_concurrent")
+	viper.MustBindEnv("lineage_cache_ttl")
+	viper.MustBindEnv("lineage_cache_max_entries")
 }
 
 func init() {
