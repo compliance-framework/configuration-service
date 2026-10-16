@@ -744,16 +744,20 @@ func (e *lineageEngine) loadCompliance(db *gorm.DB) error {
 	}
 	e.latestStreams = streams
 
-	// Each filter's matching stream indices (evaluated once).
+	// Each filter's matching stream indices (evaluated once, over a label index so
+	// the cost tracks the matches rather than filters x streams).
+	labels := make([]map[string][]string, len(streams))
+	for i := range streams {
+		labels[i] = streams[i].Labels
+	}
+	index := labelfilter.NewIndex(labels)
 	for id, scope := range scopeByFilter {
-		for i := range streams {
-			m, matchErr := labelfilter.MatchLabels(scope, streams[i].Labels)
-			if matchErr != nil {
-				return matchErr
-			}
-			if m {
-				e.filterMatched[id] = append(e.filterMatched[id], i)
-			}
+		matched, matchErr := index.Match(scope)
+		if matchErr != nil {
+			return matchErr
+		}
+		if len(matched) > 0 {
+			e.filterMatched[id] = matched
 		}
 	}
 
