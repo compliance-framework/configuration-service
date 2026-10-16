@@ -1,6 +1,8 @@
 package relational
 
 import (
+	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/compliance-framework/api/internal/converters/labelfilter"
@@ -85,4 +87,44 @@ func TestCountStatusesForFilterSetsInvalidOperator(t *testing.T) {
 		"bad": {{Scope: &labelfilter.Scope{Query: &labelfilter.Query{Operator: "xor", Scopes: []labelfilter.Scope{*labelCondition("svc", "=", "ec2")}}}}},
 	})
 	require.Error(t, err)
+}
+
+// BenchmarkCountStatusesForFilterSets matches 1,000 distinct filters, shared across
+// 1,000 sets as controls share filters, against 10k synthetic latest streams.
+func BenchmarkCountStatusesForFilterSets(b *testing.B) {
+	rng := rand.New(rand.NewSource(1))
+	value := func(prefix string, n int) string { return fmt.Sprintf("%s-%d", prefix, rng.Intn(n)) }
+	states := []string{"satisfied", "not-satisfied", ""}
+
+	streams := make([]LatestEvidenceStream, 10_000)
+	for i := range streams {
+		streams[i] = LatestEvidenceStream{State: states[rng.Intn(len(states))], Labels: map[string][]string{
+			"svc": {value("svc", 50)}, "env": {value("env", 4)}, "team": {value("team", 20)}, "region": {value("region", 10)},
+		}}
+	}
+
+	filters := make([]labelfilter.Filter, 1_000)
+	for i := range filters {
+		svc, env := labelCondition("svc", "=", value("svc", 50)), labelCondition("env", "!=", value("env", 4))
+		switch i % 3 {
+		case 0:
+			filters[i] = labelfilter.Filter{Scope: svc}
+		case 1:
+			filters[i] = labelfilter.Filter{Scope: &labelfilter.Scope{Query: &labelfilter.Query{Operator: "and", Scopes: []labelfilter.Scope{*svc, *env}}}}
+		default:
+			team := labelCondition("team", "=", value("team", 20))
+			filters[i] = labelfilter.Filter{Scope: &labelfilter.Scope{Query: &labelfilter.Query{Operator: "or", Scopes: []labelfilter.Scope{*team, *svc}}}}
+		}
+	}
+	sets := make(map[int][]labelfilter.Filter, len(filters))
+	for i := range filters {
+		sets[i] = []labelfilter.Filter{filters[i], filters[rng.Intn(len(filters))]}
+	}
+
+	b.ReportAllocs()
+	for b.Loop() {
+		if _, err := CountStatusesForFilterSets(streams, sets); err != nil {
+			b.Fatal(err)
+		}
+	}
 }
