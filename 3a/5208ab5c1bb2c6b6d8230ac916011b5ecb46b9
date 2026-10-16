@@ -1,0 +1,4 @@
+lisa-addressed:
+pass 1 fixes:
+- 7567d5b37989 CORE-DUP-001: LineageGeneratedAtHeader moved to internal/api (server.go); handler and CORS ExposeHeaders use it.
+- b89b43bc807e: TestLineageEngineCacheSharesConcurrentBuilds uses refresh=false callers only, so late callers hit the cache; no timing dependence.
