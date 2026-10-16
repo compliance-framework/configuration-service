@@ -169,6 +169,97 @@ func TestLineageEngineCacheSharesConcurrentBuilds(t *testing.T) {
 	}
 }
 
+func TestLineageEngineCacheReleasesExpiredEntryOnGet(t *testing.T) {
+	for name, buildErr := range map[string]error{
+		"rebuild succeeds": nil,
+		"rebuild fails":    errors.New("db down"),
+	} {
+		t.Run(name, func(t *testing.T) {
+			c, builds, clock := newTestLineageCache(time.Minute, 4)
+			expired, _, err := c.get(nil, nil, false)
+			require.NoError(t, err)
+			clock.advance(time.Minute)
+
+			heldDuringRebuild := true
+			c.build = func(sspID, componentID *uuid.UUID) (*lineageEngine, error) {
+				c.mu.Lock()
+				_, heldDuringRebuild = c.entries[lineageScopeKey{}]
+				c.mu.Unlock()
+				builds.err = buildErr
+				return builds.build(sspID, componentID)
+			}
+
+			engine, _, err := c.get(nil, nil, false)
+			assert.False(t, heldDuringRebuild, "the expired engine is released before the rebuild")
+			if buildErr != nil {
+				require.Error(t, err)
+				assert.Empty(t, c.entries, "the expired engine is gone even though the rebuild failed")
+				return
+			}
+			require.NoError(t, err)
+			assert.NotSame(t, expired, engine)
+			require.Len(t, c.entries, 1)
+			assert.Same(t, engine, c.entries[lineageScopeKey{}].engine)
+		})
+	}
+}
+
+// TestLineageEngineCacheRefreshDoesNotJoinInFlightBuild covers a refresh arriving while
+// an ordinary miss is still building: the refresh starts its own build, and its engine
+// is what stays cached even when the older ordinary build finishes last.
+func TestLineageEngineCacheRefreshDoesNotJoinInFlightBuild(t *testing.T) {
+	clock := &fakeClock{t: time.Date(2026, 10, 16, 12, 0, 0, 0, time.UTC)}
+	started := make(chan int, 2)
+	release := []chan struct{}{make(chan struct{}), make(chan struct{})}
+	var calls atomic.Int32
+	c := newLineageEngineCache(time.Minute, 4, func(_, _ *uuid.UUID) (*lineageEngine, error) {
+		n := int(calls.Add(1)) - 1
+		started <- n
+		<-release[n]
+		return &lineageEngine{}, nil
+	})
+	c.now = clock.now
+
+	awaitStart := func(want int) {
+		t.Helper()
+		select {
+		case n := <-started:
+			require.Equal(t, want, n)
+		case <-time.After(5 * time.Second):
+			t.Fatalf("build %d never started", want)
+		}
+	}
+
+	var ordinary, refreshed *lineageEngine
+	ordinaryDone, refreshDone := make(chan struct{}), make(chan struct{})
+	go func() {
+		defer close(ordinaryDone)
+		ordinary, _, _ = c.get(nil, nil, false)
+	}()
+	awaitStart(0)
+
+	clock.advance(time.Second) // the user saves a change, then presses Refresh
+	go func() {
+		defer close(refreshDone)
+		refreshed, _, _ = c.get(nil, nil, true)
+	}()
+	awaitStart(1)
+
+	close(release[1])
+	<-refreshDone
+	close(release[0])
+	<-ordinaryDone
+
+	require.NotNil(t, refreshed)
+	assert.NotSame(t, ordinary, refreshed)
+	assert.EqualValues(t, 2, calls.Load())
+	cached, cachedAt, err := c.get(nil, nil, false)
+	require.NoError(t, err)
+	assert.Same(t, refreshed, cached, "the older ordinary build does not overwrite the refresh")
+	assert.Equal(t, clock.t, cachedAt)
+	assert.EqualValues(t, 2, calls.Load())
+}
+
 // TestLineageEngineMemoIsConcurrencySafe exercises the memo maps a shared engine
 // fills while serving requests; run with -race.
 func TestLineageEngineMemoIsConcurrencySafe(t *testing.T) {

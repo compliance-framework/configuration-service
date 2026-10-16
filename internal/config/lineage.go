@@ -13,7 +13,7 @@ const (
 	// reused before a request rebuilds it.
 	DefaultLineageCacheTTL = 5 * time.Minute
 	// DefaultLineageCacheMaxEntries bounds how many scopes (SSP x component) are cached.
-	DefaultLineageCacheMaxEntries = 32
+	DefaultLineageCacheMaxEntries = 8
 )
 
 // LineageConfig controls the shared cache behind the /api/lineage read routes.

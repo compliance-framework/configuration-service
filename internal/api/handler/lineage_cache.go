@@ -80,18 +80,29 @@ func (c *lineageEngineCache) get(sspID, componentID *uuid.UUID, refresh bool) (*
 		key.componentID = *componentID
 	}
 
-	if !refresh {
-		c.mu.Lock()
-		entry, ok := c.entries[key]
-		c.mu.Unlock()
-		if ok && c.now().Sub(entry.builtAt) < c.ttl {
-			return entry.engine, entry.builtAt, nil
-		}
+	c.mu.Lock()
+	entry, ok := c.entries[key]
+	if ok && c.now().Sub(entry.builtAt) >= c.ttl {
+		// Expired engines are never served again: release this one now rather than
+		// holding it through the rebuild, so it is gone even if the rebuild fails.
+		delete(c.entries, key)
+		ok = false
+	}
+	c.mu.Unlock()
+	if ok && !refresh {
+		return entry.engine, entry.builtAt, nil
 	}
 
-	// A refresh that joins a build already in flight shares it: that build started
-	// after the refresh was asked for or moments before, so its data is current.
-	v, err, _ := c.flight.Do(key.String(), func() (any, error) {
+	// A refresh must not join an ordinary build already in flight: that build may have
+	// started before the refresh was asked for, so its data can predate the change the
+	// user is refreshing for. Refreshes get their own flight key, so each starts a build
+	// after it arrives while concurrent refreshes still share one; store keeps whichever
+	// of the two builds is newer.
+	flightKey := key.String()
+	if refresh {
+		flightKey += "|refresh"
+	}
+	v, err, _ := c.flight.Do(flightKey, func() (any, error) {
 		builtAt := c.now()
 		engine, err := c.build(sspID, componentID)
 		if err != nil {
@@ -104,15 +115,19 @@ func (c *lineageEngineCache) get(sspID, componentID *uuid.UUID, refresh bool) (*
 	if err != nil {
 		return nil, time.Time{}, err
 	}
-	entry := v.(lineageCacheEntry)
-	return entry.engine, entry.builtAt, nil
+	built := v.(lineageCacheEntry)
+	return built.engine, built.builtAt, nil
 }
 
 // store saves the entry, first dropping expired entries and then, while still full,
-// the oldest one.
+// the oldest one. An entry built earlier than the one already cached for the scope is
+// discarded, so a slow ordinary build cannot overwrite a newer refresh.
 func (c *lineageEngineCache) store(key lineageScopeKey, entry lineageCacheEntry) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if existing, ok := c.entries[key]; ok && existing.builtAt.After(entry.builtAt) {
+		return
+	}
 	now := c.now()
 	for k, e := range c.entries {
 		if now.Sub(e.builtAt) >= c.ttl {
