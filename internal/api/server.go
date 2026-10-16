@@ -53,7 +53,7 @@ func NewServer(ctx context.Context, s *zap.SugaredLogger, config *config.Config,
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     config.APIAllowedOrigins,
 		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization, "If-Match", "If-None-Match"},
-		ExposeHeaders:    []string{"ETag"},
+		ExposeHeaders:    []string{"ETag", "X-Lineage-Generated-At"},
 		AllowCredentials: true,
 	}))
 	e.Use(echoprometheus.NewMiddlewareWithConfig(echoprometheus.MiddlewareConfig{

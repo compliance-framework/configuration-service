@@ -51,6 +51,7 @@ type Config struct {
 	Artifact                          *ArtifactConfig
 	EvidenceSubjects                  *EvidenceSubjectConfig
 	EvidenceBatch                     *EvidenceBatchConfig
+	Lineage                           *LineageConfig
 }
 
 func NewConfig(logger *zap.SugaredLogger) *Config {
@@ -190,6 +191,11 @@ func NewConfig(logger *zap.SugaredLogger) *Config {
 		logger.Fatalw("Invalid evidence batch config", "error", err)
 	}
 
+	lineageConfig, err := LoadLineageConfig()
+	if err != nil {
+		logger.Fatalw("Invalid lineage config", "error", err)
+	}
+
 	// Digest configuration
 	digestEnabled := viper.GetBool("digest_enabled")
 	digestSchedule := viper.GetString("digest_schedule")
@@ -281,6 +287,7 @@ func NewConfig(logger *zap.SugaredLogger) *Config {
 		EvidenceDefaultExpiryMonths:       evidenceDefaultExpiryMonths,
 		EvidenceSubjects:                  evidenceSubjectConfig,
 		EvidenceBatch:                     evidenceBatchConfig,
+		Lineage:                           lineageConfig,
 		DigestEnabled:                     digestEnabled,
 		DigestSchedule:                    digestSchedule,
 		Workflow:                          workflowConfig,

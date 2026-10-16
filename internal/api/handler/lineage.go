@@ -6,11 +6,14 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/compliance-framework/api/internal/api"
 	"github.com/compliance-framework/api/internal/api/middleware"
+	"github.com/compliance-framework/api/internal/config"
 	"github.com/compliance-framework/api/internal/converters/labelfilter"
 	svc "github.com/compliance-framework/api/internal/service"
 	"github.com/compliance-framework/api/internal/service/leverage"
@@ -29,14 +32,61 @@ type LineageHandler struct {
 	sugar      *zap.SugaredLogger
 	db         *gorm.DB
 	pagination *svc.PaginationConfig
+	engines    *lineageEngineCache
 }
 
+// LineageGeneratedAtHeader carries when the data behind a lineage response was
+// loaded (RFC 3339), so the UI can show its age and offer a refresh.
+const LineageGeneratedAtHeader = "X-Lineage-Generated-At"
+
+// NewLineageHandler builds a handler that loads the lineage data on every request;
+// WithEngineCache shares it across requests instead.
 func NewLineageHandler(l *zap.SugaredLogger, db *gorm.DB) *LineageHandler {
-	return &LineageHandler{
+	h := &LineageHandler{
 		sugar:      l,
 		db:         db,
 		pagination: svc.NewPaginationConfig(),
 	}
+	h.engines = newLineageEngineCache(0, 1, h.buildEngine)
+	return h
+}
+
+// WithEngineCache reuses built lineage data across requests and users for
+// cfg.CacheTTL (0 disables), keeping at most cfg.CacheMaxEntries scopes.
+func (h *LineageHandler) WithEngineCache(cfg *config.LineageConfig) *LineageHandler {
+	h.engines = newLineageEngineCache(cfg.CacheTTL, cfg.CacheMaxEntries, h.buildEngine)
+	return h
+}
+
+// engine returns the lineage engine for the scope, rebuilt when the request sets
+// refresh=true, and stamps the response with when its data was loaded.
+func (h *LineageHandler) engine(ctx echo.Context, sspID, componentID *uuid.UUID) (*lineageEngine, error) {
+	refresh := false
+	if raw := ctx.QueryParam("refresh"); raw != "" {
+		parsed, err := strconv.ParseBool(raw)
+		if err != nil {
+			return nil, errLineageRefreshParam
+		}
+		refresh = parsed
+	}
+	engine, builtAt, err := h.engines.get(sspID, componentID, refresh)
+	if err != nil {
+		return nil, err
+	}
+	ctx.Response().Header().Set(LineageGeneratedAtHeader, builtAt.UTC().Format(time.RFC3339))
+	return engine, nil
+}
+
+var errLineageRefreshParam = errors.New("refresh must be true or false")
+
+// engineError writes the response for an engine() failure: 400 for a bad refresh
+// parameter, otherwise a logged 500.
+func (h *LineageHandler) engineError(ctx echo.Context, err error) error {
+	if errors.Is(err, errLineageRefreshParam) {
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+	h.sugar.Errorw("failed to build lineage engine", "error", err)
+	return ctx.JSON(http.StatusInternalServerError, api.InternalServerError())
 }
 
 func (h *LineageHandler) Register(api *echo.Group, guard middleware.ResourceGuard) {
@@ -242,7 +292,9 @@ type LineageNode struct {
 // @Param			sspId		query		string	false	"Scope metrics to a System Security Plan"
 // @Param			componentId	query		string	false	"Scope metrics to a system component"
 // @Param			types		query		string	false	"Comma-separated catalog types to include (standard,policy,procedure,internal,other)"
+// @Param			refresh		query		bool	false	"Rebuild the shared cached lineage data instead of reusing it"
 // @Success		200			{object}	svc.ListResponse[LineageNode]
+// @Header			200			{string}	X-Lineage-Generated-At	"When the data behind this response was loaded (RFC 3339)"
 // @Failure		400			{object}	api.Error
 // @Failure		500			{object}	api.Error
 // @Security		OAuth2Password
@@ -258,10 +310,9 @@ func (h *LineageHandler) Roots(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	engine, err := h.buildEngine(sspID, componentID)
+	engine, err := h.engine(ctx, sspID, componentID)
 	if err != nil {
-		h.sugar.Errorw("failed to build lineage engine", "error", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		return h.engineError(ctx, err)
 	}
 
 	catalogIDs := make([]uuid.UUID, 0, len(engine.catalogs))
@@ -304,7 +355,9 @@ func (h *LineageHandler) Roots(ctx echo.Context) error {
 // @Param			componentId	query		string	false	"Scope metrics to a system component"
 // @Param			page		query		int		false	"Page number"
 // @Param			limit		query		int		false	"Page size (default 100)"
+// @Param			refresh		query		bool	false	"Rebuild the shared cached lineage data instead of reusing it"
 // @Success		200			{object}	svc.ListResponse[LineageNode]
+// @Header			200			{string}	X-Lineage-Generated-At	"When the data behind this response was loaded (RFC 3339)"
 // @Failure		400			{object}	api.Error
 // @Failure		404			{object}	api.Error
 // @Failure		500			{object}	api.Error
@@ -329,10 +382,9 @@ func (h *LineageHandler) Children(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	engine, err := h.buildEngine(sspID, componentID)
+	engine, err := h.engine(ctx, sspID, componentID)
 	if err != nil {
-		h.sugar.Errorw("failed to build lineage engine", "error", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		return h.engineError(ctx, err)
 	}
 
 	children, err := engine.childrenOf(kind, catalogID, subID)
@@ -363,7 +415,9 @@ func (h *LineageHandler) Children(ctx echo.Context) error {
 // @Produce		json
 // @Param			key			path		string	true	"URL-encoded control node key"
 // @Param			componentId	query		string	false	"Scope evidence to a system component"
+// @Param			refresh		query		bool	false	"Rebuild the shared cached lineage data instead of reusing it"
 // @Success		200			{object}	svc.ListResponse[LineageSSPRow]
+// @Header			200			{string}	X-Lineage-Generated-At	"When the data behind this response was loaded (RFC 3339)"
 // @Failure		400			{object}	api.Error
 // @Failure		404			{object}	api.Error
 // @Failure		500			{object}	api.Error
@@ -386,10 +440,9 @@ func (h *LineageHandler) SSPDetail(ctx echo.Context) error {
 	}
 	ref := relational.ControlRef{CatalogID: catalogID, ControlID: subID}
 
-	engine, err := h.buildEngine(nil, componentID)
+	engine, err := h.engine(ctx, nil, componentID)
 	if err != nil {
-		h.sugar.Errorw("failed to build lineage engine", "error", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+		return h.engineError(ctx, err)
 	}
 	if _, ok := engine.controlCatalogType[ref]; !ok {
 		return ctx.JSON(http.StatusNotFound, api.NewError(errors.New("control not found")))
@@ -503,6 +556,9 @@ type lineageEngine struct {
 	sspTitles            map[uuid.UUID]string
 	profileControlsBySSP map[uuid.UUID]map[string]struct{}
 
+	// memoMu guards closureCache and assessCache, the only state filled after the
+	// build: engines are shared across concurrent requests (lineageEngineCache).
+	memoMu sync.RWMutex
 	// closureCache memoizes a control's evidence closure (itself + everything that
 	// implements it) so posture can roll up through control-links like compliance
 	// and risk do, without re-walking the graph per SSP.
@@ -1047,7 +1103,10 @@ func derivePosture(inScope bool, evidenceStatus, implStatus string, inheritedCre
 // risk roll up over, so an abstract standard control inherits the coverage of the
 // concrete policy/operational controls linked to implement it.
 func (e *lineageEngine) closureOf(ref relational.ControlRef) []relational.ControlRef {
-	if cached, ok := e.closureCache[ref]; ok {
+	e.memoMu.RLock()
+	cached, ok := e.closureCache[ref]
+	e.memoMu.RUnlock()
+	if ok {
 		return cached
 	}
 	set := e.graph.EvidenceClosure(ref)
@@ -1055,7 +1114,9 @@ func (e *lineageEngine) closureOf(ref relational.ControlRef) []relational.Contro
 	for m := range set {
 		out = append(out, m)
 	}
+	e.memoMu.Lock()
 	e.closureCache[ref] = out
+	e.memoMu.Unlock()
 	return out
 }
 
@@ -1086,7 +1147,10 @@ type assessKey struct {
 // standard) inherits that SSP's coverage instead of reading as out-of-scope.
 func (e *lineageEngine) assessSSP(ref relational.ControlRef, sspID uuid.UUID, membership map[string]struct{}) sspAssessment {
 	key := assessKey{ref: ref, sspID: sspID}
-	if cached, ok := e.assessCache[key]; ok {
+	e.memoMu.RLock()
+	cached, ok := e.assessCache[key]
+	e.memoMu.RUnlock()
+	if ok {
 		return cached
 	}
 	closure := e.closureOf(ref)
@@ -1127,7 +1191,9 @@ func (e *lineageEngine) assessSSP(ref relational.ControlRef, sspID uuid.UUID, me
 			TotalResponsibilities: agg.TotalResponsibilities,
 		}
 	}
+	e.memoMu.Lock()
 	e.assessCache[key] = a
+	e.memoMu.Unlock()
 	return a
 }
 

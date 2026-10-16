@@ -16714,11 +16714,19 @@ paths:
         in: query
         name: limit
         type: integer
+      - description: Rebuild the shared cached lineage data instead of reusing it
+        in: query
+        name: refresh
+        type: boolean
       produces:
       - application/json
       responses:
         "200":
           description: OK
+          headers:
+            X-Lineage-Generated-At:
+              description: When the data behind this response was loaded (RFC 3339)
+              type: string
           schema:
             $ref: '#/definitions/service.ListResponse-handler_LineageNode'
         "400":
@@ -16799,11 +16807,19 @@ paths:
         in: query
         name: componentId
         type: string
+      - description: Rebuild the shared cached lineage data instead of reusing it
+        in: query
+        name: refresh
+        type: boolean
       produces:
       - application/json
       responses:
         "200":
           description: OK
+          headers:
+            X-Lineage-Generated-At:
+              description: When the data behind this response was loaded (RFC 3339)
+              type: string
           schema:
             $ref: '#/definitions/service.ListResponse-handler_LineageSSPRow'
         "400":
@@ -16844,11 +16860,19 @@ paths:
         in: query
         name: types
         type: string
+      - description: Rebuild the shared cached lineage data instead of reusing it
+        in: query
+        name: refresh
+        type: boolean
       produces:
       - application/json
       responses:
         "200":
           description: OK
+          headers:
+            X-Lineage-Generated-At:
+              description: When the data behind this response was loaded (RFC 3339)
+              type: string
           schema:
             $ref: '#/definitions/service.ListResponse-handler_LineageNode'
         "400":
