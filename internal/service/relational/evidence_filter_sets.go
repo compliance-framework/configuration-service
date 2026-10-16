@@ -44,12 +44,15 @@ func EvidenceStatusCountsForFilterSets[K comparable](db *gorm.DB, sets map[K][]l
 //   - a stream matching any scoped filter of the set is counted once, under its state;
 //   - rows are sorted by status.
 //
-// Each distinct filter is matched against the streams once, however many sets share it,
-// so the cost is (distinct filters × streams) label checks plus the set unions.
+// The streams are indexed by label once, and each distinct filter is matched through
+// the index once however many sets share it, so the cost tracks the matches rather
+// than filters × streams. An unknown query operator is always an error, even where
+// labelfilter.MatchLabels would short-circuit before reaching it.
 func CountStatusesForFilterSets[K comparable](streams []LatestEvidenceStream, sets map[K][]labelfilter.Filter) (map[K][]StatusCount, error) {
 	result := make(map[K][]StatusCount, len(sets))
 	matchesByFilter := map[string][]int{}
 	var allStreams []int
+	var index *labelfilter.Index // built on the first scoped filter
 
 	// seen[i] == generation marks stream i as already counted for the current set.
 	seen := make([]int, len(streams))
@@ -78,7 +81,10 @@ func CountStatusesForFilterSets[K comparable](streams []LatestEvidenceStream, se
 				continue
 			}
 			scoped = true
-			indexes, err := matchingStreams(streams, filter.Scope, matchesByFilter)
+			if index == nil {
+				index = NewLatestStreamIndex(streams)
+			}
+			indexes, err := matchingStreams(index, filter.Scope, matchesByFilter)
 			if err != nil {
 				return nil, err
 			}
@@ -106,9 +112,19 @@ func CountStatusesForFilterSets[K comparable](streams []LatestEvidenceStream, se
 	return result, nil
 }
 
+// NewLatestStreamIndex indexes the streams' labels (already normalized by
+// LoadLatestEvidenceStreams); Match reports positions in streams.
+func NewLatestStreamIndex(streams []LatestEvidenceStream) *labelfilter.Index {
+	labels := make([]map[string][]string, len(streams))
+	for i := range streams {
+		labels[i] = streams[i].Labels
+	}
+	return labelfilter.NewIndex(labels)
+}
+
 // matchingStreams returns the indexes of the streams the scope matches, memoised by the
 // scope's JSON encoding so a filter shared by many sets is evaluated once.
-func matchingStreams(streams []LatestEvidenceStream, scope *labelfilter.Scope, cache map[string][]int) ([]int, error) {
+func matchingStreams(index *labelfilter.Index, scope *labelfilter.Scope, cache map[string][]int) ([]int, error) {
 	encoded, err := json.Marshal(scope)
 	if err != nil {
 		return nil, err
@@ -116,15 +132,9 @@ func matchingStreams(streams []LatestEvidenceStream, scope *labelfilter.Scope, c
 	if indexes, ok := cache[string(encoded)]; ok {
 		return indexes, nil
 	}
-	indexes := []int{}
-	for i := range streams {
-		match, err := labelfilter.MatchLabels(scope, streams[i].Labels)
-		if err != nil {
-			return nil, err
-		}
-		if match {
-			indexes = append(indexes, i)
-		}
+	indexes, err := index.Match(scope)
+	if err != nil {
+		return nil, err
 	}
 	cache[string(encoded)] = indexes
 	return indexes, nil

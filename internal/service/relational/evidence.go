@@ -296,17 +296,13 @@ func LoadLatestEvidenceStreams(db *gorm.DB, componentID *uuid.UUID) ([]LatestEvi
 // Performance: rather than run one label-scoped SQL aggregation per filter (which
 // re-derives the latest-per-stream set every time — O(filters) full scans, tens of
 // seconds on real data), this loads the latest streams and their labels ONCE and
-// evaluates every filter in memory via labelfilter.MatchLabels (whose semantics
-// mirror the SQL evaluator). That collapses the DB work to a single query and keeps
-// the per-filter cost to cheap in-Go boolean checks. Postgres-first (loose index
-// scan + MATERIALIZED CTE).
+// evaluates every filter in memory through CountStatusesForFilterSets (a label index
+// whose semantics mirror the SQL evaluator), one single-filter set per id. That
+// collapses the DB work to a single query and keeps the per-filter cost to set
+// operations over the matches. Postgres-first (loose index scan + MATERIALIZED CTE).
 func GetEvidenceStatusCountsByFilters(db *gorm.DB, filters map[uuid.UUID]labelfilter.Filter, componentID *uuid.UUID) (map[uuid.UUID][]StatusCount, error) {
-	result := make(map[uuid.UUID][]StatusCount, len(filters))
 	if len(filters) == 0 {
-		return result, nil
-	}
-	for id := range filters {
-		result[id] = []StatusCount{} // ensure every filter has an entry, even with zero matches
+		return map[uuid.UUID][]StatusCount{}, nil
 	}
 
 	streams, err := LoadLatestEvidenceStreams(db, componentID)
@@ -314,26 +310,13 @@ func GetEvidenceStatusCountsByFilters(db *gorm.DB, filters map[uuid.UUID]labelfi
 		return nil, err
 	}
 
-	// Evaluate every filter against every latest stream in memory. Each stream is
-	// one distinct uuid, so a matching stream is one distinct-stream count.
+	// Each stream is one distinct uuid, so a matching stream is one distinct-stream
+	// count. A filter without a scope matches every stream, as MatchLabels(nil) does.
+	sets := make(map[uuid.UUID][]labelfilter.Filter, len(filters))
 	for id, filter := range filters {
-		counts := map[string]int64{}
-		for i := range streams {
-			match, err := labelfilter.MatchLabels(filter.Scope, streams[i].Labels)
-			if err != nil {
-				return nil, err
-			}
-			if match {
-				counts[streams[i].State]++
-			}
-		}
-		sc := make([]StatusCount, 0, len(counts))
-		for state, c := range counts {
-			sc = append(sc, StatusCount{Count: c, Status: state})
-		}
-		result[id] = sc
+		sets[id] = []labelfilter.Filter{filter}
 	}
-	return result, nil
+	return CountStatusesForFilterSets(streams, sets)
 }
 
 // GetLatestEvidenceStreamsQuery is the latest evidence of each stream as

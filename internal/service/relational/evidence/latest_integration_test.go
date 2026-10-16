@@ -199,6 +199,28 @@ func (suite *LatestEvidenceIntegrationSuite) TestMatchesDistinctOn() {
 		suite.NotEmpty(results)
 	}
 
+	// GetEvidenceStatusCountsByFilters counts what the SQL evaluator counts, per filter.
+	byID := map[uuid.UUID]labelfilter.Filter{}
+	for _, filter := range filters {
+		byID[uuid.New()] = filter
+	}
+	counts, err := relational.GetEvidenceStatusCountsByFilters(suite.DB, byID, nil)
+	suite.Require().NoError(err)
+	suite.Len(counts, len(filters))
+	for id, filter := range byID {
+		want, err := oldStatusCountsAtPoint(suite.DB, filter, nil)
+		suite.Require().NoError(err)
+		suite.NotEmpty(want)
+		wantRows := []relational.StatusCount{}
+		for _, row := range sortedStatusCounts(want) {
+			wantRows = append(wantRows, relational.StatusCount{Count: row.Count, Status: row.Status})
+		}
+		suite.Equal(wantRows, counts[id], "status counts by filter %+v", filter)
+	}
+	counts, err = relational.GetEvidenceStatusCountsByFilters(suite.DB, nil, nil)
+	suite.Require().NoError(err)
+	suite.Empty(counts)
+
 	// LoadLatestEvidenceStreams, all streams and on one component.
 	oldIDs, err := oldLatestStreamIDs(suite.DB)
 	suite.Require().NoError(err)
