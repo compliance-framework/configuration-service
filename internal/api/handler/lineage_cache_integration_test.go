@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/compliance-framework/api/internal/api"
 	"github.com/compliance-framework/api/internal/config"
 	"github.com/compliance-framework/api/internal/service/relational"
 	"github.com/compliance-framework/api/internal/tests"
@@ -60,7 +61,7 @@ func (suite *LineageCacheSuite) TestCachedDataIsReusedUntilRefresh() {
 	rec, nodes := suite.roots(h, "")
 	suite.Require().Equal(http.StatusOK, rec.Code, rec.Body.String())
 	suite.Len(nodes, 1)
-	firstAt, err := time.Parse(time.RFC3339, rec.Header().Get(LineageGeneratedAtHeader))
+	firstAt, err := time.Parse(time.RFC3339, rec.Header().Get(api.LineageGeneratedAtHeader))
 	suite.Require().NoError(err)
 
 	// A catalog added after the build is not visible until a refresh, and children of
@@ -68,7 +69,7 @@ func (suite *LineageCacheSuite) TestCachedDataIsReusedUntilRefresh() {
 	second := suite.createCatalog("Second")
 	rec, nodes = suite.roots(h, "")
 	suite.Len(nodes, 1, "cached data is reused")
-	suite.Equal(firstAt.Format(time.RFC3339), rec.Header().Get(LineageGeneratedAtHeader))
+	suite.Equal(firstAt.Format(time.RFC3339), rec.Header().Get(api.LineageGeneratedAtHeader))
 
 	childReq := httptest.NewRequest(http.MethodGet, "/x", nil)
 	childRec := httptest.NewRecorder()
@@ -81,7 +82,7 @@ func (suite *LineageCacheSuite) TestCachedDataIsReusedUntilRefresh() {
 	rec, nodes = suite.roots(h, "?refresh=true")
 	suite.Require().Equal(http.StatusOK, rec.Code, rec.Body.String())
 	suite.Len(nodes, 2, "refresh rebuilds")
-	refreshedAt, err := time.Parse(time.RFC3339, rec.Header().Get(LineageGeneratedAtHeader))
+	refreshedAt, err := time.Parse(time.RFC3339, rec.Header().Get(api.LineageGeneratedAtHeader))
 	suite.Require().NoError(err)
 	suite.False(refreshedAt.Before(firstAt))
 
@@ -99,7 +100,7 @@ func (suite *LineageCacheSuite) TestUncachedHandlerAlwaysRebuilds() {
 	suite.createCatalog("Second")
 	rec, nodes := suite.roots(h, "")
 	suite.Len(nodes, 2)
-	suite.NotEmpty(rec.Header().Get(LineageGeneratedAtHeader))
+	suite.NotEmpty(rec.Header().Get(api.LineageGeneratedAtHeader))
 }
 
 func (suite *LineageCacheSuite) TestInvalidRefreshIsBadRequest() {

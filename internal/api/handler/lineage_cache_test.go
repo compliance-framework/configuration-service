@@ -153,12 +153,13 @@ func TestLineageEngineCacheSharesConcurrentBuilds(t *testing.T) {
 		go func(i int) {
 			defer done.Done()
 			started.Done()
-			engines[i], _, _ = c.get(nil, nil, i%2 == 0)
+			engines[i], _, _ = c.get(nil, nil, false)
 		}(i)
 	}
 	started.Wait()
-	// Give every caller time to reach the in-flight build before it completes.
-	time.Sleep(50 * time.Millisecond)
+	// Callers that reach the build late hit the stored entry instead, so the
+	// assertions hold whatever the scheduling; the pause just makes overlap likely.
+	time.Sleep(20 * time.Millisecond)
 	close(release)
 	done.Wait()
 

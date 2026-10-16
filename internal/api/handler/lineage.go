@@ -35,10 +35,6 @@ type LineageHandler struct {
 	engines    *lineageEngineCache
 }
 
-// LineageGeneratedAtHeader carries when the data behind a lineage response was
-// loaded (RFC 3339), so the UI can show its age and offer a refresh.
-const LineageGeneratedAtHeader = "X-Lineage-Generated-At"
-
 // NewLineageHandler builds a handler that loads the lineage data on every request;
 // WithEngineCache shares it across requests instead.
 func NewLineageHandler(l *zap.SugaredLogger, db *gorm.DB) *LineageHandler {
@@ -73,7 +69,7 @@ func (h *LineageHandler) engine(ctx echo.Context, sspID, componentID *uuid.UUID)
 	if err != nil {
 		return nil, err
 	}
-	ctx.Response().Header().Set(LineageGeneratedAtHeader, builtAt.UTC().Format(time.RFC3339))
+	ctx.Response().Header().Set(api.LineageGeneratedAtHeader, builtAt.UTC().Format(time.RFC3339))
 	return engine, nil
 }
 

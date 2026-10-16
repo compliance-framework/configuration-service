@@ -25,6 +25,10 @@ type Server struct {
 }
 
 // NewServer initializes the echo server with necessary routes and configurations.
+// LineageGeneratedAtHeader carries when the data behind a lineage response was
+// loaded (RFC 3339), so the UI can show its age and offer a refresh.
+const LineageGeneratedAtHeader = "X-Lineage-Generated-At"
+
 func NewServer(ctx context.Context, s *zap.SugaredLogger, config *config.Config, metrics *PrometheusMetrics) *Server {
 	e := echo.New()
 	e.Binder = &binders.CustomBinder{}
@@ -53,7 +57,7 @@ func NewServer(ctx context.Context, s *zap.SugaredLogger, config *config.Config,
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     config.APIAllowedOrigins,
 		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization, "If-Match", "If-None-Match"},
-		ExposeHeaders:    []string{"ETag", "X-Lineage-Generated-At"},
+		ExposeHeaders:    []string{"ETag", LineageGeneratedAtHeader},
 		AllowCredentials: true,
 	}))
 	e.Use(echoprometheus.NewMiddlewareWithConfig(echoprometheus.MiddlewareConfig{
