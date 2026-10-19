@@ -228,6 +228,9 @@ type LatestEvidenceStream struct {
 	Collected time.Time
 	Expires   *time.Time
 	Labels    map[string][]string
+	// RawLabels holds the same labels with their values' original casing (trimmed),
+	// index for index with Labels, for callers that display or store values.
+	RawLabels map[string][]string
 }
 
 // LoadLatestEvidenceStreams loads the latest evidence per stream (loose index
@@ -263,7 +266,7 @@ func LoadLatestEvidenceStreams(db *gorm.DB, componentID *uuid.UUID) ([]LatestEvi
 		if s == nil {
 			s = &LatestEvidenceStream{
 				ID: r.ID, UUID: r.UUID, Title: r.Title, State: r.State, Reason: r.Reason,
-				Collected: r.Collected, Expires: r.Expires, Labels: map[string][]string{},
+				Collected: r.Collected, Expires: r.Expires, Labels: map[string][]string{}, RawLabels: map[string][]string{},
 			}
 			byUUID[r.UUID] = s
 			order = append(order, r.UUID)
@@ -273,11 +276,12 @@ func LoadLatestEvidenceStreams(db *gorm.DB, componentID *uuid.UUID) ([]LatestEvi
 			if key == "" {
 				continue
 			}
-			val := ""
+			raw := ""
 			if r.Value != nil {
-				val = strings.ToLower(strings.TrimSpace(*r.Value))
+				raw = strings.TrimSpace(*r.Value)
 			}
-			s.Labels[key] = append(s.Labels[key], val)
+			s.Labels[key] = append(s.Labels[key], strings.ToLower(raw))
+			s.RawLabels[key] = append(s.RawLabels[key], raw)
 		}
 	}
 

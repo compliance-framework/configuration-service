@@ -12,14 +12,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// stream builds a stream's labels from key=value pairs; a key may repeat.
+// stream builds a stream's labels from key=value pairs, like LoadLatestEvidenceStreams:
+// Labels folded, RawLabels as given. A key may repeat.
 func stream(pairs ...string) relational.LatestEvidenceStream {
-	labels := map[string][]string{}
+	labels, raw := map[string][]string{}, map[string][]string{}
 	for _, pair := range pairs {
 		key, value, _ := strings.Cut(pair, "=")
-		labels[key] = append(labels[key], value)
+		labels[key] = append(labels[key], strings.ToLower(value))
+		raw[key] = append(raw[key], value)
 	}
-	return relational.LatestEvidenceStream{UUID: uuid.New(), Labels: labels}
+	return relational.LatestEvidenceStream{UUID: uuid.New(), Labels: labels, RawLabels: raw}
 }
 
 func planTemplate(t *testing.T, edit func(*Input)) relational.SSPTemplate {
@@ -163,4 +165,24 @@ func TestPlanEmptyTitle(t *testing.T) {
 	assert.Empty(t, plan.SSPs)
 	require.Len(t, plan.Invalid, 1)
 	assert.Equal(t, "title-template renders an empty title", plan.Invalid[0].Reason)
+}
+
+func TestPlanKeepsValueCasing(t *testing.T) {
+	tmpl := planTemplate(t, func(in *Input) {
+		two := 2
+		in.MinStreams = &two
+		in.ScopeLabels = [][]string{{"repo"}}
+	})
+	first, second := stream("_app=Payments-API", "repo=MyOrg/Repo"), stream("_app=payments-api", "repo=myorg/repo")
+	first.UUID, second.UUID = uuid.MustParse("00000000-0000-0000-0000-000000000001"), uuid.MustParse("00000000-0000-0000-0000-000000000002")
+	plan := BuildPlan(tmpl, []relational.LatestEvidenceStream{second, first}, nil, nil, nil)
+
+	require.Len(t, plan.SSPs, 1, "grouping is case-insensitive")
+	planned := plan.SSPs[0]
+	assert.Equal(t, 2, planned.Streams)
+	assert.Equal(t, map[string]string{"_app": "Payments-API"}, planned.KeyValues, "the first stream's casing")
+	assert.Equal(t, "SSP for Payments-API", planned.Title)
+	assert.Equal(t, hashOf(t, "_app=payments-api"), planned.KeyHash)
+	assert.Equal(t, [][]relational.ScopeLabel{labels("_app=Payments-API"), labels("repo=MyOrg/Repo")}, planned.Learn,
+		"combinations count case-insensitively and keep the first stream's casing")
 }

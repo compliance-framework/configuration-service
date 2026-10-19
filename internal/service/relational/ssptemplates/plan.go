@@ -63,16 +63,20 @@ type InvalidEntry struct {
 // HashesBySSP holds, per SSP, the MatchHashes of its scope entries or exceptions.
 type HashesBySSP map[uuid.UUID]map[string]struct{}
 
-// group is the streams sharing one combination of key values.
+// group is the streams sharing one combination of key values, compared
+// case-insensitively. keyValues keep the casing of the group's first stream (by UUID);
+// streams are the members' labels with their original casing, in that order.
 type group struct {
 	keyValues map[string]string
+	members   []relational.LatestEvidenceStream
 	streams   []map[string][]string
 }
 
 // BuildPlan applies tmpl to the latest evidence streams. It is pure: instances are the
 // template's instances, and entries and exceptions the scope hashes of their SSPs.
-// Evidence label keys and values arrive lower-cased (LoadLatestEvidenceStreams), so key
-// values, titles and learned entries are lower-cased too.
+// The filter, the key checks and the grouping use the folded labels (matching is
+// case-insensitive); titles, props, key values and learned entries keep the evidence's
+// casing, from the first stream (by UUID) that carries them.
 func BuildPlan(tmpl relational.SSPTemplate, streams []relational.LatestEvidenceStream, instances []relational.SSPTemplateInstance, entries, exceptions HashesBySSP) Plan {
 	plan := Plan{SSPs: []PlannedSSP{}, BelowThreshold: []GroupStreams{}, Invalid: []InvalidGroup{}}
 	var filter *labelfilter.Scope
@@ -93,9 +97,17 @@ func BuildPlan(tmpl relational.SSPTemplate, streams []relational.LatestEvidenceS
 		}
 		id := joinPairs(keyValues)
 		if groups[id] == nil {
-			groups[id] = &group{keyValues: keyValues}
+			groups[id] = &group{}
 		}
-		groups[id].streams = append(groups[id].streams, stream.Labels)
+		groups[id].members = append(groups[id].members, stream)
+	}
+	for _, g := range groups {
+		sort.Slice(g.members, func(i, j int) bool { return g.members[i].UUID.String() < g.members[j].UUID.String() })
+		for _, member := range g.members {
+			g.streams = append(g.streams, rawLabels(member))
+		}
+		// The keys passed keyValuesOf on the folded labels, and raw labels align with them.
+		g.keyValues, _ = keyValuesOf(tmpl.Keys, g.streams[0])
 	}
 
 	byHash := make(map[string]relational.SSPTemplateInstance, len(instances))
@@ -180,13 +192,16 @@ func scopeLabelEntries(scopeLabels [][]string, streams []map[string][]string, mi
 			// A stream counts once per combination, however many times it carries it.
 			seen := map[string]struct{}{}
 			for _, combo := range combinations(labelGroup, labels) {
-				id := joinLabels(combo)
+				// Combinations compare case-insensitively; the first stream's casing is kept.
+				id := strings.ToLower(joinLabels(combo))
 				if _, dup := seen[id]; dup {
 					continue
 				}
 				seen[id] = struct{}{}
 				counts[id]++
-				combos[id] = combo
+				if _, ok := combos[id]; !ok {
+					combos[id] = combo
+				}
 			}
 		}
 		ids := make([]string, 0, len(combos))
@@ -236,6 +251,15 @@ func keyValuesOf(keys []string, labels map[string][]string) (map[string]string, 
 		out[key] = values[0]
 	}
 	return out, true
+}
+
+// rawLabels is the stream's labels with their original value casing, or the folded
+// labels when the loader did not keep it.
+func rawLabels(stream relational.LatestEvidenceStream) map[string][]string {
+	if stream.RawLabels != nil {
+		return stream.RawLabels
+	}
+	return stream.Labels
 }
 
 func toLabels(keyValues map[string]string) []relational.ScopeLabel {

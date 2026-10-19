@@ -236,8 +236,8 @@ func (s *SSPTemplateApiIntegrationSuite) evidence(pairs ...string) {
 }
 
 func (s *SSPTemplateApiIntegrationSuite) TestPreview() {
-	s.evidence("_app", "payments", "repo", "a")
-	s.evidence("_app", "payments", "repo", "b")
+	s.evidence("_app", "Payments", "repo", "A")
+	s.evidence("_app", "Payments", "repo", "b")
 	s.evidence("repo", "c")
 	body := templateBody("Applications", "_app")
 	body["scope-labels"] = [][]string{{"repo"}}
@@ -263,13 +263,13 @@ func (s *SSPTemplateApiIntegrationSuite) TestPreview() {
 		learn  []any
 	}{
 		{"unsaved", nil, false, []any{
-			[]any{map[string]any{"key": "_app", "value": "payments"}},
-			[]any{map[string]any{"key": "repo", "value": "a"}},
+			[]any{map[string]any{"key": "_app", "value": "Payments"}},
+			[]any{map[string]any{"key": "repo", "value": "A"}},
 			[]any{map[string]any{"key": "repo", "value": "b"}},
 		}},
 		{"saved", saved["id"], true, []any{
-			[]any{map[string]any{"key": "_app", "value": "payments"}},
-			[]any{map[string]any{"key": "repo", "value": "a"}},
+			[]any{map[string]any{"key": "_app", "value": "Payments"}},
+			[]any{map[string]any{"key": "repo", "value": "A"}},
 		}},
 	} {
 		body["id"] = tc.id
@@ -278,8 +278,8 @@ func (s *SSPTemplateApiIntegrationSuite) TestPreview() {
 		ssps := plan["ssps"].([]any)
 		s.Require().Len(ssps, 1, tc.name)
 		ssp := ssps[0].(map[string]any)
-		s.Equal(map[string]any{"_app": "payments"}, ssp["key-values"], tc.name)
-		s.Equal("SSP for payments", ssp["title"], tc.name)
+		s.Equal(map[string]any{"_app": "Payments"}, ssp["key-values"], tc.name)
+		s.Equal("SSP for Payments", ssp["title"], tc.name)
 		s.Equal(float64(2), ssp["streams"], tc.name)
 		s.Equal(tc.exists, ssp["exists"], tc.name)
 		s.Equal(tc.learn, ssp["learn"], tc.name)
