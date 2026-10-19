@@ -35,6 +35,11 @@ type createFilterRequest struct {
 	Filter     labelfilter.Filter `json:"filter" yaml:"filter" validate:"required"`
 	Controls   *[]string          `json:"controls" yaml:"controls"`
 	Components *[]string          `json:"components" yaml:"components"`
+	// FollowSSPScope makes the filter follow its SSP's scope: filter becomes the base
+	// expression and the stored filter is filter AND the scope, rewritten whenever the
+	// scope changes. Requires sspId and a non-empty scope. On PUT, false stops following
+	// and keeps the current effective filter; omitted keeps the current state.
+	FollowSSPScope *bool `json:"followSspScope,omitempty" yaml:"-"`
 }
 
 // UnmarshalJSON accepts sspId in either camelCase or kebab-case ("ssp-id"). The
@@ -49,6 +54,7 @@ func (r *createFilterRequest) UnmarshalJSON(data []byte) error {
 		Filter     labelfilter.Filter `json:"filter"`
 		Controls   *[]string          `json:"controls"`
 		Components *[]string          `json:"components"`
+		Follow     *bool              `json:"followSspScope"`
 	}
 
 	var decoded requestAlias
@@ -64,6 +70,7 @@ func (r *createFilterRequest) UnmarshalJSON(data []byte) error {
 	r.Filter = decoded.Filter
 	r.Controls = decoded.Controls
 	r.Components = decoded.Components
+	r.FollowSSPScope = decoded.Follow
 	return nil
 }
 

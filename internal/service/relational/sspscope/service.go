@@ -104,7 +104,9 @@ func (s *Service) AddEntry(sspID uuid.UUID, labels []relational.ScopeLabel, acto
 }
 
 // AddException adds an exception and deletes the entry with the same labels, if any.
-// It fails with ErrDuplicateException when the exception exists.
+// It fails with ErrDuplicateException when the exception exists, and with
+// ErrScopeWouldEmpty (*ScopeWouldEmptyError) when it would remove the last entry while
+// filters follow the scope.
 func (s *Service) AddException(sspID uuid.UUID, labels []relational.ScopeLabel, actor *uuid.UUID) (relational.SSPScopeException, error) {
 	normalized, hash, err := Normalize(labels)
 	if err != nil {
@@ -125,6 +127,9 @@ func (s *Service) AddException(sspID uuid.UUID, labels []relational.ScopeLabel, 
 			return ErrDuplicateException
 		}
 		if err := checkLimit(tx, &relational.SSPScopeException{}, sspID, MaxExceptions, "exceptions"); err != nil {
+			return err
+		}
+		if err := checkWouldEmpty(tx, sspID, hash); err != nil {
 			return err
 		}
 		removed := tx.Where("ssp_id = ? AND match_hash = ?", sspID, hash).Delete(&relational.SSPScopeEntry{})
@@ -314,9 +319,9 @@ func collapse(operator string, scopes []labelfilter.Scope) labelfilter.Scope {
 }
 
 // afterChange runs, inside the writing transaction, whatever must follow a change of
-// the SSP's entries.
-func (s *Service) afterChange(_ *gorm.DB, _ uuid.UUID) error {
-	return nil
+// the SSP's entries: filters that follow the scope are rewritten.
+func (s *Service) afterChange(tx *gorm.DB, sspID uuid.UUID) error {
+	return rewriteFollowingFilters(tx, sspID)
 }
 
 // write runs fn in a transaction holding the SSP's scope lock, after checking the SSP

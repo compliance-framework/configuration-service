@@ -7,11 +7,13 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/compliance-framework/api/internal/converters/labelfilter"
 	"github.com/compliance-framework/api/internal/service/relational"
 	"github.com/compliance-framework/api/internal/service/relational/sspscope"
 	"github.com/compliance-framework/api/internal/tests"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -269,4 +271,95 @@ func (s *ScopeServiceIntegrationSuite) TestSSPDeleteCascades() {
 		s.Require().NoError(s.DB.Model(model).Where("ssp_id = ?", s.sspID).Count(&count).Error)
 		s.Zero(count)
 	}
+}
+
+func (s *ScopeServiceIntegrationSuite) followingFilter(base labelfilter.Filter) uuid.UUID {
+	var id uuid.UUID
+	s.Require().NoError(s.DB.Transaction(func(tx *gorm.DB) error {
+		effective, err := sspscope.FollowScope(tx, s.sspID, base)
+		if err != nil {
+			return err
+		}
+		scopeBase := datatypes.NewJSONType(base)
+		filter := relational.Filter{Name: "follows", SSPID: &s.sspID, ScopeBase: &scopeBase, Filter: datatypes.NewJSONType(effective)}
+		if err := tx.Create(&filter).Error; err != nil {
+			return err
+		}
+		id = *filter.ID
+		return nil
+	}))
+	return id
+}
+
+// matches reports which of the label sets the stored filter matches.
+func (s *ScopeServiceIntegrationSuite) storedMatches(filterID uuid.UUID, sets ...map[string][]string) []int {
+	var filter relational.Filter
+	s.Require().NoError(s.DB.First(&filter, "id = ?", filterID).Error)
+	got, err := labelfilter.NewIndex(sets).Match(filter.Filter.Data().Scope)
+	s.Require().NoError(err)
+	return got
+}
+
+func (s *ScopeServiceIntegrationSuite) TestFollowScopeNeedsEntries() {
+	_, err := sspscope.FollowScope(s.DB, s.sspID, labelfilter.Filter{})
+	s.ErrorIs(err, sspscope.ErrScopeEmpty)
+	_, err = sspscope.FollowScope(s.DB, uuid.New(), labelfilter.Filter{})
+	s.ErrorIs(err, sspscope.ErrSSPNotFound)
+}
+
+func (s *ScopeServiceIntegrationSuite) TestFollowingFiltersAreRewrittenOnScopeChange() {
+	prodA := map[string][]string{"env": {"prod"}, "repo": {"a"}}
+	prodB := map[string][]string{"env": {"prod"}, "repo": {"b"}}
+	devA := map[string][]string{"env": {"dev"}, "repo": {"a"}}
+
+	_, err := s.svc.AddEntry(s.sspID, labels("repo", "a"), nil)
+	s.Require().NoError(err)
+	prod := labelfilter.Filter{Scope: &labelfilter.Scope{Condition: &labelfilter.Condition{Label: "env", Operator: "=", Value: "prod"}}}
+	id := s.followingFilter(prod)
+	unrelated := relational.Filter{Name: "plain", SSPID: &s.sspID, Filter: datatypes.NewJSONType(prod)}
+	s.Require().NoError(s.DB.Create(&unrelated).Error)
+
+	s.Equal([]int{0}, s.storedMatches(id, prodA, prodB, devA))
+
+	_, err = s.svc.AddEntry(s.sspID, labels("repo", "b"), nil)
+	s.Require().NoError(err)
+	s.Equal([]int{0, 1}, s.storedMatches(id, prodA, prodB, devA), "adding an entry widens the filter")
+
+	_, err = s.svc.AddException(s.sspID, labels("repo", "a"), nil)
+	s.Require().NoError(err)
+	s.Equal([]int{1}, s.storedMatches(id, prodA, prodB, devA), "an exception narrows it")
+
+	s.Require().NoError(s.DB.Transaction(func(tx *gorm.DB) error {
+		_, err := s.svc.Learn(tx, s.sspID, uuid.New(), [][]relational.ScopeLabel{labels("env", "dev")})
+		return err
+	}))
+	s.Equal([]int{1}, s.storedMatches(id, prodA, prodB, devA), "the base still applies to learned entries")
+	s.Equal([]int{0, 1}, s.storedMatches(*unrelated.ID, prodA, prodB, devA), "filters that do not follow are untouched")
+}
+
+func (s *ScopeServiceIntegrationSuite) TestExceptionCannotEmptyScopeWhileFiltersFollow() {
+	_, err := s.svc.AddEntry(s.sspID, labels("repo", "a"), nil)
+	s.Require().NoError(err)
+	s.followingFilter(labelfilter.Filter{})
+	s.followingFilter(labelfilter.Filter{})
+
+	_, err = s.svc.AddException(s.sspID, labels("repo", "a"), nil)
+	s.Require().ErrorIs(err, sspscope.ErrScopeWouldEmpty)
+	var wouldEmpty *sspscope.ScopeWouldEmptyError
+	s.Require().ErrorAs(err, &wouldEmpty)
+	s.EqualValues(2, wouldEmpty.Following)
+	s.Contains(err.Error(), "2 filter(s)")
+
+	scope, err := s.svc.Get(s.sspID)
+	s.Require().NoError(err)
+	s.Len(scope.Entries, 1, "nothing changed")
+	s.Empty(scope.Exceptions)
+
+	// Another entry's exception, or one with a second entry left, is fine.
+	_, err = s.svc.AddException(s.sspID, labels("repo", "other"), nil)
+	s.NoError(err)
+	_, err = s.svc.AddEntry(s.sspID, labels("repo", "b"), nil)
+	s.Require().NoError(err)
+	_, err = s.svc.AddException(s.sspID, labels("repo", "a"), nil)
+	s.NoError(err)
 }

@@ -6,14 +6,26 @@ import (
 	"gorm.io/datatypes"
 )
 
+// Origins of a filter.
+const (
+	FilterOriginManual      = "manual"
+	FilterOriginScopePolicy = "scope-policy"
+)
+
 type Filter struct {
 	UUIDModel
 
-	Name       string                                 `json:"name" yaml:"name"`
-	SSPID      *uuid.UUID                             `json:"sspId,omitempty" yaml:"ssp_id,omitempty" gorm:"column:ssp_id;type:uuid;index"`
-	Filter     datatypes.JSONType[labelfilter.Filter] `json:"filter" yaml:"filter"`
-	Controls   []Control                              `json:"controls" gorm:"many2many:filter_controls;"`
-	Components []SystemComponent                      `json:"components" gorm:"many2many:filter_system_components;"`
+	Name   string                                 `json:"name" yaml:"name"`
+	SSPID  *uuid.UUID                             `json:"sspId,omitempty" yaml:"ssp_id,omitempty" gorm:"column:ssp_id;type:uuid;index"`
+	Filter datatypes.JSONType[labelfilter.Filter] `json:"filter" yaml:"filter"`
+	// ScopeBase, when set, makes the filter follow its SSP's scope: Filter is kept equal to
+	// ScopeBase AND the SSP scope, and is rewritten whenever the scope changes.
+	ScopeBase *datatypes.JSONType[labelfilter.Filter] `json:"scopeBase,omitempty" yaml:"-"`
+	// Origin is "manual" for user-made filters and "scope-policy" for automatic per-policy
+	// filters.
+	Origin     string            `json:"origin" yaml:"-" gorm:"not null;default:manual"`
+	Controls   []Control         `json:"controls" gorm:"many2many:filter_controls;"`
+	Components []SystemComponent `json:"components" gorm:"many2many:filter_system_components;"`
 
 	SystemSecurityPlan *SystemSecurityPlan `json:"-" gorm:"foreignKey:SSPID;references:ID;constraint:OnDelete:CASCADE"`
 }

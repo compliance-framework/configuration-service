@@ -24913,7 +24913,7 @@ const docTemplate = `{
         },
         "/oscal/system-security-plans/{id}/scope/exceptions": {
             "post": {
-                "description": "Removes the entry with the same labels from the SSP's scope, and stops SSP templates from learning it again.",
+                "description": "Removes the entry with the same labels from the SSP's scope, and stops SSP templates from learning it again. Refused with 409 when it would remove the last entry while filters follow the scope.",
                 "consumes": [
                     "application/json"
                 ],
@@ -37067,6 +37067,18 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "origin": {
+                    "description": "Origin is \"manual\" for user-made filters and \"scope-policy\" for automatic per-policy\nfilters.",
+                    "type": "string"
+                },
+                "scopeBase": {
+                    "description": "ScopeBase, when set, makes the filter follow its SSP's scope: Filter is kept equal to\nScopeBase AND the SSP scope, and is rewritten whenever the scope changes.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/datatypes.JSONType-labelfilter_Filter"
+                        }
+                    ]
+                },
                 "sspId": {
                     "type": "string"
                 }
@@ -40902,6 +40914,10 @@ const docTemplate = `{
                 },
                 "filter": {
                     "$ref": "#/definitions/labelfilter.Filter"
+                },
+                "followSspScope": {
+                    "description": "FollowSSPScope makes the filter follow its SSP's scope: filter becomes the base\nexpression and the stored filter is filter AND the scope, rewritten whenever the\nscope changes. Requires sspId and a non-empty scope. On PUT, false stops following\nand keeps the current effective filter; omitted keeps the current state.",
+                    "type": "boolean"
                 },
                 "name": {
                     "type": "string"
@@ -50247,6 +50263,18 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "origin": {
+                    "description": "Origin is \"manual\" for user-made filters and \"scope-policy\" for automatic per-policy\nfilters.",
+                    "type": "string"
+                },
+                "scopeBase": {
+                    "description": "ScopeBase, when set, makes the filter follow its SSP's scope: Filter is kept equal to\nScopeBase AND the SSP scope, and is rewritten whenever the scope changes.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/datatypes.JSONType-labelfilter_Filter"
+                        }
+                    ]
                 },
                 "sspId": {
                     "type": "string"

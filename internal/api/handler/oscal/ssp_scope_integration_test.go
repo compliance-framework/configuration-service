@@ -9,10 +9,12 @@ import (
 
 	"github.com/compliance-framework/api/internal/api"
 	"github.com/compliance-framework/api/internal/api/handler"
+	"github.com/compliance-framework/api/internal/converters/labelfilter"
 	"github.com/compliance-framework/api/internal/service/relational"
 	"github.com/compliance-framework/api/internal/tests"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
+	"gorm.io/datatypes"
 )
 
 // SSPScopeApiIntegrationSuite exercises the scope routes through the embedded Cedar PDP.
@@ -155,4 +157,16 @@ func (s *SSPScopeApiIntegrationSuite) TestRecordsActor() {
 	s.Require().NoError(s.DB.Where("ssp_id = ?", s.sspID).First(&entry).Error)
 	s.Require().NotNil(entry.CreatedBy)
 	s.Equal(*user.ID, *entry.CreatedBy)
+}
+
+func (s *SSPScopeApiIntegrationSuite) TestExceptionThatWouldEmptyAFollowedScopeIsRefused() {
+	rec := authedRequest(&s.IntegrationTestSuite, s.server, http.MethodPost, s.path("/entries"), s.contributor, labelsBody("repo", "a"))
+	s.Require().Equal(http.StatusCreated, rec.Code, rec.Body.String())
+	scopeBase := datatypes.NewJSONType(labelfilter.Filter{})
+	s.Require().NoError(s.DB.Create(&relational.Filter{Name: "follows", SSPID: &s.sspID, ScopeBase: &scopeBase}).Error)
+
+	rec = authedRequest(&s.IntegrationTestSuite, s.server, http.MethodPost, s.path("/exceptions"), s.contributor, labelsBody("repo", "a"))
+	s.Equal(http.StatusConflict, rec.Code, rec.Body.String())
+	s.Contains(rec.Body.String(), "1 filter(s) follow it")
+	s.Len(s.getScope(s.contributor).Entries, 1)
 }
