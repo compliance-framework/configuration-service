@@ -92,7 +92,7 @@ func (s *DiscoveryIntegrationSuite) TestCreatesSSPWithProfile() {
 	profileID := uuid.New()
 	s.Require().NoError(s.DB.Create(&relational.Profile{UUIDModel: relational.UUIDModel{ID: &profileID}}).Error)
 	templateID := s.template(func(in *ssptemplates.Input) { in.ProfileIDs = []uuid.UUID{profileID} })
-	s.evidence("_app", "payments", "repo", "a")
+	s.evidence("_app", "Payments", "repo", "A")
 
 	s.Equal(ssptemplates.RunResult{Created: 1}, s.run(templateID))
 
@@ -105,20 +105,20 @@ func (s *DiscoveryIntegrationSuite) TestCreatesSSPWithProfile() {
 	s.Require().NoError(s.DB.Preload("Metadata").Preload("SystemCharacteristics").Preload("Profiles").
 		Preload("ControlImplementation.ImplementedRequirements").First(&ssp, "id = ?", instance.SSPID).Error)
 	oscal := ssp.MarshalOscal()
-	s.Equal("SSP for payments", oscal.Metadata.Title)
+	s.Equal("SSP for Payments", oscal.Metadata.Title)
 	s.Equal("1.0", oscal.Metadata.Version)
-	s.Equal("SSP for payments", oscal.SystemCharacteristics.SystemName)
-	s.Equal("Created from _app=payments", oscal.SystemCharacteristics.Description)
+	s.Equal("SSP for Payments", oscal.SystemCharacteristics.SystemName)
+	s.Equal("Created from _app=Payments", oscal.SystemCharacteristics.Description)
 	s.Equal("under-development", oscal.SystemCharacteristics.Status.State)
 	s.Require().NotNil(oscal.Metadata.Props)
 	props := map[string]string{}
 	for _, prop := range *oscal.Metadata.Props {
 		props[prop.Name] = prop.Value
 	}
-	s.Equal(map[string]string{"application": "payments", "ssp-template": templateID.String()}, props)
+	s.Equal(map[string]string{"application": "Payments", "ssp-template": templateID.String()}, props)
 	s.Require().Len(ssp.Profiles, 1)
 	s.Len(ssp.ControlImplementation.ImplementedRequirements, 2)
-	s.Equal([]string{"[{_app payments}]", "[{repo a}]"}, s.entries(*instance.SSPID))
+	s.Equal([]string{"[{_app Payments}]", "[{repo A}]"}, s.entries(*instance.SSPID))
 
 	var tmpl relational.SSPTemplate
 	s.Require().NoError(s.DB.First(&tmpl, "id = ?", templateID).Error)
@@ -144,10 +144,12 @@ func (s *DiscoveryIntegrationSuite) TestIdempotentAndLearnsLater() {
 		SSPID: sspID, Labels: []relational.ScopeLabel{{Key: "repo", Value: "x"}},
 		MatchHash: sspscope.MatchHash([]relational.ScopeLabel{{Key: "repo", Value: "x"}}),
 	}).Error)
-	s.evidence("_app", "payments", "repo", "b")
+	s.evidence("_app", "PAYMENTS", "repo", "b")
 	s.evidence("_app", "payments", "repo", "x")
 	s.run(templateID)
 	s.Equal([]string{"[{_app payments}]", "[{repo a}]", "[{repo b}]"}, s.entries(sspID))
+	s.Require().NoError(s.DB.Model(&relational.SystemSecurityPlan{}).Count(&ssps).Error)
+	s.Equal(int64(1), ssps, "PAYMENTS and payments are one group")
 }
 
 func (s *DiscoveryIntegrationSuite) TestNeverRecreatesDeletedSSP() {
