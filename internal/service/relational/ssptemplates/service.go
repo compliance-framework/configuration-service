@@ -136,3 +136,61 @@ func checkProfiles(db *gorm.DB, ids []uuid.UUID) error {
 	}
 	return nil
 }
+
+// Preview plans the template in against the latest evidence, writing nothing. id, when
+// set, names the saved template whose instances say which SSPs already exist.
+func (s *Service) Preview(id *uuid.UUID, in Input) (Plan, error) {
+	tmpl, err := Build(in)
+	if err != nil {
+		return Plan{}, err
+	}
+	var instances []relational.SSPTemplateInstance
+	if id != nil {
+		if _, err := get(s.db, *id); err != nil {
+			return Plan{}, err
+		}
+		if err := s.db.Where("template_id = ?", *id).Find(&instances).Error; err != nil {
+			return Plan{}, err
+		}
+	}
+	streams, err := relational.LoadLatestEvidenceStreams(s.db, nil)
+	if err != nil {
+		return Plan{}, err
+	}
+	entries, exceptions, err := scopeHashes(s.db, instances)
+	if err != nil {
+		return Plan{}, err
+	}
+	return BuildPlan(tmpl, streams, instances, entries, exceptions), nil
+}
+
+// scopeHashes loads the MatchHashes of the scope entries and exceptions of the
+// instances' SSPs.
+func scopeHashes(db *gorm.DB, instances []relational.SSPTemplateInstance) (entries, exceptions HashesBySSP, err error) {
+	sspIDs := make([]uuid.UUID, 0, len(instances))
+	for _, instance := range instances {
+		if instance.SSPID != nil {
+			sspIDs = append(sspIDs, *instance.SSPID)
+		}
+	}
+	entries, exceptions = HashesBySSP{}, HashesBySSP{}
+	if len(sspIDs) == 0 {
+		return entries, exceptions, nil
+	}
+	for model, into := range map[any]HashesBySSP{&relational.SSPScopeEntry{}: entries, &relational.SSPScopeException{}: exceptions} {
+		var rows []struct {
+			SSPID     uuid.UUID
+			MatchHash string
+		}
+		if err := db.Model(model).Select("ssp_id, match_hash").Where("ssp_id IN ?", sspIDs).Scan(&rows).Error; err != nil {
+			return nil, nil, err
+		}
+		for _, row := range rows {
+			if into[row.SSPID] == nil {
+				into[row.SSPID] = map[string]struct{}{}
+			}
+			into[row.SSPID][row.MatchHash] = struct{}{}
+		}
+	}
+	return entries, exceptions, nil
+}

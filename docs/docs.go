@@ -2654,6 +2654,63 @@ const docTemplate = `{
                 ]
             }
         },
+        "/admin/ssp-templates/preview": {
+            "post": {
+                "description": "Show what discovery would do now for a template, saved or not: the SSPs it would create or update, the scope entries it would learn, groups under min-streams, streams lacking a key and groups whose key values cannot be stored. Writes nothing.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSP Templates"
+                ],
+                "summary": "Preview an SSP template",
+                "parameters": [
+                    {
+                        "description": "SSP template, with its id when saved",
+                        "name": "template",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/templates.sspTemplatePreviewRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/templates.sspTemplatePreviewResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ]
+            }
+        },
         "/admin/ssp-templates/{id}": {
             "get": {
                 "produces": [
@@ -53261,6 +53318,129 @@ const docTemplate = `{
                 }
             }
         },
+        "ssptemplates.GroupStreams": {
+            "type": "object",
+            "properties": {
+                "key-values": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "streams": {
+                    "type": "integer"
+                }
+            }
+        },
+        "ssptemplates.InvalidEntry": {
+            "type": "object",
+            "properties": {
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/relational.ScopeLabel"
+                    }
+                },
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "ssptemplates.InvalidGroup": {
+            "type": "object",
+            "properties": {
+                "key-values": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "ssptemplates.Plan": {
+            "type": "object",
+            "properties": {
+                "below-threshold": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ssptemplates.GroupStreams"
+                    }
+                },
+                "invalid": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ssptemplates.InvalidGroup"
+                    }
+                },
+                "missing-keys": {
+                    "description": "streams that matched the filter but lacked a usable key value",
+                    "type": "integer"
+                },
+                "ssps": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ssptemplates.PlannedSSP"
+                    }
+                }
+            }
+        },
+        "ssptemplates.PlannedSSP": {
+            "type": "object",
+            "properties": {
+                "exists": {
+                    "description": "Exists is true when an instance records this group. Its SSPID is nil when the SSP\nwas deleted: discovery then leaves the group alone.",
+                    "type": "boolean"
+                },
+                "invalid-entries": {
+                    "description": "InvalidEntries are learned entries a scope cannot hold (a value over the length\nlimit, say); discovery skips them.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ssptemplates.InvalidEntry"
+                    }
+                },
+                "key-hash": {
+                    "type": "string"
+                },
+                "key-values": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "learn": {
+                    "description": "Learn are the scope entries discovery would add: not in the scope yet and not\nexcepted.",
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/definitions/relational.ScopeLabel"
+                        }
+                    }
+                },
+                "skipped-by-exception": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/definitions/relational.ScopeLabel"
+                        }
+                    }
+                },
+                "ssp-id": {
+                    "type": "string"
+                },
+                "streams": {
+                    "description": "Streams is the number of streams in the group.",
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
         "subjects.IdentityLabel": {
             "type": "object",
             "properties": {
@@ -53927,6 +54107,68 @@ const docTemplate = `{
             "properties": {
                 "data": {
                     "$ref": "#/definitions/templates.sspTemplateResponse"
+                }
+            }
+        },
+        "templates.sspTemplatePreviewRequest": {
+            "type": "object",
+            "properties": {
+                "description-template": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "filter": {
+                    "$ref": "#/definitions/labelfilter.Filter"
+                },
+                "id": {
+                    "description": "ID names the saved template, when there is one, so the preview knows which SSPs\nit already created.",
+                    "type": "string"
+                },
+                "keys": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "min-streams": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "profile-ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "props": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/relational.SSPTemplateProp"
+                    }
+                },
+                "scope-labels": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "title-template": {
+                    "type": "string"
+                }
+            }
+        },
+        "templates.sspTemplatePreviewResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/ssptemplates.Plan"
                 }
             }
         },

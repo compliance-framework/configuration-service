@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/compliance-framework/api/internal/api"
 	handlerpkg "github.com/compliance-framework/api/internal/api/handler"
@@ -16,6 +17,7 @@ import (
 	"github.com/compliance-framework/api/internal/authn"
 	"github.com/compliance-framework/api/internal/authz"
 	"github.com/compliance-framework/api/internal/service/relational"
+	"github.com/compliance-framework/api/internal/service/relational/sspscope"
 	"github.com/compliance-framework/api/internal/tests"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -219,4 +221,76 @@ func (s *SSPTemplateApiIntegrationSuite) TestDeleteKeepsSSPs() {
 	s.Require().NoError(s.DB.Model(&relational.SystemSecurityPlan{}).Where("id = ?", kept).Count(&ssps).Error)
 	s.Zero(instances)
 	s.Equal(int64(1), ssps)
+}
+
+func (s *SSPTemplateApiIntegrationSuite) evidence(pairs ...string) {
+	id, stream := uuid.New(), uuid.New()
+	labels := []relational.Labels{}
+	for i := 0; i+1 < len(pairs); i += 2 {
+		labels = append(labels, relational.Labels{Name: pairs[i], Value: pairs[i+1]})
+	}
+	s.Require().NoError(s.DB.Create(&relational.Evidence{
+		UUIDModel: relational.UUIDModel{ID: &id}, UUID: stream, Title: "e",
+		Start: time.Now().Add(-time.Minute), End: time.Now(), Labels: labels,
+	}).Error)
+}
+
+func (s *SSPTemplateApiIntegrationSuite) TestPreview() {
+	s.evidence("_app", "payments", "repo", "a")
+	s.evidence("_app", "payments", "repo", "b")
+	s.evidence("repo", "c")
+	body := templateBody("Applications", "_app")
+	body["scope-labels"] = [][]string{{"repo"}}
+	saved := s.create(body)
+
+	// A saved template's instance marks its group as existing.
+	sspID := uuid.New()
+	s.Require().NoError(s.DB.Create(&relational.SystemSecurityPlan{UUIDModel: relational.UUIDModel{ID: &sspID}}).Error)
+	_, keyHash, err := sspscope.Normalize([]relational.ScopeLabel{{Key: "_app", Value: "payments"}})
+	s.Require().NoError(err)
+	s.Require().NoError(s.DB.Create(&relational.SSPTemplateInstance{
+		TemplateID: uuid.MustParse(saved["id"].(string)), KeyHash: keyHash,
+		KeyValues: datatypes.JSONMap{"_app": "payments"}, SSPID: &sspID,
+	}).Error)
+	s.Require().NoError(s.DB.Create(&relational.SSPScopeException{
+		SSPID: sspID, Labels: []relational.ScopeLabel{{Key: "repo", Value: "b"}}, MatchHash: sspscope.MatchHash([]relational.ScopeLabel{{Key: "repo", Value: "b"}}),
+	}).Error)
+
+	for _, tc := range []struct {
+		name   string
+		id     any
+		exists bool
+		learn  []any
+	}{
+		{"unsaved", nil, false, []any{
+			[]any{map[string]any{"key": "_app", "value": "payments"}},
+			[]any{map[string]any{"key": "repo", "value": "a"}},
+			[]any{map[string]any{"key": "repo", "value": "b"}},
+		}},
+		{"saved", saved["id"], true, []any{
+			[]any{map[string]any{"key": "_app", "value": "payments"}},
+			[]any{map[string]any{"key": "repo", "value": "a"}},
+		}},
+	} {
+		body["id"] = tc.id
+		plan := s.decode(s.do(s.admin, http.MethodPost, "/preview", body), http.StatusOK)["data"].(map[string]any)
+		s.Equal(float64(1), plan["missing-keys"], tc.name)
+		ssps := plan["ssps"].([]any)
+		s.Require().Len(ssps, 1, tc.name)
+		ssp := ssps[0].(map[string]any)
+		s.Equal(map[string]any{"_app": "payments"}, ssp["key-values"], tc.name)
+		s.Equal("SSP for payments", ssp["title"], tc.name)
+		s.Equal(float64(2), ssp["streams"], tc.name)
+		s.Equal(tc.exists, ssp["exists"], tc.name)
+		s.Equal(tc.learn, ssp["learn"], tc.name)
+	}
+
+	var entries int64
+	s.Require().NoError(s.DB.Model(&relational.SSPScopeEntry{}).Count(&entries).Error)
+	s.Zero(entries, "preview writes nothing")
+
+	body["id"] = uuid.NewString()
+	s.Equal(http.StatusNotFound, s.do(s.admin, http.MethodPost, "/preview", body).Code)
+	s.Equal(http.StatusBadRequest, s.do(s.admin, http.MethodPost, "/preview", templateBody("No keys")).Code)
+	s.Equal(http.StatusForbidden, s.do(s.contributor, http.MethodPost, "/preview", templateBody("Apps", "_app")).Code)
 }
