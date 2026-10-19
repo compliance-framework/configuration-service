@@ -205,6 +205,7 @@ func (t *TestMigrator) Up() error {
 		&relational.SSPScopeSettings{},
 		&relational.SSPScopeEntry{},
 		&relational.SSPScopeException{},
+		&relational.SSPScopePolicyFilter{},
 		&suggestionrel.DashboardSuggestionRun{},
 		&suggestionrel.DashboardSuggestionRunCell{},
 		&suggestionrel.DashboardSuggestion{},
@@ -597,6 +598,7 @@ func (t *TestMigrator) Down() error {
 		&relational.SSPScopeSettings{},
 		&relational.SSPScopeEntry{},
 		&relational.SSPScopeException{},
+		&relational.SSPScopePolicyFilter{},
 		&relational.Filter{},
 	)
 }

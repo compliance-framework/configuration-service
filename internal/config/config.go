@@ -52,6 +52,7 @@ type Config struct {
 	EvidenceSubjects                  *EvidenceSubjectConfig
 	EvidenceBatch                     *EvidenceBatchConfig
 	Lineage                           *LineageConfig
+	SSPScope                          *SSPScopeConfig
 }
 
 func NewConfig(logger *zap.SugaredLogger) *Config {
@@ -287,6 +288,7 @@ func NewConfig(logger *zap.SugaredLogger) *Config {
 		EvidenceDefaultExpiryMonths:       evidenceDefaultExpiryMonths,
 		EvidenceSubjects:                  evidenceSubjectConfig,
 		EvidenceBatch:                     evidenceBatchConfig,
+		SSPScope:                          LoadSSPScopeConfig(),
 		Lineage:                           lineageConfig,
 		DigestEnabled:                     digestEnabled,
 		DigestSchedule:                    digestSchedule,

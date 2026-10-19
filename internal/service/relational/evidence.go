@@ -186,6 +186,10 @@ type LatestEvidenceOptions struct {
 	StreamUUID *uuid.UUID
 }
 
+// EvidencePolicyLabel is the evidence label naming the policy that produced the evidence.
+// The agent writes it.
+const EvidencePolicyLabel = "_policy"
+
 // LatestEvidenceQuery is a subquery of the latest evidence (every evidences column) of
 // each stream, for use as `(?) as l`. It replaces GetLatestEvidenceStreamsQuery on hot
 // paths: the streams come from a skip scan and each stream's latest row from a
