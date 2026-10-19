@@ -3,6 +3,7 @@
 package sspscope_test
 
 import (
+	"strings"
 	"sync"
 	"testing"
 
@@ -160,19 +161,25 @@ func (s *ScopeServiceIntegrationSuite) TestLearnSkipsDuplicatesAndExceptions() {
 	_, err = s.svc.AddException(s.sspID, labels("repo", "excluded"), nil)
 	s.Require().NoError(err)
 
-	var added []relational.SSPScopeEntry
+	tooLong := labels("image", strings.Repeat("x", sspscope.MaxLabelPartLength+1))
+	var result sspscope.LearnResult
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
 		var err error
-		added, err = s.svc.Learn(tx, s.sspID, templateID, [][]relational.ScopeLabel{
+		result, err = s.svc.Learn(tx, s.sspID, templateID, [][]relational.ScopeLabel{
 			labels("repo", "MANUAL"),
 			labels("repo", "excluded"),
+			tooLong,
 			labels("repo", "new"),
 			labels("Repo", "new"),
 			labels("aws_account", "111", "region", "eu-west-1"),
 		})
 		return err
 	})
-	s.Require().NoError(err)
+	s.Require().NoError(err, "an invalid entry does not fail the others")
+	s.Require().Len(result.Skipped, 1)
+	s.Equal(tooLong, result.Skipped[0].Labels)
+	s.Contains(result.Skipped[0].Reason, "at most")
+	added := result.Added
 	s.Require().Len(added, 2)
 	for _, entry := range added {
 		s.Equal(relational.ScopeEntryOriginTemplate, entry.Origin)
@@ -187,11 +194,11 @@ func (s *ScopeServiceIntegrationSuite) TestLearnSkipsDuplicatesAndExceptions() {
 	// Learning again adds nothing and never removes entries.
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
 		var err error
-		added, err = s.svc.Learn(tx, s.sspID, templateID, [][]relational.ScopeLabel{labels("repo", "new")})
+		result, err = s.svc.Learn(tx, s.sspID, templateID, [][]relational.ScopeLabel{labels("repo", "new")})
 		return err
 	})
 	s.Require().NoError(err)
-	s.Empty(added)
+	s.Empty(result.Added)
 	scope, err = s.svc.Get(s.sspID)
 	s.Require().NoError(err)
 	s.Len(scope.Entries, 3)

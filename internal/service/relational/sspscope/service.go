@@ -167,22 +167,37 @@ func (s *Service) SetAutoFilters(sspID uuid.UUID, enabled bool) error {
 	})
 }
 
+// SkippedEntry is a learned entry that Learn could not store, with the reason.
+type SkippedEntry struct {
+	Labels []relational.ScopeLabel
+	Reason string
+}
+
+// LearnResult is what Learn added and what it skipped as invalid.
+type LearnResult struct {
+	Added   []relational.SSPScopeEntry
+	Skipped []SkippedEntry
+}
+
 // Learn adds template-origin entries inside the caller's transaction, skipping entries
-// that already exist, entries with an exception and repeats within entries. It never
-// removes entries. It returns the entries it added. tx must be an open transaction: the
-// SSP's scope lock is transaction-scoped, so outside one it is released immediately.
-func (s *Service) Learn(tx *gorm.DB, sspID, templateID uuid.UUID, entries [][]relational.ScopeLabel) ([]relational.SSPScopeEntry, error) {
+// that already exist, entries with an exception and repeats within entries. Entries that
+// fail Normalize (an evidence value over the length limit, say) are skipped and reported
+// in Skipped rather than failing the call. It never removes entries. tx must be an open
+// transaction: the SSP's scope lock is transaction-scoped, so outside one it is released
+// immediately.
+func (s *Service) Learn(tx *gorm.DB, sspID, templateID uuid.UUID, entries [][]relational.ScopeLabel) (LearnResult, error) {
+	result := LearnResult{Added: []relational.SSPScopeEntry{}, Skipped: []SkippedEntry{}}
 	if err := lockSSP(tx, sspID); err != nil {
-		return nil, err
+		return LearnResult{}, err
 	}
 	if err := ensureSSP(tx, sspID); err != nil {
-		return nil, err
+		return LearnResult{}, err
 	}
 	skip := map[string]struct{}{}
 	for _, model := range []any{&relational.SSPScopeEntry{}, &relational.SSPScopeException{}} {
 		var hashes []string
 		if err := tx.Model(model).Where("ssp_id = ?", sspID).Pluck("match_hash", &hashes).Error; err != nil {
-			return nil, err
+			return LearnResult{}, err
 		}
 		for _, hash := range hashes {
 			skip[hash] = struct{}{}
@@ -190,20 +205,20 @@ func (s *Service) Learn(tx *gorm.DB, sspID, templateID uuid.UUID, entries [][]re
 	}
 	var count int64
 	if err := tx.Model(&relational.SSPScopeEntry{}).Where("ssp_id = ?", sspID).Count(&count).Error; err != nil {
-		return nil, err
+		return LearnResult{}, err
 	}
 
-	added := []relational.SSPScopeEntry{}
 	for _, labels := range entries {
 		normalized, hash, err := Normalize(labels)
 		if err != nil {
-			return nil, err
+			result.Skipped = append(result.Skipped, SkippedEntry{Labels: labels, Reason: err.Error()})
+			continue
 		}
 		if _, ok := skip[hash]; ok {
 			continue
 		}
 		skip[hash] = struct{}{}
-		added = append(added, relational.SSPScopeEntry{
+		result.Added = append(result.Added, relational.SSPScopeEntry{
 			SSPID:      sspID,
 			Labels:     normalized,
 			MatchHash:  hash,
@@ -211,19 +226,19 @@ func (s *Service) Learn(tx *gorm.DB, sspID, templateID uuid.UUID, entries [][]re
 			TemplateID: &templateID,
 		})
 	}
-	if len(added) == 0 {
-		return added, nil
+	if len(result.Added) == 0 {
+		return result, nil
 	}
-	if count+int64(len(added)) > MaxEntries {
-		return nil, fmt.Errorf("%w: at most %d entries per SSP", ErrLimitExceeded, MaxEntries)
+	if count+int64(len(result.Added)) > MaxEntries {
+		return LearnResult{}, fmt.Errorf("%w: at most %d entries per SSP", ErrLimitExceeded, MaxEntries)
 	}
-	if err := tx.Create(&added).Error; err != nil {
-		return nil, err
+	if err := tx.Create(&result.Added).Error; err != nil {
+		return LearnResult{}, err
 	}
 	if err := s.afterChange(tx, sspID); err != nil {
-		return nil, err
+		return LearnResult{}, err
 	}
-	return added, nil
+	return result, nil
 }
 
 // Filter returns the SSP's scope as a label filter. ok is false when the scope has no
