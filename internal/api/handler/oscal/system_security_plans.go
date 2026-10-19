@@ -23,13 +23,13 @@ import (
 	"github.com/compliance-framework/api/internal/service/relational"
 	evidencesvc "github.com/compliance-framework/api/internal/service/relational/evidence"
 	riskrel "github.com/compliance-framework/api/internal/service/relational/risks"
+	"github.com/compliance-framework/api/internal/service/relational/sspservice"
 	oscalTypes_1_1_3 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 // SSPJobEnqueuer is a minimal interface for enqueueing SSP-related background jobs.
@@ -118,6 +118,7 @@ type SystemSecurityPlanHandler struct {
 	db                *gorm.DB
 	suggestionService *relational.SystemComponentSuggestionService
 	jobEnqueuer       SSPJobEnqueuer
+	sspService        *sspservice.Service
 }
 
 // profileControlCache memoizes the set of resolved control IDs for a profile.
@@ -190,12 +191,14 @@ func (r *ApplySuggestionRequest) Validate() error {
 }
 
 func NewSystemSecurityPlanHandler(sugar *zap.SugaredLogger, db *gorm.DB, evidenceSvc *evidencesvc.EvidenceService, jobEnqueuer SSPJobEnqueuer) *SystemSecurityPlanHandler {
-	return &SystemSecurityPlanHandler{
+	h := &SystemSecurityPlanHandler{
 		sugar:             sugar,
 		db:                db,
 		suggestionService: relational.NewSystemComponentSuggestionService(db, evidenceSvc),
 		jobEnqueuer:       jobEnqueuer,
 	}
+	h.sspService = sspservice.NewService(h.getControlIDsForProfile)
+	return h
 }
 
 // getControlIDsForProfile returns all control IDs for a given profile, using an optimized multi-step resolution path:
@@ -632,13 +635,8 @@ func (h *SystemSecurityPlanHandler) Create(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	now := time.Now()
-	relSSP := &relational.SystemSecurityPlan{}
-	relSSP.UnmarshalOscal(oscalSSP)
-	relSSP.Metadata.LastModified = &now
-	relSSP.Metadata.OscalVersion = versioning.GetLatestSupportedVersion()
-
-	if err := h.db.Create(relSSP).Error; err != nil {
+	relSSP, err := h.sspService.Create(h.db, oscalSSP)
+	if err != nil {
 		h.sugar.Errorf("Failed to create SSP: %v", err)
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
@@ -2372,105 +2370,18 @@ func (h *SystemSecurityPlanHandler) AddProfile(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
 	}
 
-	var ssp relational.SystemSecurityPlan
-	if err := h.db.Preload("ControlImplementation").First(&ssp, "id = ?", sspID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(fmt.Errorf("SSP not found")))
+	if err := h.sspService.AttachProfile(h.db, sspID, profileID); err != nil {
+		switch {
+		case errors.Is(err, sspservice.ErrSSPNotFound), errors.Is(err, sspservice.ErrProfileNotFound):
+			return ctx.JSON(http.StatusNotFound, api.NewError(err))
+		case errors.Is(err, sspservice.ErrNoResolvedControls):
+			return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+		case errors.Is(err, sspservice.ErrProfileAlreadyBound):
+			return ctx.JSON(http.StatusConflict, api.NewError(fmt.Errorf("profile %s is already bound to this SSP", profileID)))
+		default:
+			h.sugar.Errorw("Failed to add profile to SSP", "sspId", sspID, "profileId", profileID, "error", err)
+			return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 		}
-		h.sugar.Errorw("Failed to load SSP", "sspID", sspID, "error", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-	}
-
-	// Check profile exists
-	var profile relational.Profile
-	if err := h.db.First(&profile, "id = ?", profileID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ctx.JSON(http.StatusNotFound, api.NewError(errors.New("profile not found")))
-		}
-		h.sugar.Errorw("Failed to load profile", "profileId", profileID, "error", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-	}
-
-	var duplicateBinding bool
-	errNoResolvedControls := errors.New("no controls were resolved from the selected profile")
-	err = h.db.Transaction(func(tx *gorm.DB) error {
-		// Insert join-table row idempotently; ON CONFLICT DO NOTHING avoids a TOCTOU race.
-		result := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&relational.SSPProfile{
-			SystemSecurityPlanID: sspID,
-			ProfileID:            profileID,
-		})
-		if result.Error != nil {
-			return fmt.Errorf("failed to insert ssp_profiles row: %w", result.Error)
-		}
-		if result.RowsAffected == 0 {
-			duplicateBinding = true
-			return nil
-		}
-
-		controlIDs, err := h.getControlIDsForProfile(profileID)
-		if err != nil {
-			return fmt.Errorf("failed to resolve control IDs for profile: %w", err)
-		}
-		if len(controlIDs) == 0 {
-			return errNoResolvedControls
-		}
-
-		// Ensure ControlImplementation exists
-		if ssp.ControlImplementation.ID == nil {
-			newID := uuid.New()
-			ssp.ControlImplementation = relational.ControlImplementation{
-				UUIDModel:            relational.UUIDModel{ID: &newID},
-				Description:          "Control implementation",
-				SystemSecurityPlanId: *ssp.ID,
-			}
-			if err := tx.Create(&ssp.ControlImplementation).Error; err != nil {
-				return err
-			}
-		}
-
-		// Add any new ImplementedRequirements for the profile's controls
-		var existingControlIDs []string
-		if err := tx.Model(&relational.ImplementedRequirement{}).
-			Where("control_implementation_id = ?", ssp.ControlImplementation.ID).
-			Pluck("control_id", &existingControlIDs).Error; err != nil {
-			return err
-		}
-
-		existingMap := make(map[string]bool, len(existingControlIDs))
-		for _, id := range existingControlIDs {
-			existingMap[normalizeControlID(id)] = true
-		}
-
-		var newReqs []relational.ImplementedRequirement
-		for _, controlID := range controlIDs {
-			// Dedupe case-insensitively, but persist the canonical casing.
-			if !existingMap[normalizeControlID(controlID)] {
-				newUUID := uuid.New()
-				newReqs = append(newReqs, relational.ImplementedRequirement{
-					UUIDModel:               relational.UUIDModel{ID: &newUUID},
-					ControlImplementationId: *ssp.ControlImplementation.ID,
-					ControlId:               controlID,
-				})
-			}
-		}
-
-		if len(newReqs) > 0 {
-			if err := tx.Create(&newReqs).Error; err != nil {
-				return err
-			}
-		}
-
-		return nil
-	})
-	if err != nil {
-		if errors.Is(err, errNoResolvedControls) {
-			return ctx.JSON(http.StatusBadRequest, api.NewError(errNoResolvedControls))
-		}
-		h.sugar.Errorf("Failed to add profile to SSP: %v", err)
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
-	}
-	if duplicateBinding {
-		return ctx.JSON(http.StatusConflict, api.NewError(fmt.Errorf("profile %s is already bound to this SSP", profileID)))
 	}
 
 	// Enqueue orphaned risk cleanup
