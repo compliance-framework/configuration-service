@@ -7,6 +7,7 @@ import (
 	"github.com/compliance-framework/api/internal/service/relational"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // ErrNotFound is returned when the template does not exist.
@@ -35,7 +36,7 @@ func (s *Service) List(limit, offset int) ([]relational.SSPTemplate, int64, erro
 	return rows, total, nil
 }
 
-// Get returns the template, or ErrNotFound.
+// Get returns the template or ErrNotFound.
 func (s *Service) Get(id uuid.UUID) (relational.SSPTemplate, error) {
 	return get(s.db, id)
 }
@@ -64,7 +65,7 @@ func (s *Service) Update(id uuid.UUID, in Input) (relational.SSPTemplate, error)
 		return relational.SSPTemplate{}, err
 	}
 	err = s.db.Transaction(func(tx *gorm.DB) error {
-		existing, err := get(tx, id)
+		existing, err := get(tx.Clauses(clause.Locking{Strength: "UPDATE"}), id)
 		if err != nil {
 			return err
 		}

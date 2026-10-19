@@ -87,8 +87,8 @@ func templateBody(name string, keys ...string) map[string]any {
 	}
 }
 
-// data decodes the response's data after checking its status.
-func (s *SSPTemplateApiIntegrationSuite) data(rec *httptest.ResponseRecorder, status int) map[string]any {
+// decode checks the status and decodes the JSON body.
+func (s *SSPTemplateApiIntegrationSuite) decode(rec *httptest.ResponseRecorder, status int) map[string]any {
 	s.Require().Equal(status, rec.Code, rec.Body.String())
 	var out map[string]any
 	s.Require().NoError(json.Unmarshal(rec.Body.Bytes(), &out))
@@ -96,7 +96,7 @@ func (s *SSPTemplateApiIntegrationSuite) data(rec *httptest.ResponseRecorder, st
 }
 
 func (s *SSPTemplateApiIntegrationSuite) create(body map[string]any) map[string]any {
-	return s.data(s.do(s.admin, http.MethodPost, "", body), http.StatusCreated)["data"].(map[string]any)
+	return s.decode(s.do(s.admin, http.MethodPost, "", body), http.StatusCreated)["data"].(map[string]any)
 }
 
 func (s *SSPTemplateApiIntegrationSuite) TestAdminManagesTemplates() {
@@ -118,15 +118,15 @@ func (s *SSPTemplateApiIntegrationSuite) TestAdminManagesTemplates() {
 	s.NotNil(created["filter"])
 	id := created["id"].(string)
 
-	list := s.data(s.do(s.admin, http.MethodGet, "", nil), http.StatusOK)
+	list := s.decode(s.do(s.admin, http.MethodGet, "", nil), http.StatusOK)
 	s.Equal(float64(1), list["total"])
 	s.Equal(id, list["data"].([]any)[0].(map[string]any)["id"])
 
 	update := templateBody("Renamed", "_app")
 	update["enabled"] = false
 	update["min-streams"] = 3
-	s.data(s.do(s.admin, http.MethodPut, "/"+id, update), http.StatusOK)
-	got := s.data(s.do(s.admin, http.MethodGet, "/"+id, nil), http.StatusOK)["data"].(map[string]any)
+	s.decode(s.do(s.admin, http.MethodPut, "/"+id, update), http.StatusOK)
+	got := s.decode(s.do(s.admin, http.MethodGet, "/"+id, nil), http.StatusOK)["data"].(map[string]any)
 	s.Equal("Renamed", got["name"])
 	s.Equal(false, got["enabled"])
 	s.Equal(float64(3), got["min-streams"])

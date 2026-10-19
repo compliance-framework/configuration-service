@@ -102,7 +102,6 @@ func EnsureSSPScopeConstraints(db *gorm.DB) error {
 	return ensureForeignKeys(db, keys)
 }
 
-// foreignKey is a foreign key constraint added by ensureForeignKeys.
 type foreignKey struct{ table, name, column, references, onDelete string }
 
 // ensureForeignKeys adds each constraint that does not exist yet. Idempotent; postgres
