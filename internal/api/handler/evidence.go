@@ -20,6 +20,7 @@ import (
 	artifactsvc "github.com/compliance-framework/api/internal/service/relational/artifacts"
 	evidencesvc "github.com/compliance-framework/api/internal/service/relational/evidence"
 	riskrel "github.com/compliance-framework/api/internal/service/relational/risks"
+	"github.com/compliance-framework/api/internal/service/relational/sspscope"
 	oscalTypes_1_1_3 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -37,6 +38,7 @@ type EvidenceHandler struct {
 	batchService    *evidencesvc.BatchService
 	batchMaxItems   int
 	batchPDP        authz.PDP
+	sspScope        *sspscope.Service
 }
 
 // WithArtifactService lets evidence refer to stored policy artifacts. Without it, evidence
@@ -549,6 +551,14 @@ func (h *EvidenceHandler) Config(ctx echo.Context) error {
 //	@Failure		500				{object}	api.Error
 //	@Router			/evidence/search [post]
 func (h *EvidenceHandler) Search(ctx echo.Context) error {
+	return h.search(ctx, nil)
+}
+
+// scopeRestriction narrows a request's label filter. ok=false means nothing can match.
+type scopeRestriction func(labelfilter.Filter) (filter labelfilter.Filter, ok bool)
+
+// search serves an evidence search, narrowed by restrict when it is not nil.
+func (h *EvidenceHandler) search(ctx echo.Context, restrict scopeRestriction) error {
 	filter := &labelfilter.Filter{}
 	req := filteredSearchRequest{}
 
@@ -564,6 +574,14 @@ func (h *EvidenceHandler) Search(ctx echo.Context) error {
 	searchOptions, err := parseEvidenceSearchOptions(ctx, pagination)
 	if err != nil {
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+
+	if restrict != nil {
+		narrowed, ok := restrict(*filter)
+		if !ok {
+			return ctx.JSON(http.StatusOK, svc.NewListResponse([]*PublicEvidenceResponse{}, 0, pagination.Page, pagination.Limit))
+		}
+		*filter = narrowed
 	}
 
 	results, total, err := h.evidenceService.SearchPaginated(*filter, searchOptions)
@@ -1136,6 +1154,12 @@ type StatusInterval struct {
 //	@Failure		500			{object}	api.Error
 //	@Router			/evidence/status-over-time [post]
 func (h *EvidenceHandler) StatusOverTime(ctx echo.Context) error {
+	return h.statusOverTime(ctx, nil)
+}
+
+// statusOverTime serves status counts over intervals, narrowed by restrict when it is
+// not nil.
+func (h *EvidenceHandler) statusOverTime(ctx echo.Context, restrict scopeRestriction) error {
 	filter := &labelfilter.Filter{}
 	req := filteredSearchRequest{}
 
@@ -1161,6 +1185,17 @@ func (h *EvidenceHandler) StatusOverTime(ctx echo.Context) error {
 
 	ch := make(chan result, len(intervals))
 	now := time.Now()
+	if restrict != nil {
+		narrowed, ok := restrict(*filter)
+		if !ok {
+			results := make([]StatusInterval, len(intervals))
+			for i, d := range intervals {
+				results[i] = StatusInterval{Interval: now.Add(-d), Statuses: []evidencesvc.StatusCount{}}
+			}
+			return ctx.JSON(http.StatusOK, GenericDataListResponse[StatusInterval]{Data: results})
+		}
+		*filter = narrowed
+	}
 	for i, d := range intervals {
 		go func(i int, d time.Duration) {
 			var endBefore *time.Time
@@ -1187,6 +1222,63 @@ func (h *EvidenceHandler) StatusOverTime(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusOK, GenericDataListResponse[StatusInterval]{Data: results})
+}
+
+// SSPScopedSearch godoc
+//
+//	@Summary		Search an SSP's in-scope evidence
+//	@Description	Same as POST /evidence/search, restricted to the SSP's scope: the request filter AND the scope. An SSP with an empty scope returns an empty page.
+//	@Tags			System Security Plans
+//	@Accept			json
+//	@Produce		json
+//	@Param			id				path		string					true	"SSP ID"
+//	@Param			request			body		filteredSearchRequest	true	"Evidence search request"
+//	@Param			page			query		int						false	"Page number"
+//	@Param			limit			query		int						false	"Page size"
+//	@Param			sortBy			query		string					false	"Sort field: lastSeenAt, name, status"
+//	@Param			sortDirection	query		string					false	"Sort direction: asc, desc"
+//	@Param			name			query		string					false	"Case-insensitive evidence name search"
+//	@Param			subjectUuid		query		string					false	"Only evidence with this subject"
+//	@Success		200				{object}	svc.ListResponse[PublicEvidenceResponse]
+//	@Failure		400				{object}	api.Error
+//	@Failure		401				{object}	api.Error
+//	@Failure		404				{object}	api.Error
+//	@Failure		422				{object}	api.Error
+//	@Failure		500				{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/system-security-plans/{id}/evidence/search [post]
+func (h *EvidenceHandler) SSPScopedSearch(ctx echo.Context) error {
+	restrict, ok := h.sspScopeRestriction(ctx)
+	if !ok {
+		return nil
+	}
+	return h.search(ctx, restrict)
+}
+
+// SSPScopedStatusOverTime godoc
+//
+//	@Summary		Status over time of an SSP's in-scope evidence
+//	@Description	Same as POST /evidence/status-over-time, restricted to the SSP's scope. An SSP with an empty scope returns intervals without statuses.
+//	@Tags			System Security Plans
+//	@Accept			json
+//	@Produce		json
+//	@Param			id			path		string					true	"SSP ID"
+//	@Param			request		body		filteredSearchRequest	true	"Label filter"
+//	@Param			intervals	query		string					false	"Comma-separated list of duration intervals (e.g., '10m,1h,24h')"
+//	@Success		200			{object}	handler.GenericDataListResponse[StatusInterval]
+//	@Failure		400			{object}	api.Error
+//	@Failure		401			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		422			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/oscal/system-security-plans/{id}/evidence/status-over-time [post]
+func (h *EvidenceHandler) SSPScopedStatusOverTime(ctx echo.Context) error {
+	restrict, ok := h.sspScopeRestriction(ctx)
+	if !ok {
+		return nil
+	}
+	return h.statusOverTime(ctx, restrict)
 }
 
 // StatusOverTimeByUUID godoc

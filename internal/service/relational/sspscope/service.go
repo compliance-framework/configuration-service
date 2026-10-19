@@ -243,7 +243,11 @@ func (s *Service) Learn(tx *gorm.DB, sspID, templateID uuid.UUID, entries [][]re
 
 // Filter returns the SSP's scope as a label filter. ok is false when the scope has no
 // entries: an empty scope means the SSP has not declared its evidence, not "everything".
+// It returns ErrSSPNotFound when the SSP does not exist.
 func (s *Service) Filter(sspID uuid.UUID) (labelfilter.Filter, bool, error) {
+	if err := ensureSSP(s.db, sspID); err != nil {
+		return labelfilter.Filter{}, false, err
+	}
 	return scopeFilter(s.db, sspID)
 }
 
@@ -281,6 +285,21 @@ func ToFilter(entries []relational.SSPScopeEntry) (labelfilter.Filter, bool) {
 	}
 	scope := collapse("OR", scopes)
 	return labelfilter.Filter{Scope: &scope}, true
+}
+
+// And returns base AND scope. A base without a scope matches everything, so the result
+// is scope alone.
+func And(base, scope labelfilter.Filter) labelfilter.Filter {
+	if base.Scope == nil {
+		return scope
+	}
+	if scope.Scope == nil {
+		return base
+	}
+	return labelfilter.Filter{Scope: &labelfilter.Scope{Query: &labelfilter.Query{
+		Operator: "AND",
+		Scopes:   []labelfilter.Scope{*base.Scope, *scope.Scope},
+	}}}
 }
 
 func collapse(operator string, scopes []labelfilter.Scope) labelfilter.Scope {

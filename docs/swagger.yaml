@@ -1951,6 +1951,27 @@ definitions:
         - $ref: '#/definitions/oscal.generalizeDashboardSuggestionsResponse'
         description: Wrapped response data
     type: object
+  handler.GenericDataResponse-oscal_sspScopeEntryResponse:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/oscal.sspScopeEntryResponse'
+        description: Wrapped response data
+    type: object
+  handler.GenericDataResponse-oscal_sspScopeExceptionResponse:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/oscal.sspScopeExceptionResponse'
+        description: Wrapped response data
+    type: object
+  handler.GenericDataResponse-oscal_sspScopeResponse:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/oscal.sspScopeResponse'
+        description: Wrapped response data
+    type: object
   handler.GenericDataResponse-oscalTypes_1_1_3_Activity:
     properties:
       data:
@@ -5624,6 +5645,61 @@ definitions:
         type: string
       value:
         type: string
+    type: object
+  oscal.sspScopeEntryResponse:
+    properties:
+      created-at:
+        type: string
+      id:
+        type: string
+      labels:
+        items:
+          $ref: '#/definitions/relational.ScopeLabel'
+        type: array
+      origin:
+        type: string
+      template-id:
+        type: string
+    type: object
+  oscal.sspScopeExceptionResponse:
+    properties:
+      created-at:
+        type: string
+      id:
+        type: string
+      labels:
+        items:
+          $ref: '#/definitions/relational.ScopeLabel'
+        type: array
+    type: object
+  oscal.sspScopeLabelsRequest:
+    properties:
+      labels:
+        items:
+          $ref: '#/definitions/relational.ScopeLabel'
+        type: array
+    required:
+    - labels
+    type: object
+  oscal.sspScopeResponse:
+    properties:
+      auto-filters:
+        type: boolean
+      entries:
+        items:
+          $ref: '#/definitions/oscal.sspScopeEntryResponse'
+        type: array
+      exceptions:
+        items:
+          $ref: '#/definitions/oscal.sspScopeExceptionResponse'
+        type: array
+    type: object
+  oscal.sspScopeUpdateRequest:
+    properties:
+      auto-filters:
+        type: boolean
+    required:
+    - auto-filters
     type: object
   oscal.subscribeItemRequest:
     properties:
@@ -10560,6 +10636,13 @@ definitions:
         items:
           $ref: '#/definitions/relational.ResponsibleRole'
         type: array
+    type: object
+  relational.ScopeLabel:
+    properties:
+      key:
+        type: string
+      value:
+        type: string
     type: object
   relational.SelectControlById:
     properties:
@@ -28342,6 +28425,135 @@ paths:
       summary: Reject dashboard suggestions
       tags:
       - Dashboard Suggestions
+  /oscal/system-security-plans/{id}/evidence/search:
+    post:
+      consumes:
+      - application/json
+      description: 'Same as POST /evidence/search, restricted to the SSP''s scope:
+        the request filter AND the scope. An SSP with an empty scope returns an empty
+        page.'
+      parameters:
+      - description: SSP ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Evidence search request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.filteredSearchRequest'
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: 'Sort field: lastSeenAt, name, status'
+        in: query
+        name: sortBy
+        type: string
+      - description: 'Sort direction: asc, desc'
+        in: query
+        name: sortDirection
+        type: string
+      - description: Case-insensitive evidence name search
+        in: query
+        name: name
+        type: string
+      - description: Only evidence with this subject
+        in: query
+        name: subjectUuid
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/service.ListResponse-handler_PublicEvidenceResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Search an SSP's in-scope evidence
+      tags:
+      - System Security Plans
+  /oscal/system-security-plans/{id}/evidence/status-over-time:
+    post:
+      consumes:
+      - application/json
+      description: Same as POST /evidence/status-over-time, restricted to the SSP's
+        scope. An SSP with an empty scope returns intervals without statuses.
+      parameters:
+      - description: SSP ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Label filter
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.filteredSearchRequest'
+      - description: Comma-separated list of duration intervals (e.g., '10m,1h,24h')
+        in: query
+        name: intervals
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataListResponse-handler_StatusInterval'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Status over time of an SSP's in-scope evidence
+      tags:
+      - System Security Plans
   /oscal/system-security-plans/{id}/export-offerings:
     get:
       description: Retrieves every export offering curated for a given system security
@@ -29298,6 +29510,228 @@ paths:
       summary: List a downstream SSP's filter↔responsibility attachments
       tags:
       - SSP Export Offerings
+  /oscal/system-security-plans/{id}/scope:
+    get:
+      description: Returns the scope entries (evidence matching any entry is in scope),
+        the exceptions and the automatic-filter setting of a System Security Plan.
+      parameters:
+      - description: SSP ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscal_sspScopeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Get an SSP's scope
+      tags:
+      - System Security Plans
+    put:
+      consumes:
+      - application/json
+      description: Turns automatic per-policy filters on or off for the System Security
+        Plan.
+      parameters:
+      - description: SSP ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Scope settings
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/oscal.sspScopeUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscal_sspScopeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Update an SSP's scope settings
+      tags:
+      - System Security Plans
+  /oscal/system-security-plans/{id}/scope/entries:
+    post:
+      consumes:
+      - application/json
+      description: 'Adds an entry to the SSP''s scope: evidence carrying all of its
+        labels is in scope. Removes an exception with the same labels.'
+      parameters:
+      - description: SSP ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Entry labels
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/oscal.sspScopeLabelsRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscal_sspScopeEntryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Add an SSP scope entry
+      tags:
+      - System Security Plans
+  /oscal/system-security-plans/{id}/scope/exceptions:
+    post:
+      consumes:
+      - application/json
+      description: Removes the entry with the same labels from the SSP's scope, and
+        stops SSP templates from learning it again.
+      parameters:
+      - description: SSP ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Exception labels
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/oscal.sspScopeLabelsRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.GenericDataResponse-oscal_sspScopeExceptionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Add an SSP scope exception
+      tags:
+      - System Security Plans
+  /oscal/system-security-plans/{id}/scope/exceptions/{exceptionId}:
+    delete:
+      description: 'Deletes only the exception: the entry does not come back. A template
+        run re-learns it if evidence still shows it, or the user adds it again.'
+      parameters:
+      - description: SSP ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Exception ID
+        in: path
+        name: exceptionId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Delete an SSP scope exception
+      tags:
+      - System Security Plans
   /oscal/system-security-plans/{id}/shared-responsibility:
     get:
       description: |-
