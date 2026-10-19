@@ -145,6 +145,32 @@ func (s *SSPScopedEvidenceIntegrationSuite) TestSearchReturnsOnlyInScopeLatestEv
 	s.Zero(out.Total, "evidence outside the scope stays out whatever the request filter")
 }
 
+// The Evidence page sends {"filter":{"scope":{}}} when the search box is empty.
+func (s *SSPScopedEvidenceIntegrationSuite) TestEmptyScopeObjectBodyReturnsInScopeEvidence() {
+	s.seed()
+	_, err := s.scope.AddEntry(s.sspID, []relational.ScopeLabel{{Key: "repo", Value: "a"}}, nil)
+	s.Require().NoError(err)
+	base := "/api/oscal/system-security-plans/" + s.sspID.String()
+	emptyScope := labelfilter.Filter{Scope: &labelfilter.Scope{}}
+
+	rec := s.post(base+"/evidence/search", s.token, emptyScope)
+	s.Require().Equal(http.StatusOK, rec.Code, rec.Body.String())
+	var out scopedSearchResponse
+	s.Require().NoError(json.Unmarshal(rec.Body.Bytes(), &out))
+	s.Equal([]string{"a-latest"}, evidenceTitles(out.Data))
+
+	rec = s.post(base+"/evidence/status-over-time?intervals=0m", s.token, emptyScope)
+	s.Require().Equal(http.StatusOK, rec.Code, rec.Body.String())
+	var overTime GenericDataListResponse[StatusInterval]
+	s.Require().NoError(json.Unmarshal(rec.Body.Bytes(), &overTime))
+	s.Require().Len(overTime.Data, 1)
+	total := 0
+	for _, status := range overTime.Data[0].Statuses {
+		total += int(status.Count)
+	}
+	s.Equal(1, total)
+}
+
 func (s *SSPScopedEvidenceIntegrationSuite) TestStatusOverTimeRestrictedToScope() {
 	s.seed()
 	path := "/api/oscal/system-security-plans/" + s.sspID.String() + "/evidence/status-over-time?intervals=0m"

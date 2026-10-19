@@ -287,19 +287,23 @@ func ToFilter(entries []relational.SSPScopeEntry) (labelfilter.Filter, bool) {
 	return labelfilter.Filter{Scope: &scope}, true
 }
 
-// And returns base AND scope. A base without a scope matches everything, so the result
-// is scope alone.
+// And returns base AND scope. A base without a scope, or with an empty one ({"scope":{}},
+// the Evidence page's default), matches everything, so the result is scope alone.
 func And(base, scope labelfilter.Filter) labelfilter.Filter {
-	if base.Scope == nil {
+	if isEmpty(base) {
 		return scope
 	}
-	if scope.Scope == nil {
+	if isEmpty(scope) {
 		return base
 	}
 	return labelfilter.Filter{Scope: &labelfilter.Scope{Query: &labelfilter.Query{
 		Operator: "AND",
 		Scopes:   []labelfilter.Scope{*base.Scope, *scope.Scope},
 	}}}
+}
+
+func isEmpty(f labelfilter.Filter) bool {
+	return f.Scope == nil || (f.Scope.Condition == nil && f.Scope.Query == nil)
 }
 
 func collapse(operator string, scopes []labelfilter.Scope) labelfilter.Scope {

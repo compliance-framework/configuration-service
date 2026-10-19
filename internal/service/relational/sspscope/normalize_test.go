@@ -137,6 +137,7 @@ func (s *NormalizeSuite) TestAnd() {
 	scope, _ := ToFilter([]relational.SSPScopeEntry{entry("repo", "a")})
 
 	s.Equal(scope, And(labelfilter.Filter{}, scope), "an empty base adds nothing")
+	s.Equal(scope, And(labelfilter.Filter{Scope: &labelfilter.Scope{}}, scope), `{"scope":{}} adds nothing`)
 	s.Equal(base, And(base, labelfilter.Filter{}))
 
 	got := And(base, scope)
