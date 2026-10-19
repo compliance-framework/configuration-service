@@ -6,3 +6,6 @@ lisa-design:
 - JSON is kebab-case throughout, including created-at/updated-at (the subject-template response's camelCase timestamps are not copied). List is paginated with svc.ListResponse like subject templates.
 - Instance foreign keys (template CASCADE, ssp SET NULL) are added by EnsureSSPTemplateConstraints through a helper extracted from EnsureSSPScopeConstraints (ensureForeignKeys), because AutoMigrate runs with DisableForeignKeyConstraintWhenMigrating.
 - The instance model is exactly the design's; the skipped-entries count/sample the instances route reports is added in B4 with the code that writes it.
+
+lisa-selfreview:
+pass 1: [must-fix CORE-CONC-001 28445fabdca9] ssptemplates.Service.Update reads then saves without a row lock; a concurrent delete makes the save hit 0 rows while answering 200.
