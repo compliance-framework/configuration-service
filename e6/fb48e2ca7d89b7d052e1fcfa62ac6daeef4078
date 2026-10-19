@@ -5,3 +5,6 @@ lisa-design:
 - ErrScopeWouldEmpty is checked in AddException before deleting the entry (only when it is the last entry and following filters exist), as *ScopeWouldEmptyError carrying the count (409 naming it). rewriteFollowingFilters also refuses an empty scope defensively.
 - Filter-handler errors: missing sspId, empty scope or unknown SSP with followSspScope -> 400.
 - ScopeBase and Origin carry yaml:"-": filter import/export (yaml) is unchanged, as the design says. Origin defaults to manual in the DB; Create sets it explicitly.
+
+lisa-selfreview:
+- pass 1: no findings (approve).
