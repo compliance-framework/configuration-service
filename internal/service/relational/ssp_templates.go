@@ -19,7 +19,7 @@ type SSPTemplateProp struct {
 type SSPTemplate struct {
 	UUIDModel
 	Name    string `gorm:"not null"`
-	Enabled bool   `gorm:"not null;default:true"`
+	Enabled bool   `gorm:"not null"` // no column default: gorm would write it over a false Enabled
 	// Keys identify one SSP by their values: sorted, lower-cased, immutable.
 	Keys datatypes.JSONSlice[string] `gorm:"type:jsonb;not null"`
 	// Filter, when set, limits discovery to the evidence it matches.

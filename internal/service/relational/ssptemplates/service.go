@@ -60,8 +60,7 @@ func (s *Service) Create(in Input) (Listed, error) {
 	if err := checkProfiles(s.db, tmpl.ProfileIDs); err != nil {
 		return Listed{}, err
 	}
-	// Select("*") so a false Enabled is written rather than replaced by the column default.
-	if err := s.db.Select("*").Create(&tmpl).Error; err != nil {
+	if err := s.db.Create(&tmpl).Error; err != nil {
 		return Listed{}, err
 	}
 	return Listed{SSPTemplate: tmpl}, nil

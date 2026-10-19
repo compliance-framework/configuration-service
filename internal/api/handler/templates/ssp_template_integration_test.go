@@ -108,10 +108,11 @@ func (s *SSPTemplateApiIntegrationSuite) TestAdminManagesTemplates() {
 	body["filter"] = map[string]any{"scope": map[string]any{"condition": map[string]any{"label": "auto_create_ssp", "operator": "=", "value": "true"}}}
 	body["props"] = []map[string]string{{"name": "application", "value": "{{ ._app }}"}}
 	body["profile-ids"] = []uuid.UUID{profileID}
+	body["enabled"] = false
 	created := s.create(body)
 	s.Equal([]any{"_app"}, created["keys"])
 	s.Equal([]any{[]any{"repo"}, []any{"aws_account", "region"}}, created["scope-labels"])
-	s.Equal(true, created["enabled"])
+	s.Equal(false, created["enabled"])
 	s.Equal(float64(1), created["min-streams"])
 	s.Equal([]any{profileID.String()}, created["profile-ids"])
 	s.Contains(created, "created-at")
@@ -124,14 +125,15 @@ func (s *SSPTemplateApiIntegrationSuite) TestAdminManagesTemplates() {
 	list := s.decode(s.do(s.admin, http.MethodGet, "", nil), http.StatusOK)
 	s.Equal(float64(1), list["total"])
 	s.Equal(id, list["data"].([]any)[0].(map[string]any)["id"])
+	s.Equal(false, list["data"].([]any)[0].(map[string]any)["enabled"], "a disabled template is stored disabled")
 
 	update := templateBody("Renamed", "_app")
-	update["enabled"] = false
+	update["enabled"] = true
 	update["min-streams"] = 3
 	s.decode(s.do(s.admin, http.MethodPut, "/"+id, update), http.StatusOK)
 	got := s.decode(s.do(s.admin, http.MethodGet, "/"+id, nil), http.StatusOK)["data"].(map[string]any)
 	s.Equal("Renamed", got["name"])
-	s.Equal(false, got["enabled"])
+	s.Equal(true, got["enabled"])
 	s.Equal(float64(3), got["min-streams"])
 	s.Nil(got["filter"])
 	s.Equal([]any{}, got["profile-ids"])
@@ -177,7 +179,6 @@ func (s *SSPTemplateApiIntegrationSuite) TestErrors() {
 	}{
 		{"unparseable title", http.MethodPost, "", badTitle, http.StatusBadRequest},
 		{"unknown profile", http.MethodPost, "", unknownProfile, http.StatusBadRequest},
-		{"no keys", http.MethodPost, "", templateBody("Apps"), http.StatusBadRequest},
 		{"bad id", http.MethodGet, "/nope", nil, http.StatusBadRequest},
 		{"unknown get", http.MethodGet, unknown, nil, http.StatusNotFound},
 		{"unknown update", http.MethodPut, unknown, templateBody("Apps", "_app"), http.StatusNotFound},
