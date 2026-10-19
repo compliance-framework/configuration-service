@@ -156,3 +156,11 @@ func TestPlanInvalidValues(t *testing.T) {
 	require.Len(t, plan.SSPs[0].InvalidEntries, 1)
 	assert.Equal(t, labels("repo="+long), plan.SSPs[0].InvalidEntries[0].Labels)
 }
+
+func TestPlanEmptyTitle(t *testing.T) {
+	tmpl := planTemplate(t, func(in *Input) { in.TitleTemplate = "{{ .APP }}" }) // keys are lower-cased
+	plan := BuildPlan(tmpl, []relational.LatestEvidenceStream{stream("_app=payments")}, nil, nil, nil)
+	assert.Empty(t, plan.SSPs)
+	require.Len(t, plan.Invalid, 1)
+	assert.Equal(t, "title-template renders an empty title", plan.Invalid[0].Reason)
+}

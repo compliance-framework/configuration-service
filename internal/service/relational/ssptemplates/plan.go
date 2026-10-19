@@ -1,6 +1,7 @@
 package ssptemplates
 
 import (
+	"errors"
 	"sort"
 	"strings"
 
@@ -47,7 +48,7 @@ type GroupStreams struct {
 }
 
 // InvalidGroup is a group whose key values cannot be stored as scope labels, or whose
-// title does not render; no SSP is created for it.
+// title does not render or renders empty; no SSP is created for it.
 type InvalidGroup struct {
 	KeyValues map[string]string `json:"key-values"`
 	Reason    string            `json:"reason"`
@@ -119,6 +120,9 @@ func BuildPlan(tmpl relational.SSPTemplate, streams []relational.LatestEvidenceS
 			continue
 		}
 		title, err := templates.RenderTemplate(tmpl.TitleTemplate, g.keyValues)
+		if err == nil && strings.TrimSpace(title) == "" {
+			err = errors.New("title-template renders an empty title")
+		}
 		if err != nil {
 			plan.Invalid = append(plan.Invalid, InvalidGroup{KeyValues: g.keyValues, Reason: err.Error()})
 			continue
