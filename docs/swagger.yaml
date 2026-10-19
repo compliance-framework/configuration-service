@@ -14877,14 +14877,6 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/api.Error'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/api.Error'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/api.Error'
         "500":
           description: Internal Server Error
           schema:
@@ -14917,14 +14909,6 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/api.Error'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/api.Error'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/api.Error'
         "500":
           description: Internal Server Error
           schema:
@@ -14949,14 +14933,6 @@ paths:
           description: No Content
         "400":
           description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/api.Error'
-        "403":
-          description: Forbidden
           schema:
             $ref: '#/definitions/api.Error'
         "404":
@@ -14988,14 +14964,6 @@ paths:
             $ref: '#/definitions/templates.sspTemplateDataResponse'
         "400":
           description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/api.Error'
-        "403":
-          description: Forbidden
           schema:
             $ref: '#/definitions/api.Error'
         "404":
@@ -15037,14 +15005,6 @@ paths:
             $ref: '#/definitions/templates.sspTemplateDataResponse'
         "400":
           description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Error'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/api.Error'
-        "403":
-          description: Forbidden
           schema:
             $ref: '#/definitions/api.Error'
         "404":
