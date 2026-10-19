@@ -53,6 +53,7 @@ type Config struct {
 	EvidenceBatch                     *EvidenceBatchConfig
 	Lineage                           *LineageConfig
 	SSPScope                          *SSPScopeConfig
+	SSPTemplate                       *SSPTemplateConfig
 }
 
 func NewConfig(logger *zap.SugaredLogger) *Config {
@@ -197,6 +198,11 @@ func NewConfig(logger *zap.SugaredLogger) *Config {
 		logger.Fatalw("Invalid lineage config", "error", err)
 	}
 
+	sspTemplateConfig, err := LoadSSPTemplateConfig()
+	if err != nil {
+		logger.Fatalw("Invalid SSP template config", "error", err)
+	}
+
 	// Digest configuration
 	digestEnabled := viper.GetBool("digest_enabled")
 	digestSchedule := viper.GetString("digest_schedule")
@@ -289,6 +295,7 @@ func NewConfig(logger *zap.SugaredLogger) *Config {
 		EvidenceSubjects:                  evidenceSubjectConfig,
 		EvidenceBatch:                     evidenceBatchConfig,
 		SSPScope:                          LoadSSPScopeConfig(),
+		SSPTemplate:                       sspTemplateConfig,
 		Lineage:                           lineageConfig,
 		DigestEnabled:                     digestEnabled,
 		DigestSchedule:                    digestSchedule,
