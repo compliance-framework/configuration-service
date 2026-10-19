@@ -10,3 +10,8 @@ lisa-design:
 - LastRunAt is set when a run of the template finishes, including when some groups failed.
 - An existing SSP whose group is under min-streams is not refreshed (last-seen stays), so it can turn stale: min-streams applies to the existing SSPs too.
 - The periodic job is unique by args per hour, like the other scheduler jobs; a manual run (B5) uses the template id as args.
+
+lisa-selfreview:
+pass 1: [should-fix CORE-PERF] RunAll loaded every latest evidence stream once per template (fixed before commit: loaded once).
+pass 1: [should-fix CORE-NAME-001] apply counted a group whose SSP was deleted mid-run as updated (fixed before commit: outcome enum).
+pass 1 (deferred, design note): an existing SSP whose group drops under min-streams is not refreshed and can turn stale.
