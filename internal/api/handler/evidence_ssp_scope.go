@@ -11,16 +11,12 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// WithSSPScope lets the handler serve evidence restricted to an SSP's scope.
-func (h *EvidenceHandler) WithSSPScope(scope *sspscope.Service) *EvidenceHandler {
+// RegisterSSPScopedRoutes mounts the SSP-scoped evidence reads, which read scopes through
+// scope, on the SSP group (/oscal/system-security-plans). The caller passes user auth and
+// the SSP read guard: unlike the public evidence reads, these routes reveal which evidence
+// an SSP claims.
+func (h *EvidenceHandler) RegisterSSPScopedRoutes(api *echo.Group, scope *sspscope.Service, middlewares ...echo.MiddlewareFunc) {
 	h.sspScope = scope
-	return h
-}
-
-// RegisterSSPScopedRoutes mounts the SSP-scoped evidence reads on the SSP group
-// (/oscal/system-security-plans). The caller passes user auth and the SSP read guard:
-// unlike the public evidence reads, these routes reveal which evidence an SSP claims.
-func (h *EvidenceHandler) RegisterSSPScopedRoutes(api *echo.Group, middlewares ...echo.MiddlewareFunc) {
 	api.POST("/:id/evidence/search", h.SSPScopedSearch, middlewares...)
 	api.POST("/:id/evidence/status-over-time", h.SSPScopedStatusOverTime, middlewares...)
 }

@@ -114,9 +114,7 @@ func RegisterHandlers(server *api.Server, logger *zap.SugaredLogger, db *gorm.DB
 	riskGuard := pep.For(authz.ResourceRisk)
 
 	artifactService := artifactsvc.NewService(db)
-	evidenceHandler := NewEvidenceHandler(logger, services.EvidenceService, riskService).
-		WithArtifactService(artifactService).
-		WithSSPScope(sspscope.NewService(db))
+	evidenceHandler := NewEvidenceHandler(logger, services.EvidenceService, riskService).WithArtifactService(artifactService)
 	evidenceGuard := pep.For(authz.ResourceEvidence)
 
 	// Batches are stored in the background, signed as their submitter, and read back only
@@ -202,6 +200,7 @@ func RegisterHandlers(server *api.Server, logger *zap.SugaredLogger, db *gorm.DB
 	// read, rather than joining the intentionally anonymous evidence read routes.
 	evidenceHandler.RegisterSSPScopedRoutes(
 		server.API().Group("/oscal/system-security-plans"),
+		sspscope.NewService(db),
 		middleware.JWTMiddleware(config.JWTPublicKey),
 		pep.For(authz.ResourceSSP).Read(),
 	)
