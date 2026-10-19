@@ -11,6 +11,7 @@ import (
 	"github.com/compliance-framework/api/internal/service/relational/ssptemplates"
 	"github.com/google/uuid"
 	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/rivertype"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -107,4 +108,28 @@ func sspTemplateDiscoverySchedule(cfg *config.Config) string {
 		return config.DefaultSSPTemplateDiscoverySchedule
 	}
 	return cfg.SSPTemplate.DiscoverySchedule
+}
+
+// EnqueueSSPTemplateDiscovery queues a discovery run of one template. A run of that
+// template already waiting or running is not queued twice; a finished one does not block
+// a new run.
+func (s *Service) EnqueueSSPTemplateDiscovery(ctx context.Context, templateID uuid.UUID) error {
+	if !s.config.Enabled || s.client == nil {
+		return fmt.Errorf("the worker service is disabled")
+	}
+	_, err := s.client.Insert(ctx, SSPTemplateDiscoveryArgs{TemplateID: &templateID}, &river.InsertOpts{
+		Queue:       "scheduler",
+		MaxAttempts: 3,
+		UniqueOpts: river.UniqueOpts{
+			ByArgs: true,
+			ByState: []rivertype.JobState{
+				rivertype.JobStateAvailable, rivertype.JobStatePending, rivertype.JobStateRunning,
+				rivertype.JobStateRetryable, rivertype.JobStateScheduled,
+			},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("enqueue SSP template discovery for %s: %w", templateID, err)
+	}
+	return nil
 }

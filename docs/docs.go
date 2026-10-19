@@ -2868,6 +2868,187 @@ const docTemplate = `{
                 ]
             }
         },
+        "/admin/ssp-templates/{id}/run": {
+            "post": {
+                "description": "Queue a discovery run of the template now. A run already queued for it is not queued twice.",
+                "tags": [
+                    "SSP Templates"
+                ],
+                "summary": "Run SSP template discovery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "SSP template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "409": {
+                        "description": "the template is disabled",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "503": {
+                        "description": "background jobs are not available",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ]
+            }
+        },
+        "/admin/ssp-templates/{id}/ssps": {
+            "get": {
+                "description": "List the template's instances, newest first: the SSP (null once deleted), when it was last seen in evidence, whether it is stale, and the last run's error and skipped entries.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSP Templates"
+                ],
+                "summary": "List the SSPs an SSP template created",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "SSP template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/service.ListResponse-templates_sspTemplateInstanceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ]
+            }
+        },
+        "/admin/ssp-templates/{id}/ssps/{keyHash}": {
+            "delete": {
+                "description": "Delete the record of an SSP the template created and a user then deleted, so the next discovery run creates it again. Only allowed once the SSP was deleted (409 otherwise).",
+                "tags": [
+                    "SSP Templates"
+                ],
+                "summary": "Forget a deleted SSP of an SSP template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "SSP template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Instance key hash",
+                        "name": "keyHash",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "OAuth2Password": []
+                    }
+                ]
+            }
+        },
         "/admin/subject-templates": {
             "get": {
                 "description": "List subject templates with optional filters and pagination.",
@@ -52242,6 +52423,20 @@ const docTemplate = `{
                 }
             }
         },
+        "relational.SkippedScopeEntry": {
+            "type": "object",
+            "properties": {
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/relational.ScopeLabel"
+                    }
+                },
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
         "relational.Statement": {
             "type": "object",
             "properties": {
@@ -53249,6 +53444,29 @@ const docTemplate = `{
                 }
             }
         },
+        "service.ListResponse-templates_sspTemplateInstanceResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/templates.sspTemplateInstanceResponse"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
         "service.ListResponse-templates_sspTemplateResponse": {
             "type": "object",
             "properties": {
@@ -54107,6 +54325,48 @@ const docTemplate = `{
             "properties": {
                 "data": {
                     "$ref": "#/definitions/templates.sspTemplateResponse"
+                }
+            }
+        },
+        "templates.sspTemplateInstanceResponse": {
+            "type": "object",
+            "properties": {
+                "created-at": {
+                    "type": "string"
+                },
+                "key-hash": {
+                    "description": "the id the forget route takes",
+                    "type": "string"
+                },
+                "key-values": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "last-error": {
+                    "type": "string"
+                },
+                "last-seen-at": {
+                    "type": "string"
+                },
+                "skipped-entries": {
+                    "description": "learned values rejected as invalid on the last run",
+                    "type": "integer"
+                },
+                "skipped-sample": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/relational.SkippedScopeEntry"
+                    }
+                },
+                "ssp-id": {
+                    "description": "null once the SSP was deleted",
+                    "type": "string"
+                },
+                "stale": {
+                    "type": "boolean"
+                },
+                "title": {
+                    "type": "string"
                 }
             }
         },
