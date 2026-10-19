@@ -169,7 +169,8 @@ func (s *Service) SetAutoFilters(sspID uuid.UUID, enabled bool) error {
 
 // Learn adds template-origin entries inside the caller's transaction, skipping entries
 // that already exist, entries with an exception and repeats within entries. It never
-// removes entries. It returns the entries it added.
+// removes entries. It returns the entries it added. tx must be an open transaction: the
+// SSP's scope lock is transaction-scoped, so outside one it is released immediately.
 func (s *Service) Learn(tx *gorm.DB, sspID, templateID uuid.UUID, entries [][]relational.ScopeLabel) ([]relational.SSPScopeEntry, error) {
 	if err := lockSSP(tx, sspID); err != nil {
 		return nil, err
