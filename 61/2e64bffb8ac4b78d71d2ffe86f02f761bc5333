@@ -6,3 +6,6 @@ lisa-design:
 - sspscope.Service.Filter now checks the SSP exists (ErrSSPNotFound -> 404). sspscope.And(base, scope) combines filters (empty base -> scope alone).
 - The acting user for CreatedBy is resolved from the JWT subject email; an unknown user records nil rather than failing the write.
 - All scope writes (PUT, POST entries/exceptions, DELETE exception) use guard.Update(), as the design says.
+
+lisa-selfreview:
+- pass 1 [should-fix] scoped-routes-without-service internal/api/handler/evidence_ssp_scope.go:20 — Scoped evidence routes can be mounted without the scope service
