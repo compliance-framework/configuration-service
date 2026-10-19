@@ -202,6 +202,9 @@ func (t *TestMigrator) Up() error {
 		&relational.SelectSubjectById{},
 		&relational.Filter{},
 		&relational.FilterResponsibility{},
+		&relational.SSPScopeSettings{},
+		&relational.SSPScopeEntry{},
+		&relational.SSPScopeException{},
 		&suggestionrel.DashboardSuggestionRun{},
 		&suggestionrel.DashboardSuggestionRunCell{},
 		&suggestionrel.DashboardSuggestion{},
@@ -212,6 +215,9 @@ func (t *TestMigrator) Up() error {
 		return err
 	}
 	if err := riskrel.EnsureIndexes(t.db); err != nil {
+		return err
+	}
+	if err := relational.EnsureSSPScopeConstraints(t.db); err != nil {
 		return err
 	}
 
@@ -588,6 +594,9 @@ func (t *TestMigrator) Down() error {
 		&suggestionrel.DashboardSuggestionRunCell{},
 		&suggestionrel.DashboardSuggestionRun{},
 		&relational.FilterResponsibility{},
+		&relational.SSPScopeSettings{},
+		&relational.SSPScopeEntry{},
+		&relational.SSPScopeException{},
 		&relational.Filter{},
 	)
 }
