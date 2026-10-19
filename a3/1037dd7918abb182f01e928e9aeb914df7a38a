@@ -6,3 +6,6 @@ lisa-design:
 - stale = the SSP still exists and last-seen-at is older than CCF_SSP_TEMPLATE_STALE_AFTER; a deleted SSP is never stale. Computed at read time in the handler.
 - The instance list is paginated (svc.ListResponse, page/limit) like the template list; items also carry the SSP's current title (null once deleted) and the skipped-entries sample.
 - Forget deletes only an instance whose ssp_id is null (409 otherwise, 404 when unknown), guarded in the DELETE's WHERE clause too.
+
+lisa-selfreview:
+pass 1: [must-fix CORE-TEST-001] EnqueueSSPTemplateDiscovery's disabled-worker branch had no test.
