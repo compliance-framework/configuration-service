@@ -8,3 +8,6 @@ lisa-design:
 - An instance with a nil SSPID (SSP deleted) still appears with exists=true and nothing to learn: discovery leaves it alone.
 - Candidate entries repeated within a group (a scope-label group holding a key) are learned once.
 - Preview takes an optional id; a saved template's instances then mark existing groups. An unknown id is 404. Profile ids are not checked by preview.
+
+lisa-selfreview:
+pass 1: [must-fix CORE-INPUT-001] BuildPlan accepted a title that renders empty (a template referencing a non-key field), which discovery would turn into an SSP with an empty title.
