@@ -93,10 +93,23 @@ type LabelKeyInput struct {
 	Values []string `json:"values"`
 }
 
+// latestEvidence is the latest evidence of each stream, aliased "l", restricted to
+// evidence matching filter when it is set. The filter is applied in SQL through the
+// evidence-search query builder.
+func (s *SuggestionService) latestEvidence(filter *labelfilter.Filter) (*gorm.DB, error) {
+	latest := relational.LatestEvidenceQuery(s.db, relational.LatestEvidenceOptions{})
+	var filters []labelfilter.Filter
+	if filter != nil && filter.Scope != nil {
+		filters = append(filters, *filter)
+	}
+	return relational.GetEvidenceSearchByFilterQuery(latest, s.db, filters...)
+}
+
 // GatherLabelKeys returns distinct evidence label names and, for each, up to
 // maxValuesPerKey distinct values, drawn from the latest stream of each
-// evidence. It is a cheap aggregation suited to autocomplete at 100k+ evidence.
-func (s *SuggestionService) GatherLabelKeys(maxValuesPerKey int) ([]LabelKeyInput, error) {
+// evidence, restricted to evidence matching filter when it is set. It is a cheap
+// aggregation suited to autocomplete at 100k+ evidence.
+func (s *SuggestionService) GatherLabelKeys(maxValuesPerKey int, filter *labelfilter.Filter) ([]LabelKeyInput, error) {
 	if maxValuesPerKey <= 0 {
 		maxValuesPerKey = 50
 	}
@@ -105,9 +118,11 @@ func (s *SuggestionService) GatherLabelKeys(maxValuesPerKey int) ([]LabelKeyInpu
 		Value string `gorm:"column:labels_value"`
 	}
 	var rows []row
-	latest := relational.LatestEvidenceQuery(s.db, relational.LatestEvidenceOptions{})
-	if err := s.db.
-		Table("(?) as l", latest).
+	latest, err := s.latestEvidence(filter)
+	if err != nil {
+		return nil, err
+	}
+	if err := latest.
 		Select("DISTINCT el.labels_name, el.labels_value").
 		Joins("JOIN evidence_labels el ON el.evidence_id = l.id").
 		Order("el.labels_name ASC, el.labels_value ASC").
@@ -142,8 +157,9 @@ func (s *SuggestionService) GatherLabelKeys(maxValuesPerKey int) ([]LabelKeyInpu
 // key, optionally matching a substring query, drawn from the latest stream of
 // each evidence. It is searched server-side (case-insensitive) so the filter
 // builder can reach high-cardinality values (e.g. a specific repository) that a
-// capped client-side list would miss.
-func (s *SuggestionService) SearchLabelValues(key, query string, limit int) ([]string, error) {
+// capped client-side list would miss. Restricted to evidence matching filter when it
+// is set.
+func (s *SuggestionService) SearchLabelValues(key, query string, limit int, filter *labelfilter.Filter) ([]string, error) {
 	key = strings.TrimSpace(key)
 	if key == "" {
 		return []string{}, nil
@@ -151,9 +167,11 @@ func (s *SuggestionService) SearchLabelValues(key, query string, limit int) ([]s
 	if limit <= 0 || limit > 200 {
 		limit = 50
 	}
-	latest := relational.LatestEvidenceQuery(s.db, relational.LatestEvidenceOptions{})
-	q := s.db.
-		Table("(?) as l", latest).
+	latest, err := s.latestEvidence(filter)
+	if err != nil {
+		return nil, err
+	}
+	q := latest.
 		Joins("JOIN evidence_labels el ON el.evidence_id = l.id").
 		Where("lower(el.labels_name) = lower(?)", key)
 	if query = strings.TrimSpace(query); query != "" {
@@ -307,12 +325,7 @@ func (s *SuggestionService) gatherAllLabelSets(filter *labelfilter.Filter) ([]La
 		LabelValue   string    `gorm:"column:labels_value"`
 	}
 
-	latest := relational.LatestEvidenceQuery(s.db, relational.LatestEvidenceOptions{})
-	var filters []labelfilter.Filter
-	if filter != nil && filter.Scope != nil {
-		filters = append(filters, *filter)
-	}
-	query, err := relational.GetEvidenceSearchByFilterQuery(latest, s.db, filters...)
+	query, err := s.latestEvidence(filter)
 	if err != nil {
 		return nil, err
 	}

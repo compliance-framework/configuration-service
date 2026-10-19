@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/compliance-framework/api/internal/config"
 	"github.com/compliance-framework/api/internal/converters/labelfilter"
 	"github.com/compliance-framework/api/internal/service/relational"
+	"github.com/compliance-framework/api/internal/service/relational/sspscope"
 	suggestionrel "github.com/compliance-framework/api/internal/service/relational/suggestions"
 	workersvc "github.com/compliance-framework/api/internal/service/worker"
 	"github.com/google/uuid"
@@ -134,7 +136,10 @@ type dashboardSuggestionPreviewResponse struct {
 }
 
 type dashboardSuggestionPlan struct {
-	Snapshot      suggestionrel.Snapshot
+	Snapshot suggestionrel.Snapshot
+	// LabelFilter is the evidence filter the run applies: the request's label filter,
+	// ANDed with the SSP's scope when the SSP has scope entries.
+	LabelFilter   *labelfilter.Filter
 	PlannedCalls  int
 	ControlCount  int
 	LabelSetCount int
@@ -243,7 +248,7 @@ func (h *DashboardSuggestionHandler) Generate(ctx echo.Context) error {
 			PromptVersion:     suggestionrel.PromptVersion,
 			Scope:             snapshotJSON(snapshot),
 			Constraints:       suggestionrel.ConstraintsToJSONMap(constraintsFromRequest(req.Constraints)),
-			LabelFilter:       suggestionrel.LabelFilterToJSONMap(labelFilterFromRequest(req.Scope)),
+			LabelFilter:       suggestionrel.LabelFilterToJSONMap(plan.LabelFilter),
 			PlannedCalls:      plannedCalls,
 			TriggeredByUserID: actorID,
 			StartedAt:         &now,
@@ -390,21 +395,23 @@ func (h *DashboardSuggestionHandler) Preview(ctx echo.Context) error {
 // LabelSets godoc
 //
 //	@Summary		List dashboard suggestion label sets
-//	@Description	Returns canonical evidence label sets for dashboard suggestion scope selection.
+//	@Description	Returns canonical evidence label sets for dashboard suggestion scope selection. When the SSP has scope entries, only in-scope evidence is considered.
 //	@Tags			Dashboard Suggestions
 //	@Produce		json
 //	@Param			id	path		string	true	"System Security Plan ID"
 //	@Success		200	{object}	handler.GenericDataListResponse[suggestions.LabelSetInput]
 //	@Failure		400	{object}	api.Error
 //	@Failure		401	{object}	api.Error
+//	@Failure		404	{object}	api.Error
 //	@Failure		500	{object}	api.Error
 //	@Security		OAuth2Password
 //	@Router			/oscal/system-security-plans/{id}/dashboard-suggestions/label-sets [get]
 func (h *DashboardSuggestionHandler) LabelSets(ctx echo.Context) error {
-	if _, err := parseUUIDParam(ctx, "id"); err != nil {
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	filter, ok := h.labelPickerFilter(ctx, false)
+	if !ok {
+		return nil
 	}
-	labelSets, err := suggestionrel.NewSuggestionService(h.db).GatherLabelSets(nil, nil)
+	labelSets, err := suggestionrel.NewSuggestionService(h.db).GatherLabelSets(nil, filter)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
@@ -414,21 +421,24 @@ func (h *DashboardSuggestionHandler) LabelSets(ctx echo.Context) error {
 // LabelKeys godoc
 //
 //	@Summary		List distinct evidence label keys and values
-//	@Description	Returns distinct evidence label keys with their distinct values, for building an evidence-scoping filter without loading every label set.
+//	@Description	Returns distinct evidence label keys with their distinct values, for building an evidence-scoping filter without loading every label set. When the SSP has scope entries, only in-scope evidence is considered unless ignoreScope is true.
 //	@Tags			Dashboard Suggestions
 //	@Produce		json
-//	@Param			id	path		string	true	"System Security Plan ID"
-//	@Success		200	{object}	handler.GenericDataListResponse[suggestions.LabelKeyInput]
-//	@Failure		400	{object}	api.Error
-//	@Failure		401	{object}	api.Error
-//	@Failure		500	{object}	api.Error
+//	@Param			id			path		string	true	"System Security Plan ID"
+//	@Param			ignoreScope	query		bool	false	"Use all evidence, ignoring the SSP's scope"
+//	@Success		200			{object}	handler.GenericDataListResponse[suggestions.LabelKeyInput]
+//	@Failure		400			{object}	api.Error
+//	@Failure		401			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
 //	@Security		OAuth2Password
 //	@Router			/oscal/system-security-plans/{id}/dashboard-suggestions/label-keys [get]
 func (h *DashboardSuggestionHandler) LabelKeys(ctx echo.Context) error {
-	if _, err := parseUUIDParam(ctx, "id"); err != nil {
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	filter, ok := h.labelPickerFilter(ctx, true)
+	if !ok {
+		return nil
 	}
-	keys, err := suggestionrel.NewSuggestionService(h.db).GatherLabelKeys(0)
+	keys, err := suggestionrel.NewSuggestionService(h.db).GatherLabelKeys(0, filter)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
@@ -438,25 +448,28 @@ func (h *DashboardSuggestionHandler) LabelKeys(ctx echo.Context) error {
 // LabelValues godoc
 //
 //	@Summary		Search evidence label values for a key
-//	@Description	Returns distinct evidence label values for a given label key, optionally matching a substring query. Searched server-side so high-cardinality values are reachable.
+//	@Description	Returns distinct evidence label values for a given label key, optionally matching a substring query. Searched server-side so high-cardinality values are reachable. When the SSP has scope entries, only in-scope evidence is considered unless ignoreScope is true.
 //	@Tags			Dashboard Suggestions
 //	@Produce		json
-//	@Param			id		path		string	true	"System Security Plan ID"
-//	@Param			key		query		string	true	"Label key"
-//	@Param			query	query		string	false	"Substring to match against values"
-//	@Success		200		{object}	handler.GenericDataListResponse[string]
-//	@Failure		400		{object}	api.Error
-//	@Failure		401		{object}	api.Error
-//	@Failure		500		{object}	api.Error
+//	@Param			id			path		string	true	"System Security Plan ID"
+//	@Param			key			query		string	true	"Label key"
+//	@Param			query		query		string	false	"Substring to match against values"
+//	@Param			ignoreScope	query		bool	false	"Use all evidence, ignoring the SSP's scope"
+//	@Success		200			{object}	handler.GenericDataListResponse[string]
+//	@Failure		400			{object}	api.Error
+//	@Failure		401			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
 //	@Security		OAuth2Password
 //	@Router			/oscal/system-security-plans/{id}/dashboard-suggestions/label-values [get]
 func (h *DashboardSuggestionHandler) LabelValues(ctx echo.Context) error {
-	if _, err := parseUUIDParam(ctx, "id"); err != nil {
-		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	filter, ok := h.labelPickerFilter(ctx, true)
+	if !ok {
+		return nil
 	}
 	key := strings.TrimSpace(ctx.QueryParam("key"))
 	query := strings.TrimSpace(ctx.QueryParam("query"))
-	values, err := suggestionrel.NewSuggestionService(h.db).SearchLabelValues(key, query, 50)
+	values, err := suggestionrel.NewSuggestionService(h.db).SearchLabelValues(key, query, 50, filter)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 	}
@@ -860,7 +873,13 @@ func (h *DashboardSuggestionHandler) modelName() string {
 
 func (h *DashboardSuggestionHandler) planDashboardSuggestions(db *gorm.DB, sspID uuid.UUID, scope *dashboardSuggestionScopeRequest, constraints *dashboardSuggestionConstraintsRequest) (dashboardSuggestionPlan, error) {
 	svc := suggestionrel.NewSuggestionService(db)
-	snapshot, err := svc.ResolveScope(sspID, scopeFromRequest(scope))
+	resolved := scopeFromRequest(scope)
+	labelFilter, err := scopedLabelFilter(db, sspID, resolved.LabelFilter)
+	if err != nil {
+		return dashboardSuggestionPlan{}, err
+	}
+	resolved.LabelFilter = labelFilter
+	snapshot, err := svc.ResolveScope(sspID, resolved)
 	if err != nil {
 		return dashboardSuggestionPlan{}, err
 	}
@@ -879,6 +898,7 @@ func (h *DashboardSuggestionHandler) planDashboardSuggestions(db *gorm.DB, sspID
 	}
 	return dashboardSuggestionPlan{
 		Snapshot:      snapshot,
+		LabelFilter:   labelFilter,
 		PlannedCalls:  suggestionrel.PlannedCalls(len(snapshot.ControlKeys), len(snapshot.LabelSetHashes), h.chunkConfig()),
 		ControlCount:  len(snapshot.ControlKeys),
 		LabelSetCount: len(snapshot.LabelSetHashes),
@@ -894,13 +914,6 @@ func scopeFromRequest(scope *dashboardSuggestionScopeRequest) suggestionrel.Scop
 		LabelSetHashes: scope.LabelSetHashes,
 		LabelFilter:    scope.LabelFilter,
 	}
-}
-
-func labelFilterFromRequest(scope *dashboardSuggestionScopeRequest) *labelfilter.Filter {
-	if scope == nil {
-		return nil
-	}
-	return scope.LabelFilter
 }
 
 func constraintsFromRequest(constraints *dashboardSuggestionConstraintsRequest) suggestionrel.Constraints {
@@ -1151,6 +1164,9 @@ func (e *emptyDashboardSuggestionScopeError) Error() string {
 }
 
 func (h *DashboardSuggestionHandler) generateError(ctx echo.Context, err error) error {
+	if errors.Is(err, sspscope.ErrSSPNotFound) {
+		return ctx.JSON(http.StatusNotFound, api.NewError(err))
+	}
 	var scopeErr *suggestionrel.ScopeError
 	if errors.As(err, &scopeErr) {
 		return ctx.JSON(http.StatusUnprocessableEntity, api.NewError(err))
@@ -1199,4 +1215,59 @@ func (h *DashboardSuggestionHandler) notFoundOrInternal(ctx echo.Context, err er
 		return ctx.JSON(http.StatusNotFound, api.NewError(err))
 	}
 	return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+}
+
+// scopedLabelFilter returns the evidence filter for an SSP's filter-building inputs: the
+// requested filter ANDed with the SSP's scope when the scope has entries. An SSP without
+// scope entries keeps the requested filter (nil means all evidence).
+func scopedLabelFilter(db *gorm.DB, sspID uuid.UUID, requested *labelfilter.Filter) (*labelfilter.Filter, error) {
+	scope, hasEntries, err := sspscope.NewService(db).Filter(sspID)
+	if err != nil {
+		return nil, err
+	}
+	if !hasEntries {
+		return requested, nil
+	}
+	base := labelfilter.Filter{}
+	if requested != nil {
+		base = *requested
+	}
+	combined := sspscope.And(base, scope)
+	return &combined, nil
+}
+
+// labelPickerFilter parses the SSP id and returns the evidence filter for a label
+// picker: the SSP's scope when it has entries, nil otherwise. When allowIgnore is set,
+// ?ignoreScope=true returns nil (all evidence): the scope editor needs labels that are
+// not in the scope yet. On failure it has already written the response and returns
+// ok=false.
+func (h *DashboardSuggestionHandler) labelPickerFilter(ctx echo.Context, allowIgnore bool) (*labelfilter.Filter, bool) {
+	sspID, err := parseUUIDParam(ctx, "id")
+	if err != nil {
+		_ = ctx.JSON(http.StatusBadRequest, api.NewError(err))
+		return nil, false
+	}
+	if allowIgnore {
+		if raw := strings.TrimSpace(ctx.QueryParam("ignoreScope")); raw != "" {
+			ignore, err := strconv.ParseBool(raw)
+			if err != nil {
+				_ = ctx.JSON(http.StatusBadRequest, api.NewError(fmt.Errorf("invalid ignoreScope: %w", err)))
+				return nil, false
+			}
+			if ignore {
+				return nil, true
+			}
+		}
+	}
+	filter, err := scopedLabelFilter(h.db, sspID, nil)
+	if errors.Is(err, sspscope.ErrSSPNotFound) {
+		_ = ctx.JSON(http.StatusNotFound, api.NewError(err))
+		return nil, false
+	}
+	if err != nil {
+		h.sugar.Errorw("Failed to load SSP scope", "ssp", sspID, "error", err)
+		_ = ctx.JSON(http.StatusInternalServerError, api.InternalServerError())
+		return nil, false
+	}
+	return filter, true
 }

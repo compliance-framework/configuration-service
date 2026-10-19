@@ -786,17 +786,17 @@ func (suite *DashboardSuggestionsIntegrationSuite) TestSearchLabelValuesMatchesS
 	svc := suggestionrel.NewSuggestionService(suite.DB)
 
 	// Substring search finds the value regardless of any client-side cap.
-	matches, err := svc.SearchLabelValues("repository", "todo", 50)
+	matches, err := svc.SearchLabelValues("repository", "todo", 50, nil)
 	suite.Require().NoError(err)
 	suite.ElementsMatch([]string{"todo-app", "todo-worker"}, matches)
 
 	// Exact value is reachable, case-insensitively.
-	exact, err := svc.SearchLabelValues("REPOSITORY", "todo-app", 50)
+	exact, err := svc.SearchLabelValues("REPOSITORY", "todo-app", 50, nil)
 	suite.Require().NoError(err)
 	suite.Equal([]string{"todo-app"}, exact)
 
 	// Empty key returns nothing.
-	none, err := svc.SearchLabelValues("", "todo", 50)
+	none, err := svc.SearchLabelValues("", "todo", 50, nil)
 	suite.Require().NoError(err)
 	suite.Empty(none)
 }
@@ -806,7 +806,7 @@ func (suite *DashboardSuggestionsIntegrationSuite) TestGatherLabelKeysReturnsDis
 	suite.insertEvidenceLabels(uuid.New(), uuid.New(), "e1", now, map[string]string{"env": "prod", "provider": "aws"})
 	suite.insertEvidenceLabels(uuid.New(), uuid.New(), "e2", now, map[string]string{"env": "stage", "provider": "aws"})
 
-	keys, err := suggestionrel.NewSuggestionService(suite.DB).GatherLabelKeys(0)
+	keys, err := suggestionrel.NewSuggestionService(suite.DB).GatherLabelKeys(0, nil)
 	suite.Require().NoError(err)
 
 	byKey := map[string][]string{}
@@ -815,6 +815,30 @@ func (suite *DashboardSuggestionsIntegrationSuite) TestGatherLabelKeysReturnsDis
 	}
 	suite.ElementsMatch([]string{"prod", "stage"}, byKey["env"])
 	suite.ElementsMatch([]string{"aws"}, byKey["provider"])
+}
+
+func (suite *DashboardSuggestionsIntegrationSuite) TestLabelKeysAndValuesApplyEvidenceFilter() {
+	now := time.Now().UTC()
+	suite.insertEvidenceLabels(uuid.New(), uuid.New(), "e1", now, map[string]string{"env": "prod", "repository": "todo-app"})
+	suite.insertEvidenceLabels(uuid.New(), uuid.New(), "e2", now, map[string]string{"env": "stage", "repository": "todo-worker"})
+
+	svc := suggestionrel.NewSuggestionService(suite.DB)
+	prod := &labelfilter.Filter{Scope: &labelfilter.Scope{
+		Condition: &labelfilter.Condition{Label: "env", Operator: "=", Value: "prod"},
+	}}
+
+	keys, err := svc.GatherLabelKeys(0, prod)
+	suite.Require().NoError(err)
+	byKey := map[string][]string{}
+	for _, k := range keys {
+		byKey[k.Key] = k.Values
+	}
+	suite.Equal([]string{"prod"}, byKey["env"])
+	suite.Equal([]string{"todo-app"}, byKey["repository"])
+
+	values, err := svc.SearchLabelValues("repository", "todo", 50, prod)
+	suite.Require().NoError(err)
+	suite.Equal([]string{"todo-app"}, values)
 }
 
 func (suite *DashboardSuggestionsIntegrationSuite) seedSuggestionSSPAndRun(sspID uuid.UUID, runID uuid.UUID) {

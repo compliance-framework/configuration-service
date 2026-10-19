@@ -28226,13 +28226,19 @@ paths:
   /oscal/system-security-plans/{id}/dashboard-suggestions/label-keys:
     get:
       description: Returns distinct evidence label keys with their distinct values,
-        for building an evidence-scoping filter without loading every label set.
+        for building an evidence-scoping filter without loading every label set. When
+        the SSP has scope entries, only in-scope evidence is considered unless ignoreScope
+        is true.
       parameters:
       - description: System Security Plan ID
         in: path
         name: id
         required: true
         type: string
+      - description: Use all evidence, ignoring the SSP's scope
+        in: query
+        name: ignoreScope
+        type: boolean
       produces:
       - application/json
       responses:
@@ -28248,6 +28254,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
         "500":
           description: Internal Server Error
           schema:
@@ -28260,7 +28270,8 @@ paths:
   /oscal/system-security-plans/{id}/dashboard-suggestions/label-sets:
     get:
       description: Returns canonical evidence label sets for dashboard suggestion
-        scope selection.
+        scope selection. When the SSP has scope entries, only in-scope evidence is
+        considered.
       parameters:
       - description: System Security Plan ID
         in: path
@@ -28282,6 +28293,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
         "500":
           description: Internal Server Error
           schema:
@@ -28295,7 +28310,8 @@ paths:
     get:
       description: Returns distinct evidence label values for a given label key, optionally
         matching a substring query. Searched server-side so high-cardinality values
-        are reachable.
+        are reachable. When the SSP has scope entries, only in-scope evidence is considered
+        unless ignoreScope is true.
       parameters:
       - description: System Security Plan ID
         in: path
@@ -28311,6 +28327,10 @@ paths:
         in: query
         name: query
         type: string
+      - description: Use all evidence, ignoring the SSP's scope
+        in: query
+        name: ignoreScope
+        type: boolean
       produces:
       - application/json
       responses:
@@ -28324,6 +28344,10 @@ paths:
             $ref: '#/definitions/api.Error'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
           schema:
             $ref: '#/definitions/api.Error'
         "500":

@@ -22696,7 +22696,7 @@ const docTemplate = `{
         },
         "/oscal/system-security-plans/{id}/dashboard-suggestions/label-keys": {
             "get": {
-                "description": "Returns distinct evidence label keys with their distinct values, for building an evidence-scoping filter without loading every label set.",
+                "description": "Returns distinct evidence label keys with their distinct values, for building an evidence-scoping filter without loading every label set. When the SSP has scope entries, only in-scope evidence is considered unless ignoreScope is true.",
                 "produces": [
                     "application/json"
                 ],
@@ -22711,6 +22711,12 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Use all evidence, ignoring the SSP's scope",
+                        "name": "ignoreScope",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -22732,6 +22738,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -22748,7 +22760,7 @@ const docTemplate = `{
         },
         "/oscal/system-security-plans/{id}/dashboard-suggestions/label-sets": {
             "get": {
-                "description": "Returns canonical evidence label sets for dashboard suggestion scope selection.",
+                "description": "Returns canonical evidence label sets for dashboard suggestion scope selection. When the SSP has scope entries, only in-scope evidence is considered.",
                 "produces": [
                     "application/json"
                 ],
@@ -22784,6 +22796,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.Error"
                         }
                     },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -22800,7 +22818,7 @@ const docTemplate = `{
         },
         "/oscal/system-security-plans/{id}/dashboard-suggestions/label-values": {
             "get": {
-                "description": "Returns distinct evidence label values for a given label key, optionally matching a substring query. Searched server-side so high-cardinality values are reachable.",
+                "description": "Returns distinct evidence label values for a given label key, optionally matching a substring query. Searched server-side so high-cardinality values are reachable. When the SSP has scope entries, only in-scope evidence is considered unless ignoreScope is true.",
                 "produces": [
                     "application/json"
                 ],
@@ -22828,6 +22846,12 @@ const docTemplate = `{
                         "description": "Substring to match against values",
                         "name": "query",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Use all evidence, ignoring the SSP's scope",
+                        "name": "ignoreScope",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -22845,6 +22869,12 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/api.Error"
                         }
