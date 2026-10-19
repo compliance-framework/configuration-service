@@ -1,0 +1,2 @@
+lisa-addressed:
+- Creating a disabled template stored it enabled (gorm writes a column default over a zero bool on create, even with Select("*")); the enabled column has no default now (found while testing B4).
