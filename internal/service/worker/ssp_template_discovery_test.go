@@ -33,3 +33,8 @@ func TestControlIDResolverDedupesCaseInsensitively(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []string{"AC-1", "AC-2"}, ids)
 }
+
+func TestEnqueueSSPTemplateDiscoveryNeedsTheWorker(t *testing.T) {
+	disabled := &Service{config: &config.WorkerConfig{Enabled: false}}
+	require.Error(t, disabled.EnqueueSSPTemplateDiscovery(context.Background(), uuid.New()), "a run that would never happen is not accepted")
+}
