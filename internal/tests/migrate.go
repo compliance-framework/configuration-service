@@ -220,10 +220,7 @@ func (t *TestMigrator) Up() error {
 	if err := riskrel.EnsureIndexes(t.db); err != nil {
 		return err
 	}
-	if err := relational.EnsureSSPScopeConstraints(t.db); err != nil {
-		return err
-	}
-	if err := relational.EnsureSSPTemplateConstraints(t.db); err != nil {
+	if err := relational.EnsureSSPConstraints(t.db); err != nil {
 		return err
 	}
 

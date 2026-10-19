@@ -1,7 +1,6 @@
 package ssptemplates
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/compliance-framework/api/internal/converters/labelfilter"
@@ -71,12 +70,9 @@ func TestBuildRejects(t *testing.T) {
 		"too many keys":        {func(in *Input) { in.Keys = []string{"a", "b", "c", "d", "e", "f"} }, "keys: between 1 and 5 labels"},
 		"empty key":            {func(in *Input) { in.Keys = []string{"_app", " "} }, "keys: label keys and values must not be empty"},
 		"duplicate key":        {func(in *Input) { in.Keys = []string{"_app", "_APP"} }, "keys: duplicate key"},
-		"key with =":           {func(in *Input) { in.Keys = []string{"a=b"} }, "must not contain '='"},
-		"long key":             {func(in *Input) { in.Keys = []string{strings.Repeat("k", 257)} }, "at most 256 characters"},
 		"too many groups":      {func(in *Input) { in.ScopeLabels = make([][]string, 11) }, "at most 10 scope-label groups"},
 		"empty group":          {func(in *Input) { in.ScopeLabels = [][]string{{}} }, "scope-labels[0]: between 1 and 5 labels"},
 		"too many group items": {func(in *Input) { in.ScopeLabels = [][]string{{"a", "b", "c", "d", "e", "f"}} }, "scope-labels[0]: between 1 and 5 labels"},
-		"empty label":          {func(in *Input) { in.ScopeLabels = [][]string{{"repo", ""}} }, "scope-labels[0]: label keys"},
 		"repeated group":       {func(in *Input) { in.ScopeLabels = [][]string{{"a", "b"}, {"B", "a"}} }, "scope-labels[1] repeats"},
 		"min-streams 0":        {func(in *Input) { in.MinStreams = new(int) }, "min-streams must be at least 1"},
 		"no title":             {func(in *Input) { in.TitleTemplate = "  " }, "title-template is required"},

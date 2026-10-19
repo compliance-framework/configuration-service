@@ -224,10 +224,7 @@ func MigrateUpWithConfig(db *gorm.DB, cfg *config.Config) error {
 	if err := riskrel.EnsureIndexes(db); err != nil {
 		return err
 	}
-	if err := relational.EnsureSSPScopeConstraints(db); err != nil {
-		return err
-	}
-	if err := relational.EnsureSSPTemplateConstraints(db); err != nil {
+	if err := relational.EnsureSSPConstraints(db); err != nil {
 		return err
 	}
 

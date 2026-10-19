@@ -1,6 +1,5 @@
 // Package ssptemplates stores SSP templates: rules that create one SSP per distinct
-// combination of key label values in the latest evidence and keep each SSP's scope up to
-// date.
+// combination of key label values in the latest evidence and keep its scope up to date.
 package ssptemplates
 
 import (

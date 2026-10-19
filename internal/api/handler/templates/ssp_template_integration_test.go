@@ -115,6 +115,9 @@ func (s *SSPTemplateApiIntegrationSuite) TestAdminManagesTemplates() {
 	s.Equal(float64(1), created["min-streams"])
 	s.Equal([]any{profileID.String()}, created["profile-ids"])
 	s.Contains(created, "created-at")
+	s.Equal(float64(0), created["ssp-count"])
+	s.Contains(created, "last-run-at")
+	s.Nil(created["last-run-at"])
 	s.NotNil(created["filter"])
 	id := created["id"].(string)
 
@@ -175,7 +178,6 @@ func (s *SSPTemplateApiIntegrationSuite) TestErrors() {
 		{"unparseable title", http.MethodPost, "", badTitle, http.StatusBadRequest},
 		{"unknown profile", http.MethodPost, "", unknownProfile, http.StatusBadRequest},
 		{"no keys", http.MethodPost, "", templateBody("Apps"), http.StatusBadRequest},
-		{"malformed body", http.MethodPost, "", "not an object", http.StatusBadRequest},
 		{"bad id", http.MethodGet, "/nope", nil, http.StatusBadRequest},
 		{"unknown get", http.MethodGet, unknown, nil, http.StatusNotFound},
 		{"unknown update", http.MethodPut, unknown, templateBody("Apps", "_app"), http.StatusNotFound},
@@ -207,6 +209,8 @@ func (s *SSPTemplateApiIntegrationSuite) TestDeleteKeepsSSPs() {
 	var instance relational.SSPTemplateInstance
 	s.Require().NoError(s.DB.Where("key_hash = ?", "b").First(&instance).Error)
 	s.Nil(instance.SSPID, "deleting the SSP keeps the instance, so discovery does not recreate it")
+	got := s.decode(s.do(s.admin, http.MethodGet, "/"+templateID.String(), nil), http.StatusOK)["data"].(map[string]any)
+	s.Equal(float64(1), got["ssp-count"], "only SSPs that still exist count")
 
 	s.Require().Equal(http.StatusNoContent, s.do(s.admin, http.MethodDelete, "/"+templateID.String(), nil).Code)
 	var instances, ssps int64

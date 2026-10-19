@@ -6,11 +6,9 @@ import (
 	"github.com/compliance-framework/api/internal/converters/labelfilter"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
-	"gorm.io/gorm"
 )
 
-// SSPTemplateProp is a prop an SSP template writes on the SSPs it creates. Value is a Go
-// text/template rendered with the SSP's key values.
+// SSPTemplateProp is a prop written on created SSPs; Value is a text/template of the keys.
 type SSPTemplateProp struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
@@ -33,8 +31,10 @@ type SSPTemplate struct {
 	DescriptionTemplate *string
 	Props               datatypes.JSONSlice[SSPTemplateProp] `gorm:"type:jsonb"`
 	ProfileIDs          datatypes.JSONSlice[uuid.UUID]       `gorm:"type:jsonb"`
-	CreatedAt           time.Time
-	UpdatedAt           time.Time
+	// LastRunAt is when a discovery run for the template last completed.
+	LastRunAt *time.Time
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func (SSPTemplate) TableName() string { return "ssp_templates" }
@@ -57,18 +57,3 @@ type SSPTemplateInstance struct {
 }
 
 func (SSPTemplateInstance) TableName() string { return "ssp_template_instances" }
-
-// EnsureSSPTemplateConstraints adds the foreign keys of ssp_template_instances: deleting
-// a template deletes its instances (its SSPs and their scope entries are kept), and
-// deleting an SSP nulls its instance's ssp_id. AutoMigrate runs with
-// DisableForeignKeyConstraintWhenMigrating, so the models' constraint tags alone are not
-// enforced. Idempotent; postgres only.
-func EnsureSSPTemplateConstraints(db *gorm.DB) error {
-	if db.Name() != "postgres" {
-		return nil
-	}
-	return ensureForeignKeys(db, []foreignKey{
-		{"ssp_template_instances", "fk_ssp_template_instances_template", "template_id", "ssp_templates(id)", "CASCADE"},
-		{"ssp_template_instances", "fk_ssp_template_instances_ssp", "ssp_id", "system_security_plans(id)", "SET NULL"},
-	})
-}

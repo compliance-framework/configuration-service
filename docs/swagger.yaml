@@ -11972,6 +11972,9 @@ definitions:
         items:
           type: string
         type: array
+      last-run-at:
+        description: last completed discovery run
+        type: string
       min-streams:
         type: integer
       name:
@@ -11990,6 +11993,9 @@ definitions:
             type: string
           type: array
         type: array
+      ssp-count:
+        description: SSPs created that still exist
+        type: integer
       title-template:
         type: string
       updated-at:
@@ -14856,7 +14862,6 @@ paths:
       - RoleAssignments
   /admin/ssp-templates:
     get:
-      description: List SSP templates, newest first.
       parameters:
       - description: Page number
         in: query

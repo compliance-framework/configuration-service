@@ -2557,7 +2557,6 @@ const docTemplate = `{
         },
         "/admin/ssp-templates": {
             "get": {
-                "description": "List SSP templates, newest first.",
                 "produces": [
                     "application/json"
                 ],
@@ -54005,6 +54004,10 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "last-run-at": {
+                    "description": "last completed discovery run",
+                    "type": "string"
+                },
                 "min-streams": {
                     "type": "integer"
                 },
@@ -54031,6 +54034,10 @@ const docTemplate = `{
                             "type": "string"
                         }
                     }
+                },
+                "ssp-count": {
+                    "description": "SSPs created that still exist",
+                    "type": "integer"
                 },
                 "title-template": {
                     "type": "string"

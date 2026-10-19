@@ -66,6 +66,8 @@ type sspTemplateResponse struct {
 	DescriptionTemplate *string                      `json:"description-template"`
 	Props               []relational.SSPTemplateProp `json:"props"`
 	ProfileIDs          []uuid.UUID                  `json:"profile-ids"`
+	SSPCount            int64                        `json:"ssp-count"`   // SSPs created that still exist
+	LastRunAt           *time.Time                   `json:"last-run-at"` // last completed discovery run
 	CreatedAt           time.Time                    `json:"created-at"`
 	UpdatedAt           time.Time                    `json:"updated-at"`
 }
@@ -76,7 +78,7 @@ type sspTemplateDataResponse struct {
 
 // toSSPTemplateResponse maps a stored template. Build stores every list non-nil, so the
 // lists render as [] rather than null.
-func toSSPTemplateResponse(t relational.SSPTemplate) sspTemplateResponse {
+func toSSPTemplateResponse(t ssptemplates.Listed) sspTemplateResponse {
 	resp := sspTemplateResponse{
 		ID:                  *t.ID,
 		Name:                t.Name,
@@ -88,6 +90,8 @@ func toSSPTemplateResponse(t relational.SSPTemplate) sspTemplateResponse {
 		DescriptionTemplate: t.DescriptionTemplate,
 		Props:               t.Props,
 		ProfileIDs:          t.ProfileIDs,
+		SSPCount:            t.SSPCount,
+		LastRunAt:           t.LastRunAt,
 		CreatedAt:           t.CreatedAt,
 		UpdatedAt:           t.UpdatedAt,
 	}
@@ -100,17 +104,16 @@ func toSSPTemplateResponse(t relational.SSPTemplate) sspTemplateResponse {
 
 // List godoc
 //
-//	@Summary		List SSP templates
-//	@Description	List SSP templates, newest first.
-//	@Tags			SSP Templates
-//	@Produce		json
-//	@Param			page	query		int	false	"Page number"
-//	@Param			limit	query		int	false	"Page size"
-//	@Success		200		{object}	svc.ListResponse[sspTemplateResponse]
-//	@Failure		400		{object}	api.Error
-//	@Failure		500		{object}	api.Error
-//	@Security		OAuth2Password
-//	@Router			/admin/ssp-templates [get]
+//	@Summary	List SSP templates
+//	@Tags		SSP Templates
+//	@Produce	json
+//	@Param		page	query		int	false	"Page number"
+//	@Param		limit	query		int	false	"Page size"
+//	@Success	200		{object}	svc.ListResponse[sspTemplateResponse]
+//	@Failure	400		{object}	api.Error
+//	@Failure	500		{object}	api.Error
+//	@Security	OAuth2Password
+//	@Router		/admin/ssp-templates [get]
 func (h *SSPTemplateHandler) List(ctx echo.Context) error {
 	pagination, err := h.pagination.ParseParams(ctx)
 	if err != nil {
