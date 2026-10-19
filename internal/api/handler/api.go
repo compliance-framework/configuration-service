@@ -242,6 +242,11 @@ func RegisterHandlers(server *api.Server, logger *zap.SugaredLogger, db *gorm.DB
 	subjectTemplateGroup.Use(pep.Authorize(authz.ResourceAdmin, authz.ActionManage))
 	subjectTemplateHandler.Register(subjectTemplateGroup)
 
+	sspTemplateGroup := server.API().Group("/admin/ssp-templates")
+	sspTemplateGroup.Use(middleware.JWTMiddleware(config.JWTPublicKey))
+	sspTemplateGroup.Use(pep.Authorize(authz.ResourceAdmin, authz.ActionManage))
+	templatehandlers.NewSSPTemplateHandler(logger, db).Register(sspTemplateGroup)
+
 	agentSubjectTemplateGroup := server.API().Group("/agent/subject-templates")
 	subjectTemplateHandler.RegisterAgent(agentSubjectTemplateGroup, agentIngestMiddleware, pep.For(authz.ResourceSubjectTemplate).Update())
 

@@ -94,12 +94,20 @@ func EnsureSSPScopeConstraints(db *gorm.DB) error {
 	if db.Name() != "postgres" {
 		return nil
 	}
-	type foreignKey struct{ table, name, column, references, onDelete string }
 	keys := make([]foreignKey, 0, len(sspScopeTables)+1)
 	for _, table := range sspScopeTables {
 		keys = append(keys, foreignKey{table, "fk_" + table + "_system_security_plan", "ssp_id", "system_security_plans(id)", "CASCADE"})
 	}
 	keys = append(keys, foreignKey{"ssp_scope_policy_filters", "fk_ssp_scope_policy_filters_filter", "filter_id", "filters(id)", "SET NULL"})
+	return ensureForeignKeys(db, keys)
+}
+
+// foreignKey is a foreign key constraint added by ensureForeignKeys.
+type foreignKey struct{ table, name, column, references, onDelete string }
+
+// ensureForeignKeys adds each constraint that does not exist yet. Idempotent; postgres
+// only (callers check).
+func ensureForeignKeys(db *gorm.DB, keys []foreignKey) error {
 	for _, key := range keys {
 		if err := db.Exec(fmt.Sprintf(`
 			DO $$
