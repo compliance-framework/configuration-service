@@ -39,6 +39,12 @@ type SSPTemplate struct {
 
 func (SSPTemplate) TableName() string { return "ssp_templates" }
 
+// SkippedScopeEntry is a learned scope entry discovery could not store, with the reason.
+type SkippedScopeEntry struct {
+	Labels []ScopeLabel `json:"labels"`
+	Reason string       `json:"reason"`
+}
+
 // SSPTemplateInstance records an SSP a template created, keyed by its key values.
 type SSPTemplateInstance struct {
 	TemplateID uuid.UUID `gorm:"type:uuid;primaryKey"`
@@ -52,6 +58,13 @@ type SSPTemplateInstance struct {
 	LastSeenAt time.Time
 	// LastError is the last failure applying the instance (a profile attach, say).
 	LastError *string
+	// ProfilesPending is set while some of the template's profiles failed to attach to
+	// the SSP; discovery retries them on its next run.
+	ProfilesPending bool `gorm:"not null;default:false"`
+	// SkippedEntries counts the learned entries the last run could not store (a value
+	// over the length limit, say); SkippedSample keeps a few of them.
+	SkippedEntries int                                    `gorm:"not null;default:0"`
+	SkippedSample  datatypes.JSONSlice[SkippedScopeEntry] `gorm:"type:jsonb"`
 
 	Template *SSPTemplate `gorm:"foreignKey:TemplateID;constraint:OnDelete:CASCADE"`
 }

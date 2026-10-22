@@ -55,10 +55,7 @@ type InvalidGroup struct {
 }
 
 // InvalidEntry is a learned entry a scope cannot hold.
-type InvalidEntry struct {
-	Labels []relational.ScopeLabel `json:"labels"`
-	Reason string                  `json:"reason"`
-}
+type InvalidEntry = relational.SkippedScopeEntry
 
 // HashesBySSP holds, per SSP, the MatchHashes of its scope entries or exceptions.
 type HashesBySSP map[uuid.UUID]map[string]struct{}
