@@ -172,7 +172,7 @@ func (h *SSPScopeHandler) AddEntry(ctx echo.Context) error {
 // AddException godoc
 //
 //	@Summary		Add an SSP scope exception
-//	@Description	Removes the entry with the same labels from the SSP's scope, and stops SSP templates from learning it again.
+//	@Description	Removes the entry with the same labels from the SSP's scope, and stops SSP templates from learning it again. Refused with 409 when it would remove the last entry while filters follow the scope.
 //	@Tags			System Security Plans
 //	@Accept			json
 //	@Produce		json
@@ -290,7 +290,7 @@ func (h *SSPScopeHandler) scopeError(ctx echo.Context, err error) error {
 		return ctx.JSON(http.StatusNotFound, api.NewError(err))
 	case errors.Is(err, sspscope.ErrInvalidLabels), errors.Is(err, sspscope.ErrLimitExceeded):
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
-	case errors.Is(err, sspscope.ErrDuplicateEntry), errors.Is(err, sspscope.ErrDuplicateException):
+	case errors.Is(err, sspscope.ErrDuplicateEntry), errors.Is(err, sspscope.ErrDuplicateException), errors.Is(err, sspscope.ErrScopeWouldEmpty):
 		return ctx.JSON(http.StatusConflict, api.NewError(err))
 	}
 	h.sugar.Errorw("SSP scope operation failed", "ssp", ctx.Param("id"), "error", err)

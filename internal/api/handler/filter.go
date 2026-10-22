@@ -8,7 +8,9 @@ import (
 
 	"github.com/compliance-framework/api/internal/api"
 	"github.com/compliance-framework/api/internal/api/middleware"
+	"github.com/compliance-framework/api/internal/converters/labelfilter"
 	"github.com/compliance-framework/api/internal/service/relational"
+	"github.com/compliance-framework/api/internal/service/relational/sspscope"
 	oscalTypes_1_1_3 "github.com/defenseunicorns/go-oscal/src/types/oscal-1-1-3"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -227,7 +229,9 @@ func (h *FilterHandler) Create(ctx echo.Context) error {
 		Name:   req.Name,
 		SSPID:  req.SSPID,
 		Filter: datatypes.NewJSONType(req.Filter),
+		Origin: relational.FilterOriginManual,
 	}
+	follow := req.FollowSSPScope != nil && *req.FollowSSPScope
 
 	if hasControls {
 		for _, controlId := range *req.Controls {
@@ -259,8 +263,15 @@ func (h *FilterHandler) Create(ctx echo.Context) error {
 		}
 	}
 
-	if err := h.db.Create(&filter).Error; err != nil {
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	if err := h.db.Transaction(func(tx *gorm.DB) error {
+		if follow {
+			if err := followSSPScope(tx, &filter, req.Filter); err != nil {
+				return err
+			}
+		}
+		return tx.Create(&filter).Error
+	}); err != nil {
+		return h.filterWriteError(ctx, err)
 	}
 
 	return ctx.JSON(http.StatusCreated, GenericDataResponse[relational.Filter]{Data: filter})
@@ -307,7 +318,17 @@ func (h *FilterHandler) Update(ctx echo.Context) error {
 	filter.Name = req.Name
 	// PUT is full replacement: omitted or null sspId intentionally clears the SSP binding.
 	filter.SSPID = req.SSPID
-	filter.Filter = datatypes.NewJSONType(req.Filter)
+	// followSspScope: true follows (filter is the new base), false stops following and
+	// keeps the current effective filter, omitted keeps the filter's current state.
+	following := filter.ScopeBase != nil
+	follow := following
+	if req.FollowSSPScope != nil {
+		follow = *req.FollowSSPScope
+	}
+	if !following || follow {
+		filter.Filter = datatypes.NewJSONType(req.Filter)
+	}
+	filter.ScopeBase = nil
 
 	// Note: nil and empty slices are semantically different here.
 	// If one of controls / components is present but empty, that
@@ -387,8 +408,15 @@ func (h *FilterHandler) Update(ctx echo.Context) error {
 		}
 	}
 
-	if err := h.db.Save(&filter).Error; err != nil {
-		return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
+	if err := h.db.Transaction(func(tx *gorm.DB) error {
+		if follow {
+			if err := followSSPScope(tx, &filter, req.Filter); err != nil {
+				return err
+			}
+		}
+		return tx.Save(&filter).Error
+	}); err != nil {
+		return h.filterWriteError(ctx, err)
 	}
 
 	return ctx.JSON(http.StatusOK, GenericDataResponse[relational.Filter]{Data: filter})
@@ -813,4 +841,31 @@ func (h *FilterHandler) DetachResponsibility(ctx echo.Context) error {
 	}
 
 	return ctx.NoContent(http.StatusNoContent)
+}
+
+// errFollowNeedsSSP is returned when a filter without an SSP is asked to follow a scope.
+var errFollowNeedsSSP = errors.New("followSspScope requires sspId")
+
+// followSSPScope makes filter follow its SSP's scope inside tx: base becomes ScopeBase
+// and the stored expression is base AND the scope.
+func followSSPScope(tx *gorm.DB, filter *relational.Filter, base labelfilter.Filter) error {
+	if filter.SSPID == nil {
+		return errFollowNeedsSSP
+	}
+	effective, err := sspscope.FollowScope(tx, *filter.SSPID, base)
+	if err != nil {
+		return err
+	}
+	scopeBase := datatypes.NewJSONType(base)
+	filter.ScopeBase = &scopeBase
+	filter.Filter = datatypes.NewJSONType(effective)
+	return nil
+}
+
+func (h *FilterHandler) filterWriteError(ctx echo.Context, err error) error {
+	switch {
+	case errors.Is(err, errFollowNeedsSSP), errors.Is(err, sspscope.ErrScopeEmpty), errors.Is(err, sspscope.ErrSSPNotFound):
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+	return ctx.JSON(http.StatusInternalServerError, api.NewError(err))
 }

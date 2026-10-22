@@ -885,6 +885,17 @@ definitions:
         type: string
       name:
         type: string
+      origin:
+        description: |-
+          Origin is "manual" for user-made filters and "scope-policy" for automatic per-policy
+          filters.
+        type: string
+      scopeBase:
+        allOf:
+        - $ref: '#/definitions/datatypes.JSONType-labelfilter_Filter'
+        description: |-
+          ScopeBase, when set, makes the filter follow its SSP's scope: Filter is kept equal to
+          ScopeBase AND the SSP scope, and is rewritten whenever the scope changes.
       sspId:
         type: string
     type: object
@@ -3298,6 +3309,13 @@ definitions:
         type: array
       filter:
         $ref: '#/definitions/labelfilter.Filter'
+      followSspScope:
+        description: |-
+          FollowSSPScope makes the filter follow its SSP's scope: filter becomes the base
+          expression and the stored filter is filter AND the scope, rewritten whenever the
+          scope changes. Requires sspId and a non-empty scope. On PUT, false stops following
+          and keeps the current effective filter; omitted keeps the current state.
+        type: boolean
       name:
         type: string
       sspId:
@@ -9577,6 +9595,17 @@ definitions:
         type: string
       name:
         type: string
+      origin:
+        description: |-
+          Origin is "manual" for user-made filters and "scope-policy" for automatic per-policy
+          filters.
+        type: string
+      scopeBase:
+        allOf:
+        - $ref: '#/definitions/datatypes.JSONType-labelfilter_Filter'
+        description: |-
+          ScopeBase, when set, makes the filter follow its SSP's scope: Filter is kept equal to
+          ScopeBase AND the SSP scope, and is rewritten whenever the scope changes.
       sspId:
         type: string
     type: object
@@ -29672,7 +29701,8 @@ paths:
       consumes:
       - application/json
       description: Removes the entry with the same labels from the SSP's scope, and
-        stops SSP templates from learning it again.
+        stops SSP templates from learning it again. Refused with 409 when it would
+        remove the last entry while filters follow the scope.
       parameters:
       - description: SSP ID
         in: path
