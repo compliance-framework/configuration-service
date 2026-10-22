@@ -202,6 +202,8 @@ func MigrateUpWithConfig(db *gorm.DB, cfg *config.Config) error {
 		&relational.SSPScopeEntry{},
 		&relational.SSPScopeException{},
 		&relational.SSPScopePolicyFilter{},
+		&relational.SSPTemplate{},
+		&relational.SSPTemplateInstance{},
 		&suggestionrel.DashboardSuggestionRun{},
 		&suggestionrel.DashboardSuggestionRunCell{},
 		&suggestionrel.DashboardSuggestion{},
@@ -222,7 +224,7 @@ func MigrateUpWithConfig(db *gorm.DB, cfg *config.Config) error {
 	if err := riskrel.EnsureIndexes(db); err != nil {
 		return err
 	}
-	if err := relational.EnsureSSPScopeConstraints(db); err != nil {
+	if err := relational.EnsureSSPConstraints(db); err != nil {
 		return err
 	}
 
@@ -1203,6 +1205,8 @@ func MigrateDown(db *gorm.DB) error {
 		&suggestionrel.DashboardSuggestionRunCell{},
 		&suggestionrel.DashboardSuggestionRun{},
 		&relational.FilterResponsibility{},
+		&relational.SSPTemplateInstance{},
+		&relational.SSPTemplate{},
 		&relational.SSPScopeSettings{},
 		&relational.SSPScopeEntry{},
 		&relational.SSPScopeException{},

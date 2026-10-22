@@ -10641,6 +10641,13 @@ definitions:
     - SSPLeverageStatusDrifted
     - SSPLeverageStatusRevoked
     - SSPLeverageStatusSuperseded
+  relational.SSPTemplateProp:
+    properties:
+      name:
+        type: string
+      value:
+        type: string
+    type: object
   relational.SatisfiedControlImplementationResponsibility:
     properties:
       by-component-id:
@@ -11411,6 +11418,21 @@ definitions:
       totalPages:
         type: integer
     type: object
+  service.ListResponse-templates_sspTemplateResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/templates.sspTemplateResponse'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+      totalPages:
+        type: integer
+    type: object
   service.ListResponse-templates_subjectTemplateResponse:
     properties:
       data:
@@ -11895,6 +11917,89 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  templates.sspTemplateDataResponse:
+    properties:
+      data:
+        $ref: '#/definitions/templates.sspTemplateResponse'
+    type: object
+  templates.sspTemplateRequest:
+    properties:
+      description-template:
+        type: string
+      enabled:
+        type: boolean
+      filter:
+        $ref: '#/definitions/labelfilter.Filter'
+      keys:
+        items:
+          type: string
+        type: array
+      min-streams:
+        type: integer
+      name:
+        type: string
+      profile-ids:
+        items:
+          type: string
+        type: array
+      props:
+        items:
+          $ref: '#/definitions/relational.SSPTemplateProp'
+        type: array
+      scope-labels:
+        items:
+          items:
+            type: string
+          type: array
+        type: array
+      title-template:
+        type: string
+    type: object
+  templates.sspTemplateResponse:
+    properties:
+      created-at:
+        type: string
+      description-template:
+        type: string
+      enabled:
+        type: boolean
+      filter:
+        $ref: '#/definitions/labelfilter.Filter'
+      id:
+        type: string
+      keys:
+        items:
+          type: string
+        type: array
+      last-run-at:
+        description: last completed discovery run
+        type: string
+      min-streams:
+        type: integer
+      name:
+        type: string
+      profile-ids:
+        items:
+          type: string
+        type: array
+      props:
+        items:
+          $ref: '#/definitions/relational.SSPTemplateProp'
+        type: array
+      scope-labels:
+        items:
+          items:
+            type: string
+          type: array
+        type: array
+      ssp-count:
+        description: SSPs created that still exist
+        type: integer
+      title-template:
+        type: string
+      updated-at:
+        type: string
     type: object
   templates.subjectTemplateDataResponse:
     properties:
@@ -14755,6 +14860,171 @@ paths:
       summary: Delete a role assignment
       tags:
       - RoleAssignments
+  /admin/ssp-templates:
+    get:
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/service.ListResponse-templates_sspTemplateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: List SSP templates
+      tags:
+      - SSP Templates
+    post:
+      consumes:
+      - application/json
+      description: Create an SSP template. Discovery creates one SSP per distinct
+        combination of its key label values.
+      parameters:
+      - description: SSP template
+        in: body
+        name: template
+        required: true
+        schema:
+          $ref: '#/definitions/templates.sspTemplateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/templates.sspTemplateDataResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Create SSP template
+      tags:
+      - SSP Templates
+  /admin/ssp-templates/{id}:
+    delete:
+      description: Delete an SSP template. The SSPs it created and their scope entries
+        are kept.
+      parameters:
+      - description: SSP template ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Delete SSP template
+      tags:
+      - SSP Templates
+    get:
+      parameters:
+      - description: SSP template ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/templates.sspTemplateDataResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Get SSP template
+      tags:
+      - SSP Templates
+    put:
+      consumes:
+      - application/json
+      description: 'Replace an SSP template''s settings. Keys cannot change (400):
+        create a new template instead. SSPs already created are not changed.'
+      parameters:
+      - description: SSP template ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: SSP template
+        in: body
+        name: template
+        required: true
+        schema:
+          $ref: '#/definitions/templates.sspTemplateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/templates.sspTemplateDataResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Update SSP template
+      tags:
+      - SSP Templates
   /admin/subject-templates:
     get:
       description: List subject templates with optional filters and pagination.

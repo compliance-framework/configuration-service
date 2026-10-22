@@ -85,21 +85,24 @@ func (SSPScopePolicyFilter) TableName() string { return "ssp_scope_policy_filter
 // sspScopeTables are the tables whose ssp_id cascades from system_security_plans.
 var sspScopeTables = []string{"ssp_scope_settings", "ssp_scope_entries", "ssp_scope_exceptions", "ssp_scope_policy_filters"}
 
-// EnsureSSPScopeConstraints adds the ON DELETE CASCADE foreign keys from the scope tables
-// to system_security_plans, and the ON DELETE SET NULL foreign key from
-// ssp_scope_policy_filters to filters. AutoMigrate runs with
+// EnsureSSPConstraints adds the ON DELETE CASCADE foreign keys from the scope tables
+// to system_security_plans, the ON DELETE SET NULL foreign key from
+// ssp_scope_policy_filters to filters, and ssp_template_instances' foreign keys (see
+// SSPTemplateInstance). AutoMigrate runs with
 // DisableForeignKeyConstraintWhenMigrating, so the models' constraint tags alone are not
 // enforced. Idempotent; postgres only.
-func EnsureSSPScopeConstraints(db *gorm.DB) error {
+func EnsureSSPConstraints(db *gorm.DB) error {
 	if db.Name() != "postgres" {
 		return nil
 	}
 	type foreignKey struct{ table, name, column, references, onDelete string }
-	keys := make([]foreignKey, 0, len(sspScopeTables)+1)
+	keys := make([]foreignKey, 0, len(sspScopeTables)+3)
 	for _, table := range sspScopeTables {
 		keys = append(keys, foreignKey{table, "fk_" + table + "_system_security_plan", "ssp_id", "system_security_plans(id)", "CASCADE"})
 	}
 	keys = append(keys, foreignKey{"ssp_scope_policy_filters", "fk_ssp_scope_policy_filters_filter", "filter_id", "filters(id)", "SET NULL"})
+	keys = append(keys, foreignKey{"ssp_template_instances", "fk_ssp_template_instances_template", "template_id", "ssp_templates(id)", "CASCADE"})
+	keys = append(keys, foreignKey{"ssp_template_instances", "fk_ssp_template_instances_ssp", "ssp_id", "system_security_plans(id)", "SET NULL"})
 	for _, key := range keys {
 		if err := db.Exec(fmt.Sprintf(`
 			DO $$
