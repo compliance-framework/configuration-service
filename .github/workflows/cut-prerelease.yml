@@ -7,7 +7,7 @@ permissions:
   contents: read
 jobs:
   cut:
-    uses: compliance-framework/workflows/.github/workflows/cut-prerelease.yml@05d2c3233de6e302c4ff891dde1132d440c081e4 # v1.6.0
+    uses: compliance-framework/workflows/.github/workflows/cut-prerelease.yml@e85d35af2af2ddfcd4b92061d2063e665c1831f6 # v1.7.0
     permissions:
       contents: read
     secrets: inherit
