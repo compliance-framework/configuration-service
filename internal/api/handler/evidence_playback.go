@@ -28,7 +28,7 @@ const maxPlaybackJSONBytes = 1 << 20
 
 // Evidence labels and props the agent writes and playback reads.
 const (
-	evidencePolicyLabel = "_policy"
+	evidencePolicyLabel = relational.EvidencePolicyLabel
 	evidenceViolationID = "_violation_id"
 )
 

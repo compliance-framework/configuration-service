@@ -162,13 +162,21 @@ func (s *Service) DeleteException(sspID, exceptionID uuid.UUID) error {
 	})
 }
 
-// SetAutoFilters turns automatic per-policy filters on or off for the SSP.
+// SetAutoFilters turns automatic per-policy filters on or off for the SSP. Turning them
+// on creates the missing automatic filters in the same transaction.
 func (s *Service) SetAutoFilters(sspID uuid.UUID, enabled bool) error {
 	return s.write(sspID, func(tx *gorm.DB) error {
-		return tx.Clauses(clause.OnConflict{
+		if err := tx.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "ssp_id"}},
 			DoUpdates: clause.AssignmentColumns([]string{"auto_filters", "updated_at"}),
-		}).Create(&relational.SSPScopeSettings{SSPID: sspID, AutoFilters: enabled}).Error
+		}).Create(&relational.SSPScopeSettings{SSPID: sspID, AutoFilters: enabled}).Error; err != nil {
+			return err
+		}
+		if !enabled {
+			return nil
+		}
+		_, err := reconcileAutoFilters(tx, sspID)
+		return err
 	})
 }
 
@@ -319,9 +327,14 @@ func collapse(operator string, scopes []labelfilter.Scope) labelfilter.Scope {
 }
 
 // afterChange runs, inside the writing transaction, whatever must follow a change of
-// the SSP's entries: filters that follow the scope are rewritten.
+// the SSP's entries: filters that follow the scope are rewritten, then, when automatic
+// filters are on, the missing ones are created.
 func (s *Service) afterChange(tx *gorm.DB, sspID uuid.UUID) error {
-	return rewriteFollowingFilters(tx, sspID)
+	if err := rewriteFollowingFilters(tx, sspID); err != nil {
+		return err
+	}
+	_, err := reconcileAutoFilters(tx, sspID)
+	return err
 }
 
 // write runs fn in a transaction holding the SSP's scope lock, after checking the SSP

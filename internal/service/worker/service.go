@@ -346,11 +346,14 @@ func NewServiceWithDigest(
 	evidenceBatchRetention, evidenceBatchPruneSchedule := evidenceBatchPruneSettings(digestCfg)
 	evidenceBatchPruneWorker := NewEvidenceBatchPruneWorker(db, evidenceBatchRetention, logger)
 	river.AddWorker(workers, river.WorkFunc(evidenceBatchPruneWorker.Work))
+	sspScopeAutoFiltersWorker := NewSSPScopeAutoFiltersWorker(db, logger)
+	river.AddWorker(workers, river.WorkFunc(sspScopeAutoFiltersWorker.Work))
 
 	// Configure periodic jobs. Evidence batches are always pruned: nothing else bounds
 	// their tables.
 	periodicJobs := periodicJobsFromConfig(digestCfg, logger)
 	periodicJobs = append(periodicJobs, NewEvidenceBatchPrunePeriodicJob(evidenceBatchPruneSchedule, logger))
+	periodicJobs = append(periodicJobs, NewSSPScopeAutoFiltersPeriodicJob(sspScopeAutoFiltersSchedule(digestCfg), logger))
 
 	// Create River client with pgxv5 driver
 	riverConfig := buildRiverConfig(cfg, workers, periodicJobs, aiConfigFromConfig(digestCfg), evidenceBatchConfigFromConfig(digestCfg))

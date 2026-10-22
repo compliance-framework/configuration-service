@@ -154,3 +154,10 @@ func (s *NormalizeSuite) TestAnd() {
 	s.Require().NoError(err)
 	s.Equal([]int{0}, matched)
 }
+
+func (s *NormalizeSuite) TestPlanAutoFilters() {
+	s.Equal([]string{"b", "c"}, planAutoFilters([]string{"A", "b", "B", "c", " "}, []string{"a"}),
+		"recorded policies are skipped case-insensitively, repeats collapse to the first spelling, blanks are ignored")
+	s.Empty(planAutoFilters(nil, []string{"a"}))
+	s.Equal([]string{"x"}, planAutoFilters([]string{"x"}, nil))
+}
