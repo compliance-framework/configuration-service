@@ -35,6 +35,7 @@ func NewSSPTemplateHandler(sugar *zap.SugaredLogger, db *gorm.DB) *SSPTemplateHa
 func (h *SSPTemplateHandler) Register(group *echo.Group) {
 	group.GET("", h.List)
 	group.POST("", h.Create)
+	group.POST("/preview", h.Preview)
 	group.GET("/:id", h.Get)
 	group.PUT("/:id", h.Update)
 	group.DELETE("/:id", h.Delete)
@@ -231,6 +232,43 @@ func (h *SSPTemplateHandler) Delete(ctx echo.Context) error {
 		return h.serviceError(ctx, "failed to delete SSP template", err)
 	}
 	return ctx.NoContent(http.StatusNoContent)
+}
+
+type sspTemplatePreviewRequest struct {
+	// ID names the saved template, when there is one, so the preview knows which SSPs
+	// it already created.
+	ID *uuid.UUID `json:"id"`
+	sspTemplateRequest
+}
+
+type sspTemplatePreviewResponse struct {
+	Data ssptemplates.Plan `json:"data"`
+}
+
+// Preview godoc
+//
+//	@Summary		Preview an SSP template
+//	@Description	Show what discovery would do now for a template, saved or not: the SSPs it would create or update, the scope entries it would learn, groups under min-streams, streams lacking a key and groups whose key values cannot be stored. Writes nothing.
+//	@Tags			SSP Templates
+//	@Accept			json
+//	@Produce		json
+//	@Param			template	body		sspTemplatePreviewRequest	true	"SSP template, with its id when saved"
+//	@Success		200			{object}	sspTemplatePreviewResponse
+//	@Failure		400			{object}	api.Error
+//	@Failure		404			{object}	api.Error
+//	@Failure		500			{object}	api.Error
+//	@Security		OAuth2Password
+//	@Router			/admin/ssp-templates/preview [post]
+func (h *SSPTemplateHandler) Preview(ctx echo.Context) error {
+	var req sspTemplatePreviewRequest
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	}
+	plan, err := h.service.Preview(req.ID, ssptemplates.Input(req.sspTemplateRequest))
+	if err != nil {
+		return h.serviceError(ctx, "failed to preview SSP template", err)
+	}
+	return ctx.JSON(http.StatusOK, sspTemplatePreviewResponse{Data: plan})
 }
 
 func (h *SSPTemplateHandler) serviceError(ctx echo.Context, message string, err error) error {

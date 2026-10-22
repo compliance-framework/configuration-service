@@ -11463,6 +11463,94 @@ definitions:
       totalPages:
         type: integer
     type: object
+  ssptemplates.GroupStreams:
+    properties:
+      key-values:
+        additionalProperties:
+          type: string
+        type: object
+      streams:
+        type: integer
+    type: object
+  ssptemplates.InvalidEntry:
+    properties:
+      labels:
+        items:
+          $ref: '#/definitions/relational.ScopeLabel'
+        type: array
+      reason:
+        type: string
+    type: object
+  ssptemplates.InvalidGroup:
+    properties:
+      key-values:
+        additionalProperties:
+          type: string
+        type: object
+      reason:
+        type: string
+    type: object
+  ssptemplates.Plan:
+    properties:
+      below-threshold:
+        items:
+          $ref: '#/definitions/ssptemplates.GroupStreams'
+        type: array
+      invalid:
+        items:
+          $ref: '#/definitions/ssptemplates.InvalidGroup'
+        type: array
+      missing-keys:
+        description: streams that matched the filter but lacked a usable key value
+        type: integer
+      ssps:
+        items:
+          $ref: '#/definitions/ssptemplates.PlannedSSP'
+        type: array
+    type: object
+  ssptemplates.PlannedSSP:
+    properties:
+      exists:
+        description: |-
+          Exists is true when an instance records this group. Its SSPID is nil when the SSP
+          was deleted: discovery then leaves the group alone.
+        type: boolean
+      invalid-entries:
+        description: |-
+          InvalidEntries are learned entries a scope cannot hold (a value over the length
+          limit, say); discovery skips them.
+        items:
+          $ref: '#/definitions/ssptemplates.InvalidEntry'
+        type: array
+      key-hash:
+        type: string
+      key-values:
+        additionalProperties:
+          type: string
+        type: object
+      learn:
+        description: |-
+          Learn are the scope entries discovery would add: not in the scope yet and not
+          excepted.
+        items:
+          items:
+            $ref: '#/definitions/relational.ScopeLabel'
+          type: array
+        type: array
+      skipped-by-exception:
+        items:
+          items:
+            $ref: '#/definitions/relational.ScopeLabel'
+          type: array
+        type: array
+      ssp-id:
+        type: string
+      streams:
+        description: Streams is the number of streams in the group.
+        type: integer
+      title:
+        type: string
+    type: object
   subjects.IdentityLabel:
     properties:
       key:
@@ -11922,6 +12010,49 @@ definitions:
     properties:
       data:
         $ref: '#/definitions/templates.sspTemplateResponse'
+    type: object
+  templates.sspTemplatePreviewRequest:
+    properties:
+      description-template:
+        type: string
+      enabled:
+        type: boolean
+      filter:
+        $ref: '#/definitions/labelfilter.Filter'
+      id:
+        description: |-
+          ID names the saved template, when there is one, so the preview knows which SSPs
+          it already created.
+        type: string
+      keys:
+        items:
+          type: string
+        type: array
+      min-streams:
+        type: integer
+      name:
+        type: string
+      profile-ids:
+        items:
+          type: string
+        type: array
+      props:
+        items:
+          $ref: '#/definitions/relational.SSPTemplateProp'
+        type: array
+      scope-labels:
+        items:
+          items:
+            type: string
+          type: array
+        type: array
+      title-template:
+        type: string
+    type: object
+  templates.sspTemplatePreviewResponse:
+    properties:
+      data:
+        $ref: '#/definitions/ssptemplates.Plan'
     type: object
   templates.sspTemplateRequest:
     properties:
@@ -15023,6 +15154,45 @@ paths:
       security:
       - OAuth2Password: []
       summary: Update SSP template
+      tags:
+      - SSP Templates
+  /admin/ssp-templates/preview:
+    post:
+      consumes:
+      - application/json
+      description: 'Show what discovery would do now for a template, saved or not:
+        the SSPs it would create or update, the scope entries it would learn, groups
+        under min-streams, streams lacking a key and groups whose key values cannot
+        be stored. Writes nothing.'
+      parameters:
+      - description: SSP template, with its id when saved
+        in: body
+        name: template
+        required: true
+        schema:
+          $ref: '#/definitions/templates.sspTemplatePreviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/templates.sspTemplatePreviewResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Preview an SSP template
       tags:
       - SSP Templates
   /admin/subject-templates:
