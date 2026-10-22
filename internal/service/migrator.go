@@ -198,6 +198,9 @@ func MigrateUpWithConfig(db *gorm.DB, cfg *config.Config) error {
 		&relational.SelectSubjectById{},
 		&relational.Filter{},
 		&relational.FilterResponsibility{},
+		&relational.SSPScopeSettings{},
+		&relational.SSPScopeEntry{},
+		&relational.SSPScopeException{},
 		&suggestionrel.DashboardSuggestionRun{},
 		&suggestionrel.DashboardSuggestionRunCell{},
 		&suggestionrel.DashboardSuggestion{},
@@ -216,6 +219,9 @@ func MigrateUpWithConfig(db *gorm.DB, cfg *config.Config) error {
 		}
 	}
 	if err := riskrel.EnsureIndexes(db); err != nil {
+		return err
+	}
+	if err := relational.EnsureSSPScopeConstraints(db); err != nil {
 		return err
 	}
 
@@ -1196,6 +1202,9 @@ func MigrateDown(db *gorm.DB) error {
 		&suggestionrel.DashboardSuggestionRunCell{},
 		&suggestionrel.DashboardSuggestionRun{},
 		&relational.FilterResponsibility{},
+		&relational.SSPScopeSettings{},
+		&relational.SSPScopeEntry{},
+		&relational.SSPScopeException{},
 		&relational.Filter{},
 		"filter_controls",
 		"filter_system_components",
