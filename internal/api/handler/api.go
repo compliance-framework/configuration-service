@@ -16,6 +16,7 @@ import (
 	evidencesvc "github.com/compliance-framework/api/internal/service/relational/evidence"
 	poamsvc "github.com/compliance-framework/api/internal/service/relational/poam"
 	riskrel "github.com/compliance-framework/api/internal/service/relational/risks"
+	"github.com/compliance-framework/api/internal/service/relational/sspscope"
 	workflowsvc "github.com/compliance-framework/api/internal/service/relational/workflows"
 	"github.com/compliance-framework/api/internal/workflow"
 	"github.com/labstack/echo/v4"
@@ -194,6 +195,15 @@ func RegisterHandlers(server *api.Server, logger *zap.SugaredLogger, db *gorm.DB
 	evidenceRiskGroup := server.API().Group("/evidence")
 	evidenceRiskGroup.Use(middleware.JWTMiddleware(config.JWTPublicKey))
 	evidenceHandler.RegisterRiskRoutes(evidenceRiskGroup, riskGuard.Read())
+
+	// An SSP's in-scope evidence lives on the SSP group and needs a logged-in user with SSP
+	// read, rather than joining the intentionally anonymous evidence read routes.
+	evidenceHandler.RegisterSSPScopedRoutes(
+		server.API().Group("/oscal/system-security-plans"),
+		sspscope.NewService(db),
+		middleware.JWTMiddleware(config.JWTPublicKey),
+		pep.For(authz.ResourceSSP).Read(),
+	)
 
 	poamService := poamsvc.NewPoamService(db)
 	poamHandler := NewPoamItemsHandler(poamService, riskService, logger)

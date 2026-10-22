@@ -46,6 +46,7 @@ func RegisterHandlers(server *api.Server, logger *zap.SugaredLogger, db *gorm.DB
 	sspGuard := pep.For(authz.ResourceSSP)
 	sspHandler := NewSystemSecurityPlanHandler(logger, db, evidenceSvc, jobEnqueuer)
 	sspHandler.Register(sspGroup, sspGuard)
+	NewSSPScopeHandler(logger, db).Register(sspGroup, sspGuard)
 
 	offeringGroup := oscalGroup.Group("/ssp-export-offerings")
 	offeringGuard := pep.For(authz.ResourceSSPExportOffering)

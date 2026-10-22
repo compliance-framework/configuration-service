@@ -131,3 +131,26 @@ func (s *NormalizeSuite) TestToFilterMatchesEvidence() {
 	s.Require().NoError(err)
 	s.Equal([]int{0, 2}, got)
 }
+
+func (s *NormalizeSuite) TestAnd() {
+	base := labelfilter.Filter{Scope: new(eq("env", "prod"))}
+	scope, _ := ToFilter([]relational.SSPScopeEntry{entry("repo", "a")})
+
+	s.Equal(scope, And(labelfilter.Filter{}, scope), "an empty base adds nothing")
+	s.Equal(scope, And(labelfilter.Filter{Scope: &labelfilter.Scope{}}, scope), `{"scope":{}} adds nothing`)
+	s.Equal(base, And(base, labelfilter.Filter{}))
+
+	got := And(base, scope)
+	s.Require().NotNil(got.Scope.Query)
+	s.Equal("AND", got.Scope.Query.Operator)
+	s.Equal([]labelfilter.Scope{*base.Scope, *scope.Scope}, got.Scope.Scopes)
+
+	idx := labelfilter.NewIndex([]map[string][]string{
+		{"env": {"prod"}, "repo": {"a"}},
+		{"env": {"prod"}, "repo": {"b"}},
+		{"env": {"dev"}, "repo": {"a"}},
+	})
+	matched, err := idx.Match(got.Scope)
+	s.Require().NoError(err)
+	s.Equal([]int{0}, matched)
+}
