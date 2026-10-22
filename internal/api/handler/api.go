@@ -37,6 +37,9 @@ type APIServices struct {
 	// EvidenceBatchQueue processes POST /evidence/batches in the background (the worker
 	// service). When nil, batch requests answer 503.
 	EvidenceBatchQueue EvidenceBatchQueue
+	// SSPTemplateRunEnqueuer queues manual SSP template discovery runs (the worker
+	// service). When nil, the run route answers 503.
+	SSPTemplateRunEnqueuer templatehandlers.SSPTemplateRunEnqueuer
 	// PEP is the shared, config-selected Policy Enforcement Point used by every guarded
 	// route. cmd/run.go builds it once (around the configured PDP) and passes it in; when
 	// nil (e.g. test suites) RegisterHandlers falls back to a builtin-backed PEP, which
@@ -245,7 +248,7 @@ func RegisterHandlers(server *api.Server, logger *zap.SugaredLogger, db *gorm.DB
 	sspTemplateGroup := server.API().Group("/admin/ssp-templates")
 	sspTemplateGroup.Use(middleware.JWTMiddleware(config.JWTPublicKey))
 	sspTemplateGroup.Use(pep.Authorize(authz.ResourceAdmin, authz.ActionManage))
-	templatehandlers.NewSSPTemplateHandler(logger, db).Register(sspTemplateGroup)
+	templatehandlers.NewSSPTemplateHandler(logger, db, services.SSPTemplateRunEnqueuer, config.SSPTemplate).Register(sspTemplateGroup)
 
 	agentSubjectTemplateGroup := server.API().Group("/agent/subject-templates")
 	subjectTemplateHandler.RegisterAgent(agentSubjectTemplateGroup, agentIngestMiddleware, pep.For(authz.ResourceSubjectTemplate).Update())

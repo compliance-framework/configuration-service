@@ -1,11 +1,13 @@
 package templates
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"time"
 
 	"github.com/compliance-framework/api/internal/api"
+	"github.com/compliance-framework/api/internal/config"
 	"github.com/compliance-framework/api/internal/converters/labelfilter"
 	svc "github.com/compliance-framework/api/internal/service"
 	"github.com/compliance-framework/api/internal/service/relational"
@@ -16,16 +18,32 @@ import (
 	"gorm.io/gorm"
 )
 
+// SSPTemplateRunEnqueuer queues a discovery run of one SSP template (the worker
+// service).
+type SSPTemplateRunEnqueuer interface {
+	EnqueueSSPTemplateDiscovery(ctx context.Context, templateID uuid.UUID) error
+}
+
 // SSPTemplateHandler serves /admin/ssp-templates.
 type SSPTemplateHandler struct {
 	service    *ssptemplates.Service
+	enqueuer   SSPTemplateRunEnqueuer
+	staleAfter time.Duration
 	sugar      *zap.SugaredLogger
 	pagination *svc.PaginationConfig
 }
 
-func NewSSPTemplateHandler(sugar *zap.SugaredLogger, db *gorm.DB) *SSPTemplateHandler {
+// NewSSPTemplateHandler builds the handler. A nil enqueuer makes the run route answer
+// 503; a nil cfg means the default stale-after.
+func NewSSPTemplateHandler(sugar *zap.SugaredLogger, db *gorm.DB, enqueuer SSPTemplateRunEnqueuer, cfg *config.SSPTemplateConfig) *SSPTemplateHandler {
+	staleAfter := config.DefaultSSPTemplateStaleAfter
+	if cfg != nil {
+		staleAfter = cfg.StaleAfter
+	}
 	return &SSPTemplateHandler{
 		service:    ssptemplates.NewService(db),
+		enqueuer:   enqueuer,
+		staleAfter: staleAfter,
 		sugar:      sugar,
 		pagination: svc.NewPaginationConfig(),
 	}
@@ -39,6 +57,9 @@ func (h *SSPTemplateHandler) Register(group *echo.Group) {
 	group.GET("/:id", h.Get)
 	group.PUT("/:id", h.Update)
 	group.DELETE("/:id", h.Delete)
+	group.POST("/:id/run", h.Run)
+	group.GET("/:id/ssps", h.ListSSPs)
+	group.DELETE("/:id/ssps/:keyHash", h.Forget)
 }
 
 // sspTemplateRequest is ssptemplates.Input with JSON tags; it converts to it directly.
@@ -273,10 +294,12 @@ func (h *SSPTemplateHandler) Preview(ctx echo.Context) error {
 
 func (h *SSPTemplateHandler) serviceError(ctx echo.Context, message string, err error) error {
 	switch {
-	case errors.Is(err, ssptemplates.ErrNotFound):
+	case errors.Is(err, ssptemplates.ErrNotFound), errors.Is(err, ssptemplates.ErrInstanceNotFound):
 		return ctx.JSON(http.StatusNotFound, api.NotFound())
 	case errors.Is(err, ssptemplates.ErrInvalidTemplate):
 		return ctx.JSON(http.StatusBadRequest, api.NewError(err))
+	case errors.Is(err, ssptemplates.ErrTemplateDisabled), errors.Is(err, ssptemplates.ErrSSPExists):
+		return ctx.JSON(http.StatusConflict, api.NewError(err))
 	default:
 		return templateInternalServerError(ctx, h.sugar, message, err)
 	}

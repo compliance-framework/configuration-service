@@ -13,6 +13,7 @@ import (
 
 	"github.com/compliance-framework/api/internal/api"
 	handlerpkg "github.com/compliance-framework/api/internal/api/handler"
+	templatehandlers "github.com/compliance-framework/api/internal/api/handler/templates"
 	"github.com/compliance-framework/api/internal/api/middleware"
 	"github.com/compliance-framework/api/internal/authn"
 	"github.com/compliance-framework/api/internal/authz"
@@ -33,6 +34,7 @@ type SSPTemplateApiIntegrationSuite struct {
 	server      *api.Server
 	admin       string
 	contributor string
+	runs        *recordingEnqueuer
 }
 
 func TestSSPTemplateApi(t *testing.T) {
@@ -43,14 +45,22 @@ func (s *SSPTemplateApiIntegrationSuite) SetupTest() {
 	s.Require().NoError(s.Migrator.Refresh())
 	s.admin = s.roledUser("admin@example.com", "admin")
 	s.contributor = s.roledUser("contributor@example.com", "contributor")
+	s.runs = &recordingEnqueuer{}
+	s.server = s.newServer(s.runs)
+}
 
+// newServer serves the API through the embedded Cedar PDP; runs may be nil.
+func (s *SSPTemplateApiIntegrationSuite) newServer(runs templatehandlers.SSPTemplateRunEnqueuer) *api.Server {
 	logger := zap.NewNop().Sugar()
 	pdp, err := authz.Open(authz.Options{Driver: authz.DriverCedar}, authz.Deps{DB: s.DB, Config: s.Config, Logger: logger})
 	s.Require().NoError(err)
-	s.server = api.NewServer(context.Background(), logger, s.Config, api.NewMetricsHandler(context.Background(), logger))
-	handlerpkg.RegisterHandlers(s.server, logger, s.DB, s.Config, &handlerpkg.APIServices{
-		PEP: middleware.NewPEP(pdp, authz.FailClosed, logger),
-	})
+	server := api.NewServer(context.Background(), logger, s.Config, api.NewMetricsHandler(context.Background(), logger))
+	services := &handlerpkg.APIServices{PEP: middleware.NewPEP(pdp, authz.FailClosed, logger)}
+	if runs != nil {
+		services.SSPTemplateRunEnqueuer = runs
+	}
+	handlerpkg.RegisterHandlers(server, logger, s.DB, s.Config, services)
+	return server
 }
 
 func (s *SSPTemplateApiIntegrationSuite) roledUser(email, role string) string {

@@ -10744,6 +10744,15 @@ definitions:
           type: string
         type: array
     type: object
+  relational.SkippedScopeEntry:
+    properties:
+      labels:
+        items:
+          $ref: '#/definitions/relational.ScopeLabel'
+        type: array
+      reason:
+        type: string
+    type: object
   relational.Statement:
     properties:
       by-components:
@@ -11418,6 +11427,21 @@ definitions:
       totalPages:
         type: integer
     type: object
+  service.ListResponse-templates_sspTemplateInstanceResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/templates.sspTemplateInstanceResponse'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+      totalPages:
+        type: integer
+    type: object
   service.ListResponse-templates_sspTemplateResponse:
     properties:
       data:
@@ -12010,6 +12034,35 @@ definitions:
     properties:
       data:
         $ref: '#/definitions/templates.sspTemplateResponse'
+    type: object
+  templates.sspTemplateInstanceResponse:
+    properties:
+      created-at:
+        type: string
+      key-hash:
+        description: the id the forget route takes
+        type: string
+      key-values:
+        additionalProperties: {}
+        type: object
+      last-error:
+        type: string
+      last-seen-at:
+        type: string
+      skipped-entries:
+        description: learned values rejected as invalid on the last run
+        type: integer
+      skipped-sample:
+        items:
+          $ref: '#/definitions/relational.SkippedScopeEntry'
+        type: array
+      ssp-id:
+        description: null once the SSP was deleted
+        type: string
+      stale:
+        type: boolean
+      title:
+        type: string
     type: object
   templates.sspTemplatePreviewRequest:
     properties:
@@ -15154,6 +15207,127 @@ paths:
       security:
       - OAuth2Password: []
       summary: Update SSP template
+      tags:
+      - SSP Templates
+  /admin/ssp-templates/{id}/run:
+    post:
+      description: Queue a discovery run of the template now. A run already queued
+        for it is not queued twice.
+      parameters:
+      - description: SSP template ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "202":
+          description: Accepted
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "409":
+          description: the template is disabled
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+        "503":
+          description: background jobs are not available
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Run SSP template discovery
+      tags:
+      - SSP Templates
+  /admin/ssp-templates/{id}/ssps:
+    get:
+      description: 'List the template''s instances, newest first: the SSP (null once
+        deleted), when it was last seen in evidence, whether it is stale, and the
+        last run''s error and skipped entries.'
+      parameters:
+      - description: SSP template ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/service.ListResponse-templates_sspTemplateInstanceResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: List the SSPs an SSP template created
+      tags:
+      - SSP Templates
+  /admin/ssp-templates/{id}/ssps/{keyHash}:
+    delete:
+      description: Delete the record of an SSP the template created and a user then
+        deleted, so the next discovery run creates it again. Only allowed once the
+        SSP was deleted (409 otherwise).
+      parameters:
+      - description: SSP template ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Instance key hash
+        in: path
+        name: keyHash
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - OAuth2Password: []
+      summary: Forget a deleted SSP of an SSP template
       tags:
       - SSP Templates
   /admin/ssp-templates/preview:
